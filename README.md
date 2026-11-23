@@ -1,4 +1,4 @@
-# スクショはローカルAIにぶん投げろ！ v1.2.1
+# スクショはローカルAIにぶん投げろ！ v1.2.2
 
 **囲った範囲の画像を PC の AI（Ollama）に送り、答えをキャプチャ枠の中に透過表示する Windows 向けツールです。**
 
@@ -36,7 +36,7 @@
 
 ### 1. zip を展開して起動する
 
-1. [Releases](https://github.com/gonsuke0926-hub/Bunnagetaro/releases/latest) から `Bunnagetaro-v1.2.1-win-x64.zip` をダウンロードします。
+1. [Releases](https://github.com/gonsuke0926-hub/Bunnagetaro/releases/latest) から `Bunnagetaro-v1.2.2-win-x64.zip` をダウンロードします。
 2. zip を右クリックし、「すべて展開」で任意のフォルダへ展開します。
 3. 展開した中の `Bunnagetaro` フォルダを開き、`Bunnagetaro.exe` を起動します。
    - `Bunnagetaro.exe` だけを別の場所へ移動すると動作しません（同じフォルダの DLL や `Models` フォルダが必要です）。デスクトップなどから起動したい場合はショートカットを作成してください。
