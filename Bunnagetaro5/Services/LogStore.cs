@@ -7,7 +7,7 @@ using System.Windows.Media.Imaging;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 履歴とログの保管（WPF_PORT_SPEC 5.4 / Python版 tw_store.LogStore）。
+/// 履歴とログの保管。
 /// logs/entries.json と logs/images を管理する。MaxEntries超過の掃除や
 /// 孤児画像の削除はここが行うが、分析用の保存物（shots）は別フォルダでここでは消さない。
 /// entries.json → .bak の順に読む（壊れても履歴を丸ごと失わない作り）。
@@ -20,7 +20,7 @@ public sealed class LogStore
     private readonly Paths _paths;
     private readonly object _lock = new();
 
-    /// <summary>新しい→古い順（Python版 self.entries と同じ向き）。</summary>
+    /// <summary>新しい→古い順。</summary>
     public List<JsonObject> Entries { get; private set; } = new();
 
     public LogStore(Paths paths)
@@ -106,7 +106,7 @@ public sealed class LogStore
         }
     }
 
-    /// <summary>起動時にpending残りをfail確定（Python版 finalize_pending と同じ）。</summary>
+    /// <summary>起動時にpending残りをfail確定。</summary>
     public int FinalizePending(string reason = "(中断: アプリ終了)")
     {
         lock (_lock) return FinalizePendingLocked(reason);
@@ -132,8 +132,8 @@ public sealed class LogStore
         return n;
     }
 
-    /// <summary>条目を先頭へ挿入し、MaxEntries超過分を捨てて保存（Python版 _insert_dump_locked）。
-    /// 画像ファイルの削除はロックの外で（Python版も lock の外で _drop_imgs）。</summary>
+    /// <summary>条目を先頭へ挿入し、MaxEntries超過分を捨てて保存。
+    /// 画像ファイルの削除はロックの外で行う。</summary>
     public void InsertAndDump(JsonObject entry)
     {
         List<JsonObject> trimmed = new();
@@ -153,7 +153,7 @@ public sealed class LogStore
     // ---- v1.8: 撮影の瞬間に条目を作り、finish で訳文を追いつかせる ----
 
     /// <summary>shots への保存に使う設定をもらう口（本体が App の設定へ差し替える）。
-    /// 未設定なら既定の設定（Python版 shots_cfg / DEFAULT_CONFIG と同じ）。</summary>
+    /// 未設定なら既定の設定を使う。</summary>
     public Func<JsonObject>? ShotsCfg { get; set; }
 
     private readonly Dictionary<string, Dictionary<string, object?>> _shotCtx = new();
@@ -172,8 +172,7 @@ public sealed class LogStore
         }
     }
 
-    /// <summary>完了済みの条目をまとめて1件で追加する経路（Python版 add。
-    /// ぶん投げの本体は AddPending/Finish の二段階を使う。互換・手動追加用）。</summary>
+    /// <summary>完了済みの条目をまとめて1件で追加する経路（ぶん投げの本体は AddPending/Finish の二段階を使う。互換・手動追加用）。</summary>
     public JsonObject Add(BitmapSource img, string text, string model, string source)
     {
         string eid = NewId();
@@ -212,7 +211,7 @@ public sealed class LogStore
         return entry;
     }
 
-    /// <summary>G6: 条目を即座にメモリへ積み、PNG保存・shots保存・entries.json 書き出しを
+    /// <summary>条目を即座にメモリへ積み、PNG保存・shots保存・entries.json 書き出しを
     /// 裏タスクへ回して送信開始を先へ進める。prepared/sendPng を渡すと重複エンコードを省く。</summary>
     public (JsonObject Entry, Task PersistTask) AddPendingDeferred(
         BitmapSource img, string model, string source,
@@ -273,7 +272,7 @@ public sealed class LogStore
             DumpLocked();
             entrySnapshot = (JsonObject)entry.DeepClone();
         }
-        // G7: HTTP(ModelInfo)やfsync(WriteMeta)を _lock の外で実行し、Snapshot()等のUI呼び出しをブロックしない
+        // HTTP(ModelInfo)やfsync(WriteMeta)を _lock の外で実行し、Snapshot()等のUI呼び出しをブロックしない
         ArchiveMeta(entrySnapshot);
     }
 
@@ -395,8 +394,7 @@ public sealed class LogStore
         double d => JsonValue.Create(d),
         int[] arr => new JsonArray([.. arr.Select(x => (JsonNode)x)]),
         Dictionary<string, object?> dict => DictToJson(dict),
-        // Python版は dict/list をそのまま json に載せる。List<object?>（raw_size 等）や
-        // List<Dictionary>（chunks・llm_calls）も文字列にせず配列・物件として残す
+        // List<object?>（raw_size 等）や List<Dictionary>（chunks・llm_calls）は文字列にせず配列・オブジェクトとしてそのまま JSON に載せる
         System.Collections.IList list => new JsonArray(
             [.. list.Cast<object?>().Select(x => ToNode(x))]),
         System.Collections.IDictionary d => DictToNode(d),
@@ -420,8 +418,7 @@ public sealed class LogStore
 
     private static JsonNode? ToNodeOr(JsonNode? n) => n?.DeepClone();
 
-    /// <summary>メタJSONに載せるconfigの切り出し（tw_shotsの _archive_meta と同じキーだけ。
-    /// プロンプト全文などは shots_dir の隣の config には載せない）。</summary>
+    /// <summary>メタJSONに載せるconfigの切り出し（プロンプト全文などは shots_dir の隣の config には載せない）。</summary>
     private static readonly string[] MetaConfigKeys =
     {
         "model", "base_url", "ocr_split_mode", "mode", "result_place", "overlay_alpha",
@@ -490,7 +487,7 @@ public sealed class LogStore
         }
     }
 
-    /// <summary>条目から参照されていない images/*.png を掃除（Python版 _gc_orphans）。</summary>
+    /// <summary>条目から参照されていない images/*.png を掃除。</summary>
     public void GcOrphans()
     {
         lock (_lock) GcOrphansLocked();

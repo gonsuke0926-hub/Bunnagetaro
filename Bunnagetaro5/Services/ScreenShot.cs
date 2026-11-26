@@ -10,9 +10,9 @@ using Size = System.Drawing.Size;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 画面撮影（7.3 / Python版 tw_image.grab_region 相当）。
+/// 画面撮影。
 /// 撮影自体は物理px範囲の取り込みだけでUIスレッドで呼んでよい。
-/// 変換・縮小・PNG化はバックグラウンドで（呼び手＝手順13がやる）。
+/// 変換・縮小・PNG化はバックグラウンドで呼び手側が行う。
 /// </summary>
 public static class ScreenShot
 {
@@ -67,7 +67,7 @@ public static class ScreenShot
         }
     }
 
-    /// <summary>PNGバイト列（送信用base64やraw保存は呼び手が使う。7.3「PNG化はバックグラウンド」の部品）</summary>
+    /// <summary>PNGバイト列（送信用base64やraw保存は呼び手が使う。バックグラウンドでのPNG化用）</summary>
     public static byte[] PngBytes(BitmapSource src)
     {
         var enc = new PngBitmapEncoder();

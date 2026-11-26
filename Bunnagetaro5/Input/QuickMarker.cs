@@ -5,10 +5,10 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Input;
 
 /// <summary>
-/// クイックぶん投げで四角を描いている間の軽いダミー枠（FIX_ROUND4 E9）。
+/// クイックぶん投げで四角を描いている間の軽いダミー枠。
 /// 専用スレッド（QuickMarker）が自分のメッセージループと素の Win32 窓を1つ持ち、
 /// 画面の1フレーム（DwmFlush）ごとにカーソルまでの四角へ枠を描き直す。WPF も UI スレッドも通らない。
-/// 見た目はキャプチャ窓の縁（Accent 一色・太さ BorderPhys の枠だけ）。修正J65: 窓は仮想デスクトップ全体の大きさで動かさず、
+/// 見た目はキャプチャ窓の縁（Accent 一色・太さ BorderPhys の枠だけ）。窓は仮想デスクトップ全体の大きさで動かさず、
 /// 中の絵（外も中も alpha 0・枠だけ不透明度 alpha の 32bpp プリマルチプライド）の変わった帯だけを
 /// UpdateLayeredWindowIndirect で貼る（FrameSurface。1回の仕事が四角の面積ではなく辺の長さに比例する）。
 /// 画面に写らない（WDA_EXCLUDEFROMCAPTURE）・クリックを素通し・アクティブにならない。
@@ -27,7 +27,7 @@ internal sealed class QuickMarker : IDisposable
     private uint _colorRef;               // 0x00BBGGRR（WM_START で _req の値に更新）
     private int _border;
     private byte _alpha = 0xB3;
-    // 修正J65: 窓は仮想デスクトップ全体の大きさで動かさず、中の絵（外も中も透明・枠だけ色）の変わった帯だけを貼る。
+    // 窓は仮想デスクトップ全体の大きさで動かさず、中の絵（外も中も透明・枠だけ色）の変わった帯だけを貼る。
     // 今までの「四角の大きさの窓を毎フレーム作り直して全部貼る」は、大きい四角で 1 回が面積に比例して重かった。
     // 絵は専用スレッドだけが触る
     private readonly FrameSurface _surf = new();
@@ -40,9 +40,9 @@ internal sealed class QuickMarker : IDisposable
     private bool _disposed;
     private readonly object _lk = new();
     private (int X0, int Y0, int MinW, int MinH) _req;
-    private bool _reqExt;                 // H6: 外から矩形を渡される形（カーソルを追わない）
+    private bool _reqExt;                 // 外から矩形を渡される形（カーソルを追わない）
     private (int X, int Y, int W, int H) _extRect;
-    private bool _reqAllowCapture;        // 修正J120: 次の Start で使う「配信・録画に映す」設定
+    private bool _reqAllowCapture;        // 次の Start で使う「配信・録画に映す」設定
     private WndProc? _proc;               // GC されないよう保持
     private readonly ManualResetEventSlim _ready = new(false);
 
@@ -60,7 +60,7 @@ internal sealed class QuickMarker : IDisposable
         lock (_lk) _reqStyle = ((uint)(r | (g << 8) | (b << 16)), alpha, Math.Max(1, border));
     }
 
-    /// <summary>修正J120: 次の Start で使う「配信・録画に映す」設定（Start の時点の値で切り替える）</summary>
+    /// <summary>次の Start で使う「配信・録画に映す」設定（Start の時点の値で切り替える）</summary>
     public void SetAllowCapture(bool allow)
     {
         lock (_lk) _reqAllowCapture = allow;
@@ -75,10 +75,10 @@ internal sealed class QuickMarker : IDisposable
     /// <summary>テスト用: 窓ハンドル</summary>
     internal IntPtr Hwnd => _hwnd;
 
-    /// <summary>テスト用: いま絵に使っている不透明度（F31: 最小未満は半分）</summary>
+    /// <summary>テスト用: いま絵に使っている不透明度（最小未満は半分）</summary>
     internal byte DrawnAlpha => (byte)(_drawnArgb >> 24);
 
-    /// <summary>修正J65: 直近の更新で塗った画素の数（テスト用。大きい四角でも辺の長さに比例することを見る）</summary>
+    /// <summary>直近の更新で塗った画素の数（テスト用。大きい四角でも辺の長さに比例することを見る）</summary>
     internal long LastPaintedPx => _surf.LastPaintedPx;
     /// <summary>テスト用: スレッドが生きているか</summary>
     internal bool ThreadAlive => _th is { IsAlive: true };
@@ -92,7 +92,7 @@ internal sealed class QuickMarker : IDisposable
         return PostMessage(_hwnd, WM_START, IntPtr.Zero, IntPtr.Zero);
     }
 
-    /// <summary>H6: カーソルを追わず、外から渡す矩形（Place）へ動く形で始める。出せなければ false。
+    /// <summary>カーソルを追わず、外から渡す矩形（Place）へ動く形で始める。出せなければ false。
     /// キャプチャ窓の上・左の縁を引いている間の見た目に使う（初期矩形はすぐ出す）</summary>
     public bool StartExternal(int x, int y, int w, int h)
     {
@@ -102,7 +102,7 @@ internal sealed class QuickMarker : IDisposable
         return PostMessage(_hwnd, WM_START, IntPtr.Zero, IntPtr.Zero);
     }
 
-    /// <summary>H6: 外から矩形を渡す（物理px。最後の値が次の1フレームで置かれる）</summary>
+    /// <summary>外から矩形を渡す（物理px。最後の値が次の1フレームで置かれる）</summary>
     public void Place(int x, int y, int w, int h)
     {
         lock (_lk) { _extRect = (x, y, Math.Max(1, w), Math.Max(1, h)); }
@@ -187,7 +187,7 @@ internal sealed class QuickMarker : IDisposable
 
     private bool _shown;
     private (int X, int Y, int W, int H) _last;
-    private bool _lastBelow;              // F31: いま半透明（最小未満）で描いているか
+    private bool _lastBelow;              // いま半透明（最小未満）で描いているか
     private (int X0, int Y0, int MinW, int MinH) _cur;
     private bool _curExt;
     private double _frameMs = 16.7;       // 見つけた最小のフレーム間隔（リフレッシュに合わせて自動で可変）
@@ -248,7 +248,7 @@ internal sealed class QuickMarker : IDisposable
             t0 = Stopwatch.GetTimestamp();
             // 2〜4) カーソルまでの四角へ
             Update();
-            // 更新が1フレームの半分を超えたら、その分フレームを飛ばす（E5 の QuickFollowBudget = 0.5）
+            // 更新が1フレームの半分を超えたら、その分フレームを飛ばす（QuickFollowBudget = 0.5）
             double ms = (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
             if (ms > _frameMs * 0.5)
             {
@@ -289,7 +289,7 @@ internal sealed class QuickMarker : IDisposable
         bool below;
         if (_curExt)
         {
-            // H6: 外から渡された矩形へ（変わっていなければ何もしない）
+            // 外から渡された矩形へ（変わっていなければ何もしない）
             lock (_lk) { rc = _extRect; }
             below = false;
         }
@@ -297,7 +297,7 @@ internal sealed class QuickMarker : IDisposable
         {
             if (CursorProvider() is not { } cp) return;
             var p = new Native.POINT { X = cp.X, Y = cp.Y };
-            // 修正J49: マウスで描いている時に離したら、カーソルを追うのをやめて離した点で止まる
+            // マウスで描いている時に離したら、カーソルを追うのをやめて離した点で止まる
             // （確定する四角と同じ終点。離した後のマウスの動きを追うと、出てきた窓とずれて見えた）
             if (Released?.Invoke() == true)
             {
@@ -307,12 +307,12 @@ internal sealed class QuickMarker : IDisposable
             var c = _cur;
             // 押した点から 2px 以内のうちは出さない（押しているだけのあいだ画面が見える）
             if (!_shown && Math.Max(Math.Abs(p.X - c.X0), Math.Abs(p.Y - c.Y0)) <= 2) return;
-            // F31: カーソルまでの四角そのまま（最小で広げない）。最小未満の間は半透明（離すと取り消しの合図）
+            // カーソルまでの四角そのまま（最小で広げない）。最小未満の間は半透明（離すと取り消しの合図）
             (rc, below) = Geom.QuickDragRect(c.X0, c.Y0, p.X, p.Y, c.MinW, c.MinH, _border);
         }
         if (_shown && rc == _last && below == _lastBelow) return;   // 同じ四角なら何もしない
         _lastBelow = below;
-        // 修正J65: 窓は動かさず、前と今の枠の帯だけを塗り直して貼る（H12 と同じく位置と絵が1度に変わる）
+        // 窓は動かさず、前と今の枠の帯だけを塗り直して貼る（位置と絵が1度に変わる）
         byte a = below ? (byte)(_alpha / 2) : _alpha;
         if (!_surf.Ready) return;
         uint argb = PremulArgb(_colorRef, a);
@@ -323,25 +323,25 @@ internal sealed class QuickMarker : IDisposable
         if (!_shown)
             SetWindowPos(_hwnd, new IntPtr(-1), 0, 0, 0, 0, SWP_NOACTIVATE | SWP_SHOWWINDOW | 0x1 /* NOSIZE */ | 0x2 /* NOMOVE */);
         _last = rc;
-        lock (_lk) _shownRect = rc;   // 修正J45: 調べ用（UI のスレッドから読む）
+        lock (_lk) _shownRect = rc;   // 調べ用（UI のスレッドから読む）
         _shown = true;
     }
 
     private (int X, int Y, int W, int H)? _shownRect;
 
-    /// <summary>修正J60b: 追うカーソルの位置（物理px）。テストで本物のマウスに頼らないよう差し替えられる</summary>
+    /// <summary>追うカーソルの位置（物理px）。テストで本物のマウスに頼らないよう差し替えられる</summary>
     internal volatile Func<(int X, int Y)?> CursorProvider = Geom.CursorPos;
 
-    /// <summary>修正J49: 離したか（true の間はカーソルを追わない）。ダミー枠のスレッドから毎フレーム呼ぶ。null なら追い続ける</summary>
+    /// <summary>離したか（true の間はカーソルを追わない）。ダミー枠のスレッドから毎フレーム呼ぶ。null なら追い続ける</summary>
     internal volatile Func<bool>? Released;
 
-    /// <summary>修正J49: 離した点（確定する四角の終点）。読めなければ null（最後に描いた枠のまま）</summary>
+    /// <summary>離した点（確定する四角の終点）。読めなければ null（最後に描いた枠のまま）</summary>
     internal volatile Func<(int X, int Y)?>? ReleasedEnd;
 
-    /// <summary>修正J45: いま画面に出しているダミー枠の四角（物理px。まだ出していなければ null）</summary>
+    /// <summary>いま画面に出しているダミー枠の四角（物理px。まだ出していなければ null）</summary>
     internal (int X, int Y, int W, int H)? ShownRect { get { lock (_lk) return _shownRect; } }
 
-    // ---------------- 枠の絵（H12） ----------------
+    // ---------------- 枠の絵 ----------------
 
     /// <summary>colorRef(0x00BBGGRR)・alpha から、プリマルチプライドの 0xAARRGGBB を作る</summary>
     internal static uint PremulArgb(uint colorRef, byte alpha)
@@ -370,8 +370,8 @@ internal sealed class QuickMarker : IDisposable
         }
     }
 
-    /// <summary>修正J65: 窓を仮想デスクトップ全体の大きさにそろえる（出す前、隠れている間に。画面の並びが変わった時だけ作り直す）。
-    /// 修正J75: 四方を 1px ずつ小さくする（SurfaceRect）</summary>
+    /// <summary>窓を仮想デスクトップ全体の大きさにそろえる（出す前、隠れている間に。画面の並びが変わった時だけ作り直す）。
+    /// 四方を 1px ずつ小さくする（SurfaceRect）</summary>
     private void PrepareSurface(IntPtr hwnd)
     {
         var v = SurfaceRect(Native.VirtualDesktop());
@@ -380,7 +380,7 @@ internal sealed class QuickMarker : IDisposable
         if (_surf.Reset(v.Left, v.Top, w, h, 0)) _surf.PresentFull(hwnd, 255);
     }
 
-    /// <summary>修正J75: ダミー枠の窓の矩形。仮想デスクトップの四方を 1px ずつ小さくする。
+    /// <summary>ダミー枠の窓の矩形。仮想デスクトップの四方を 1px ずつ小さくする。
     /// 画面をぴったり（以上）おおう一番手前の窓があると、Windows が「全画面のアプリが動いている」と見なし、
     /// 窓をつかんでいる間におやすみモード（タスクバーのベルマーク）が付き、タスクバーも裏へ下がった
     /// （SHQueryUserNotificationState が QUNS_BUSY になる。1px でも足りなければ全画面とは見なされない）。

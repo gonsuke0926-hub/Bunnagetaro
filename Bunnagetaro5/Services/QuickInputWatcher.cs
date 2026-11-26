@@ -7,8 +7,7 @@ using System.Threading;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 長押しドラッグを矩形として拾い、ぶん投げホットキーの発火も拾う入力フックスレッド
-/// （Python版 tw_input.py の QuickInputWatcher の移植）。
+/// 長押しドラッグを矩形として拾い、ぶん投げホットキーの発火も拾う入力フックスレッド。
 ///
 /// 拾える入力は3系統（同じスレッドで最大2つの低レベルフックを張る）:
 /// ・クイックぶん投げ（マウス）: 割り当てたボタンを長押しドラッグして四角を描き、離す
@@ -22,7 +21,7 @@ namespace Bunnagetaro5.Services;
 /// 自動スクロール、設定キーの通常の発火）へは届かない。キーボードでは設定したキーの
 /// down/up だけを握り、普通の打鍵は一切握らないので typing は各アプリへ届く。
 ///
-/// 設計メモ（Python版で実測で潰したはまりポイント）:
+/// 設計メモ（はまりポイント）:
 /// ・フックを張ったスレッドがメッセージをポンプしている間だけコールバックが呼ばれる
 ///   → 専用スレッドで MsgWaitForMultipleObjectsEx + PeekMessageW を回す
 /// ・コールバックは超軽量に保つ（LowLevelHooksTimeout を超えるとフックが剥がされ、
@@ -49,7 +48,7 @@ public sealed class QuickInputWatcher
     private const int MwmoInputAvailable = 0x0004;
     private const int VkControl = 0x11, VkShift = 0x10, VkMenu = 0x12, VkLwin = 0x5B, VkRwin = 0x5C;
 
-    // KdState の値（Python版の None/0/1 対応。-1=設定なし）
+    // KdState の値（-1=設定なし）
     public const int KdNone = -1, KdUp = 0, KdDown = 1;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -122,18 +121,18 @@ public sealed class QuickInputWatcher
     private IReadOnlySet<int> _mask = Binding.QuickButtons("off");
     private Binding.Parsed? _hot;
     private string _hotTok = "";
-    private Binding.Parsed? _snip;           // 修正J58: 範囲ドラッグのホットキー（ぶん投げホットキーと同じ扱いの2つ目の枠）
+    private Binding.Parsed? _snip;           // 範囲ドラッグのホットキー（ぶん投げホットキーと同じ扱いの2つ目の枠）
     private string _snipTok = "";
     private Binding.Parsed? _kd;
     private string _kdTok = "";
     private volatile bool _catch;
 
-    /// <summary>修正J46: 離した時の終点に使うカーソル位置（物理px）。取れなければ null（離したイベントの座標を使う）。
+    /// <summary>離した時の終点に使うカーソル位置（物理px）。取れなければ null（離したイベントの座標を使う）。
     /// テストは合成したイベントの座標で見るので null を返す物に差し替える</summary>
     internal Func<(int X, int Y)?> UpCursor { get; set; } = Geom.CursorPos;
-    private long _catchUntilMs;   // 修正J37: 「登録」待ちのフック側の期限（NowMs）
+    private long _catchUntilMs;   // 「登録」待ちのフック側の期限（NowMs）
 
-    /// <summary>修正J37: 「登録」待ちはフック側でも期限（UI の8秒より長い10秒）を持つ。
+    /// <summary>「登録」待ちはフック側でも期限（UI の8秒より長い10秒）を持つ。
     /// UI のスレッドが詰まって中止のタイマーが回らなくても、全部のキー・クリックを握り続けない（期限を過ぎたら素通し）</summary>
     internal const int CatchHookTimeoutMs = 10000;
 
@@ -150,7 +149,7 @@ public sealed class QuickInputWatcher
     private Box<RectResult>? _result;       // (x0,y0,x1,y1) UIが拾うまで保持
     private string? _captured;              // 「登録」待ちで拾ったバインド文字列
     private string? _hotFire;               // ホットキー発火（正規形）。UIが拾うまで保持
-    private string? _snipFire;              // 修正J58: 範囲ドラッグのホットキー発火（正規形）。UIが拾うまで保持
+    private string? _snipFire;              // 範囲ドラッグのホットキー発火（正規形）。UIが拾うまで保持
     public DragStart? Drag => Volatile.Read(ref _drag)?.Value;
     public RectResult? Result => Volatile.Read(ref _result)?.Value;
     public string? Captured => Volatile.Read(ref _captured);
@@ -178,8 +177,7 @@ public sealed class QuickInputWatcher
     public sealed record ChatterEvent(bool Absorbed, long GapMs, int ChatterMs);
     private ChatterEvent? _chatterNote;      // UIが拾ってログ・状態欄へ出す
     /// <summary>離してからこれより早い押し直しを「チャタリングかも」と記録する（ms）。
-    /// 修正J11: 300 → 60。人の速い押し直し（ログでは 67〜290ms）まで知らせていた（人の判断「もうちょい厳しく」）。
-    /// 修正J11b: 60 → 45（人の判断「もうちょっとだけきつく」）</summary>
+    /// 速い押し直し（実測 67〜290ms）を誤検知しないよう、しきい値を 45ms に抑えている。</summary>
     public const int SuspectRepressMs = 45;
     private long _lastUpMs = long.MinValue;  // フック側だけが読み書き（間に合わなかった押し直しの検出用）
     private int _lastUpBtn;
@@ -188,7 +186,7 @@ public sealed class QuickInputWatcher
     /// <summary>離しを預かっている最中（まだ描いている扱い）</summary>
     public bool UpPending => Volatile.Read(ref _pendingUp) is not null;
 
-    /// <summary>修正J49: 離した四角の終点（預かり中、または UI がまだ拾っていない確定）。無ければ null。
+    /// <summary>離した四角の終点（預かり中、または UI がまだ拾っていない確定）。無ければ null。
     /// ダミー枠が離した点で止まるのに使う（離した後もカーソルを追うと、確定した四角とずれて見えた）</summary>
     public (int X, int Y)? ReleasedEnd
     {
@@ -207,8 +205,8 @@ public sealed class QuickInputWatcher
     // ---- フック内部状態 ----
     private bool _hotDown;                  // キー発火のエッジ検出（自動リピート対策）
     private int _hotMdown;                  // ホットキー横ボタンの押しっぱなし
-    private bool _snipDown;                 // 修正J58: 範囲ドラッグのキーのエッジ検出
-    private int _snipMdown;                 // 修正J58: 範囲ドラッグのボタンの押しっぱなし
+    private bool _snipDown;                 // 範囲ドラッグのキーのエッジ検出
+    private int _snipMdown;                 // 範囲ドラッグのボタンの押しっぱなし
     private bool _kdDown;                   // 開始キーのエッジ検出（自動リピート対策）
     private IntPtr _hook, _khook;           // WH_MOUSE_LL / WH_KEYBOARD_LL
     private readonly HookProc _mouseCb;     // GC で collect されないよう生命期ぶん生存
@@ -228,7 +226,7 @@ public sealed class QuickInputWatcher
     public void Start()
     {
         if (_thread is not null) return;
-        // 修正J34: 低レベルフックは応答が遅れると OS に黙って外される（LowLevelHooksTimeout）。
+        // 低レベルフックは応答が遅れると OS に黙って外される（LowLevelHooksTimeout）。
         // 内蔵 OCR などで CPU が忙しくても先に回るよう、このスレッドだけ優先度を上げる（中身はすぐ返る処理だけ）
         _thread = new Thread(RunLoop) { IsBackground = true, Name = "QuickInput", Priority = ThreadPriority.Highest };
         _thread.Start();
@@ -257,7 +255,7 @@ public sealed class QuickInputWatcher
             h = null;          // ドラッグ起動と同じボタン：発火待ちにしない（UIが警告）
         string newTok = h is not null ? tok : "";
         // 同じバインドなら状態（押しっぱなし・エッジ検出）に触らない。1秒ごとの設定の読み直し
-        // （Apply）で毎回リセットすると、押している最中の状態が消える（FIX_ROUND5 F21）
+        // （Apply）で毎回リセットすると、押している最中の状態が消える
         if (newTok == _hotTok && (h is null) == (_hot is null)) return;
         _hot = h;
         _hotTok = newTok;
@@ -287,7 +285,7 @@ public sealed class QuickInputWatcher
             _hotTok = "";
             _hotDown = false;
         }
-        // 同じバインドなら何もしない（押している最中に _kdDown/KdState を戻さない。F21）
+        // 同じバインドなら何もしない（押している最中に _kdDown/KdState を戻さない）
         if (h is not null && _kd is not null && tok == _kdTok) return;
         _kd = h;
         _kdTok = h is not null ? tok : "";
@@ -300,7 +298,7 @@ public sealed class QuickInputWatcher
     /// <summary>いま待っているキー起動のバインド（""=なし）。</summary>
     public string Kdrag() => _kdTok;
 
-    /// <summary>修正J58: 範囲ドラッグのホットキーの割当（""=なし）。ぶん投げホットキーと同じ形（キーもボタンも可）で、
+    /// <summary>範囲ドラッグのホットキーの割当（""=なし）。ぶん投げホットキーと同じ形（キーもボタンも可）で、
     /// 発火は別の合図（TakeSnipHot）。クイックの起動ボタン・キー起動・ぶん投げホットキーと同じ入力は待たない
     /// （UI側が理由を出す。先に決まっている側を優先する）</summary>
     public void SetSnipHotkey(string? snip)
@@ -460,7 +458,7 @@ public sealed class QuickInputWatcher
                     var sn = _snip;
                     if (sn is not null && sn.Value.IsMouse && btn == sn.Value.Button)
                     {
-                        // 修正J58: 範囲ドラッグのホットキーに割り当てたボタン（ぶん投げホットキーと同じ扱い）
+                        // 範囲ドラッグのホットキーに割り当てたボタン（ぶん投げホットキーと同じ扱い）
                         if (down)
                         {
                             if (Drag is null)
@@ -520,14 +518,14 @@ public sealed class QuickInputWatcher
                         var d = Drag;
                         if (d is not null && btn == d.Value.Button)
                         {
-                            // 修正J46: 終点はいまのカーソル（ダミー枠が追っているのと同じ取り方）。離したイベントの座標は
+                            // 終点はいまのカーソル（ダミー枠が追っているのと同じ取り方）。離したイベントの座標は
                             // カーソルと数px食い違うことがあり（実測 左4px・下9px）、見えていた枠より広がって確定していた
                             var (ex, ey) = UpCursor() ?? (ms.x, ms.y);
                             var res = new RectResult(d.Value.X0, d.Value.Y0, ex, ey);
                             long now = NowMs();
                             _lastUpMs = now;
                             _lastUpBtn = btn;
-                            // 修正J36: 離しの結果（預かり）を先に書いてから _drag を消す。逆だと、その隙間に UI の
+                            // 離しの結果（預かり）を先に書いてから _drag を消す。逆だと、その隙間に UI の
                             // Poll が入ると「ドラッグも離しも無い＝up を取り損ねた」と見て四角を取り消していた
                             if (_chatterMs > 0)
                                 Volatile.Write(ref _pendingUp, new PendingUp(res, btn, now));
@@ -611,7 +609,7 @@ public sealed class QuickInputWatcher
                 var sn = _snip;
                 if (sn is not null && !sn.Value.IsMouse && vk == sn.Value.Vk)
                 {
-                    // 修正J58: 範囲ドラッグのホットキー（ぶん投げホットキーと同じ。押した縁で1回・リピートと離しは握る）
+                    // 範囲ドラッグのホットキー（ぶん投げホットキーと同じ。押した縁で1回・リピートと離しは握る）
                     if (up)
                     {
                         if (_snipDown)

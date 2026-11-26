@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正I3b・I3c: 出し終わった答えの表を WPF の表に組み替える・表のコピー（文字＝タブ区切り と HTML）</summary>
+/// <summary>出し終わった答えの表を WPF の表に組み替える・表のコピー（文字＝タブ区切り と HTML）</summary>
 public sealed class AnswerTableTests : IDisposable
 {
     private readonly string _temp;
@@ -93,7 +93,7 @@ public sealed class AnswerTableTests : IDisposable
     private const string Paddle = TableTextTests.PaddleT2;
     private const string Glm = TableTextTests.GlmT4;
 
-    // ---------------- 組み替え（I3b）
+    // ---------------- 組み替え
 
     [Fact]
     public void 流している間は文字のまま_出し終わった後だけ表になる()
@@ -270,7 +270,7 @@ public sealed class AnswerTableTests : IDisposable
         });
     }
 
-    // ---------------- コピー（I3c）
+    // ---------------- コピー
 
     [Fact]
     public void 全部コピー_タブ区切りの文字とHTMLの両方_表の外は今まで通り()
@@ -378,7 +378,7 @@ public sealed class AnswerTableTests : IDisposable
         });
     }
 
-    // ---------------- 修正J94: セルの中の数式
+    // ---------------- セルの中の数式
 
     [Fact]
     public void J94_セルの中の脚注の印は上付きで出し_全文コピーも上付き文字とsup()

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>手順19: 変化検知の純粋関数（tw_image _fingerprint / change_ratio）</summary>
+/// <summary>変化検知の純粋関数</summary>
 public class ChangeDetectorTests
 {
     private static ChangeDetector.Frame Solid(int w, int h, byte gray)

@@ -12,10 +12,10 @@ using WpfMath.Controls;
 
 namespace Bunnagetaro5.Views;
 
-/// <summary>解答欄の表（OTSL・HTML の表を WPF の表に組む）（AnswerView を分けたもの。修正J43）</summary>
+/// <summary>解答欄の表（OTSL・HTML の表を WPF の表に組む）（AnswerView を分けたもの）</summary>
 public partial class AnswerView
 {
-    // ---------------- 表（修正I3） ----------------
+    // ---------------- 表 ----------------
 
     /// <summary>出し終わった答えに表（OTSL・HTML の table）があれば、表の部分だけ WPF の表に組み替える。
     /// 前後の文章・数式はそのまま。壊れた表は文字のまま（app.log に1行）。もう組み替え済みなら何もしない</summary>
@@ -128,7 +128,7 @@ public partial class AnswerView
         return table;
     }
 
-    /// <summary>修正J94: セルの1行に式がある時。単純な上付き・下付きは小さい字を上下にずらした Run、
+    /// <summary>セルの1行に式がある時。単純な上付き・下付きは小さい字を上下にずらした Run、
     /// そのほかの式は本文の文中の式と同じ描き方（KaTeX の画像・WpfMath。描けなければ原文字）</summary>
     private void AddCellMath(Paragraph para, string line)
     {

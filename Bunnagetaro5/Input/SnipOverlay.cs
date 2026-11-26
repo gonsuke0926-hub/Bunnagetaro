@@ -7,11 +7,11 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Input;
 
 /// <summary>
-/// 修正J52: 画面を少し暗くして範囲ドラッグのための覆い。全モニタ（仮想デスクトップ）いっぱいに出す。
+/// 画面を少し暗くして範囲ドラッグのための覆い。全モニタ（仮想デスクトップ）いっぱいに出す。
 /// 置き場所は物理px（仮想デスクトップ矩形）。撮影には必ず写らない（WDA_EXCLUDEFROMCAPTURE。
 /// allow_capture_overlay の設定には従わない）。押す・離す・取り消しは QuickThrowController へ知らせるだけ。
-/// 修正J63: 32bpp DIB の変更範囲だけを専用スレッド（DwmFlush 同期）から UpdateLayeredWindowIndirect で更新する。
-/// 修正J64: 覆いを WPF 窓ではなく素の Win32 の窓にした。WPF の透過窓（AllowsTransparency）は WPF の描画スレッドも
+/// 32bpp DIB の変更範囲だけを専用スレッド（DwmFlush 同期）から UpdateLayeredWindowIndirect で更新する。
+/// 覆いを WPF 窓ではなく素の Win32 の窓にした。WPF の透過窓（AllowsTransparency）は WPF の描画スレッドも
 /// 同じ窓へ「全面透明」の中身を貼るので、出始めに自前の暗い膜が1フレーム消えてちらつくことがあった。
 /// 窓は UI スレッドで作る（WPF の Dispatcher がメッセージを回すので、押す・離す・Esc は今まで通り UI スレッドで来る）。
 /// 出す前に全画面の大きさで暗い膜の絵を貼り、それから見せる。ふわっと出る動きも専用スレッドで、
@@ -22,7 +22,7 @@ internal sealed class SnipOverlay
     /// <summary>暗さ（0〜255 の不透明度。64 ≒ 0.25 の「ちょっとだけ暗く」）</summary>
     internal const byte DimAlpha = 64;
 
-    /// <summary>修正J53: 暗い膜がふわっと出る長さ（ms。ほかのふわっと出る動きと同じ ease-out）</summary>
+    /// <summary>暗い膜がふわっと出る長さ（ms。ほかのふわっと出る動きと同じ ease-out）</summary>
     internal const int FadeInMs = 100;
 
     // プリマルチプライド 32bpp 画素（BGRA、リトルエンディアン uint = 0xAARRGGBB）。
@@ -36,7 +36,7 @@ internal sealed class SnipOverlay
     private readonly ManualResetEventSlim _wake = new(false);
 
     private IntPtr _hwnd;
-    private readonly FrameSurface _surf = new();   // 修正J65: 変わった帯だけを塗って貼る
+    private readonly FrameSurface _surf = new();   // 変わった帯だけを塗って貼る
     private double _dimProgress;
     private long _fadeStart;
 
@@ -58,32 +58,32 @@ internal sealed class SnipOverlay
     /// <summary>今の膜の濃さ（0〜1。出始めは 0、FadeInMs で 1＝DimAlpha の暗さ）</summary>
     internal double DimProgress { get { lock (_dibLock) return _dimProgress; } }
 
-    /// <summary>修正J60: 枠の四角（物理px。出していない間は null）。明るい所（HoleRect）と同じ四角</summary>
+    /// <summary>枠の四角（物理px。出していない間は null）。明るい所（HoleRect）と同じ四角</summary>
     internal (int X, int Y, int W, int H)? BorderRect { get { lock (_dibLock) return _borderRect; } }
 
-    /// <summary>修正J60: 枠を出しているか</summary>
+    /// <summary>枠を出しているか</summary>
     internal bool BorderVisible { get { lock (_dibLock) return _borderVisible; } }
 
-    /// <summary>修正J60: 枠の色の不透明度（0〜255）。四角が最小未満の間は半分（ダミー枠 F31 と同じ）</summary>
+    /// <summary>枠の色の不透明度（0〜255）。四角が最小未満の間は半分（ダミー枠と同じ）</summary>
     internal byte BorderAlpha { get { lock (_dibLock) return _borderAlpha; } }
 
-    /// <summary>修正J56: 今のカーソル位置（物理px）。既定は Geom.CursorPos（テストで差し替える）</summary>
+    /// <summary>今のカーソル位置（物理px）。既定は Geom.CursorPos（テストで差し替える）</summary>
     internal Func<(int X, int Y)?> CursorProvider
     {
         get => _cursorProvider;
         set => _cursorProvider = value;
     }
 
-    /// <summary>修正J56: 四角の中（暗くしない所）。物理px。四角を選び始める前は null</summary>
+    /// <summary>四角の中（暗くしない所）。物理px。四角を選び始める前は null</summary>
     internal (int X, int Y, int W, int H)? HoleRect { get { lock (_dibLock) return _holeRect; } }
 
-    /// <summary>修正J64: 窓ハンドル（閉じた後は Zero）</summary>
+    /// <summary>窓ハンドル（閉じた後は Zero）</summary>
     internal IntPtr Hwnd => _hwnd;
 
-    /// <summary>修正J64: 窓が画面に出ているか</summary>
+    /// <summary>窓が画面に出ているか</summary>
     internal bool IsVisible => _hwnd != IntPtr.Zero && IsWindowVisible(_hwnd);
 
-    /// <summary>修正J64: 専用スレッドが動いているか（テスト用）</summary>
+    /// <summary>専用スレッドが動いているか（テスト用）</summary>
     internal bool ThreadAlive => _thread is { IsAlive: true };
 
     /// <summary>閉じた（Finish の最後に1回）</summary>
@@ -122,7 +122,7 @@ internal sealed class SnipOverlay
         if (h == IntPtr.Zero) throw new InvalidOperationException("CreateWindowEx " + Marshal.GetLastWin32Error());
         _hwnd = h;
         Live[h] = this;
-        Native.ApplyCaptureAffinity(h, _allowCapture);   // 修正J120: 配信・録画に映す設定に合わせる（見せる前に）
+        Native.ApplyCaptureAffinity(h, _allowCapture);   // 配信・録画に映す設定に合わせる（見せる前に）
 
         lock (_dibLock)
         {
@@ -143,7 +143,7 @@ internal sealed class SnipOverlay
         _timeout.Start();
     }
 
-    // ---------------- 修正J56 / J63 / J64: 暗い膜・明るい穴・枠 ----------------
+    // ---------------- 暗い膜・明るい穴・枠 ----------------
 
     /// <summary>四角を選び始めた（押した点・物理px）。以後は専用スレッドが DwmFlush ごとに穴と枠を更新する</summary>
     internal void BeginSelection(int x0, int y0, int minW, int minH, int border)
@@ -247,14 +247,14 @@ internal sealed class SnipOverlay
             _borderAlpha = a;
             _borderVisible = true;
             if (!_surf.Ready) return;
-            // 修正J65: 前と今の四角の4辺の帯だけを塗り直して、帯ごとに貼る（面積ではなく辺の長さに比例）
+            // 前と今の四角の4辺の帯だけを塗り直して、帯ごとに貼る（面積ではなく辺の長さに比例）
             byte ca = SourceAlpha(_dimProgress);
             if (!_surf.Draw(_hwnd, rc, new FrameSurface.Style(DimPixel, HolePixel, borderPx, b), ca))
                 _surf.PresentFull(_hwnd, ca);
         }
     }
 
-    /// <summary>修正J65: 直近の更新で塗った画素の数（テスト用。大きい四角でも辺の長さに比例することを見る）</summary>
+    /// <summary>直近の更新で塗った画素の数（テスト用。大きい四角でも辺の長さに比例することを見る）</summary>
     internal long LastPaintedPx { get { lock (_dibLock) return _surf.LastPaintedPx; } }
 
     /// <summary>テスト用: 画面座標 (物理px) の DIB 画素 (0xAARRGGBB) を読む</summary>

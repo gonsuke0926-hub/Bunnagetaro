@@ -4,14 +4,14 @@ using System.Text.RegularExpressions;
 
 namespace Bunnagetaro5.Services;
 
-/// <summary>表のセルの中の区切れ目（修正J94）。Text: そのままの文字。Sup・Sub: 単純な上付き・下付きの文字。
+/// <summary>表のセルの中の区切れ目。Text: そのままの文字。Sup・Sub: 単純な上付き・下付きの文字。
 /// Math: そのほかの式（Text に中身の TeX、Raw に \( \) や $ 付きの原文字）</summary>
 public enum CellSegKind { Text, Sup, Sub, Math }
 
 public readonly record struct CellSeg(CellSegKind Kind, string Text, string Raw);
 
-/// <summary>修正J94: 表のセルの中の数式（AI がセルの中に \(^{a}\) などの LaTeX を混ぜて返す。PaddleOCR-VL の脚注の印など。
-/// 人の報告 2026-11-24）。セルの中の \( … \) と $ … $（同じ行の中だけ・両端が空白でない）を式として扱い、
+/// <summary>表のセルの中の数式（AI がセルの中に \(^{a}\) などの LaTeX を混ぜて返す。PaddleOCR-VL の脚注の印など）。
+/// セルの中の \( … \) と $ … $（同じ行の中だけ・両端が空白でない）を式として扱い、
 /// 文字・数字だけの上付き・下付き（^{a}・^2・_{12}・a^{2}）は Sup・Sub に、そのほかは Math にする</summary>
 public static class CellMath
 {

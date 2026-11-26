@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J96: 位置の反映で、段落を塊に分けて頼む決まり（OCR_LAYOUT_ROUND1 2.3。sonoba の README を参考）</summary>
+/// <summary>位置の反映で、段落を塊に分けて頼む決まり（sonoba の README を参考）</summary>
 public class LayoutBatchTests
 {
     [Fact]

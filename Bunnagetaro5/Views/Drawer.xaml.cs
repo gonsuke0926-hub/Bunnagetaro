@@ -8,7 +8,7 @@ using System.Windows.Threading;
 namespace Bunnagetaro5.Views;
 
 /// <summary>
-/// ☰メニュー（6.2）。右端から幅280が180msでスライドして出る。閉じるときは逆向き。
+/// ☰メニュー。右端から幅280が180msでスライドして出る。閉じるときは逆向き。
 /// 出ている間は黒0.2の覆い。覆いクリック・Escで閉じる。
 /// 項目は「閉じ始めてから」ページを切り替える（ItemInvoked は閉じ終わりに1度だけ）。途中で逆向きなら今の位置から戻る。
 /// 何を開くかは知らない。押された項目の Tag（log/cfg/help/folder/about）を ItemInvoked で伝えるだけ。
@@ -35,7 +35,7 @@ public partial class Drawer : UserControl
 
     public bool IsOpen => _drawerOpen;
 
-    /// <summary>今いるページの項目にだけ左端のAccent縦線（幅3）を出す（6.2）。
+    /// <summary>今いるページの項目にだけ左端のAccent縦線（幅3）を出す。
     /// 「バーの使い方」は今すぐ別のページではないので縦線は出さない</summary>
     public void SetCurrentPage(string page)
     {
@@ -69,7 +69,7 @@ public partial class Drawer : UserControl
         _drawerOpen = true;
         DrawerLayer.Visibility = Visibility.Visible;
         DrawerPanel.Width = DrawerWidth();
-        // D7: 出した同じフレームで時間ベースのアニメを始めると、ドロワー・覆い・中身の初回
+        // 出した同じフレームで時間ベースのアニメを始めると、ドロワー・覆い・中身の初回
         // レイアウト／描画で最初の数フレームが食われてガクッと跳ぶ。先にレイアウトを済ませ、
         // 次の描画フレームから動き出す（その間は右の外にいて見えない）
         DrawerLayer.UpdateLayout();
@@ -92,7 +92,7 @@ public partial class Drawer : UserControl
         AnimateDrawer(DrawerPanel.Width);
     }
 
-    /// <summary>窓が狭い時は幅を縮める（Python版 min(280, max(200, 窓幅-40))）。</summary>
+    /// <summary>窓が狭い時は幅を縮める（min(280, max(200, 窓幅-40))）。</summary>
     private double DrawerWidth() => Math.Min(DrawerWFull, Math.Max(200, (Window.GetWindow(this)?.ActualWidth ?? ActualWidth) - 40));
 
     private void AnimateDrawer(double targetX)
@@ -105,7 +105,7 @@ public partial class Drawer : UserControl
             FinishDrawer(id, targetX);
             return;
         }
-        // 途中から逆向きに動く時は残りの距離ぶんの時間（Python版 _animate と同じ）
+        // 途中から逆向きに動く時は残りの距離ぶんの時間
         double durMs = Math.Max(40.0, DrawerAnimMs * dist / Math.Max(1.0, DrawerPanel.Width));
         var anim = new DoubleAnimation(targetX, TimeSpan.FromMilliseconds(durMs))
         {
@@ -113,7 +113,7 @@ public partial class Drawer : UserControl
             FillBehavior = FillBehavior.HoldEnd,
         };
         _drawerAnimating = true;
-        // D7: 動いている間だけ画面の拡大率で作ったビットマップキャッシュに載せて、移動を軽くする
+        // 動いている間だけ画面の拡大率で作ったビットマップキャッシュに載せて、移動を軽くする
         // （RenderAtScale を窓のDPIに合わせるので 125/150% でも文字がぼやけない。終わったら外す）
         DrawerPanel.CacheMode = new BitmapCache(VisualTreeHelper.GetDpi(this).DpiScaleX);
         anim.Completed += (_, _) =>
@@ -135,7 +135,7 @@ public partial class Drawer : UserControl
         if (!_drawerOpen && targetX >= DrawerPanel.Width - 0.5)
         {
             DrawerLayer.Visibility = Visibility.Collapsed;
-            // D7: 項目の動作は閉じ終わってから（重いページ切替で引っ込みの途中が固まらない）
+            // 項目の動作は閉じ終わってから（重いページ切替で引っ込みの途中が固まらない）
             var tag = _afterDrawerClose;
             _afterDrawerClose = null;
             if (tag is not null)
@@ -156,7 +156,7 @@ public partial class Drawer : UserControl
     private void DrawerItem_Click(object sender, MouseButtonEventArgs e)
     {
         var tag = (string)((FrameworkElement)sender).Tag;
-        // D7: 閉じる動きが終わってから実行（途中で重いページ切替が走ると引っ込みが固まる）
+        // 閉じる動きが終わってから実行（途中で重いページ切替が走ると引っ込みが固まる）
         _afterDrawerClose = tag;
         Close();
     }

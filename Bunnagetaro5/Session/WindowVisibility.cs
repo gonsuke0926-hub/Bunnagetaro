@@ -5,7 +5,7 @@ using Bunnagetaro5.Services;
 
 namespace Bunnagetaro5.Session;
 
-/// <summary>キャプチャ窓グループ全体の開閉状態（修正J90・段階3）</summary>
+/// <summary>キャプチャ窓グループ全体の開閉状態</summary>
 internal enum WindowPhase
 {
     Closed,
@@ -16,7 +16,7 @@ internal enum WindowPhase
 }
 
 /// <summary>
-/// 修正J90（段階3・出す・隠すの係）: キャプチャ窓・バー・窓の中の解答欄・外の解答欄の
+/// キャプチャ窓・バー・窓の中の解答欄・外の解答欄の
 /// 「出したい」、全体の段階（開く／通常／閉じる／終了）、一時抑止（クイック・撮影中・最小化・ダミー枠ドラッグ）、
 /// および WindowMotion の呼び出しを1か所にまとめる。
 /// </summary>
@@ -237,7 +237,7 @@ internal sealed class WindowVisibility : IDisposable
         if (_phase == WindowPhase.Opening) _phase = WindowPhase.Normal;
     }
 
-    /// <summary>J83: 閉じ始める段階を Closing にして見回り等の再表示を止め、見えている透過窓を薄れて閉じる</summary>
+    /// <summary>閉じ始める段階を Closing にして見回り等の再表示を止め、見えている透過窓を薄れて閉じる</summary>
     internal void BeginClose()
     {
         _openGuard?.Stop();
@@ -250,7 +250,7 @@ internal sealed class WindowVisibility : IDisposable
         }
     }
 
-    /// <summary>J82: 終了段階を Quitting にして見回り等の再表示を止め、見えている関連窓を薄れて隠す</summary>
+    /// <summary>終了段階を Quitting にして見回り等の再表示を止め、見えている関連窓を薄れて隠す</summary>
     internal bool BeginQuitFade(int ms)
     {
         _openGuard?.Stop();
@@ -270,7 +270,7 @@ internal sealed class WindowVisibility : IDisposable
     private static void EnsureStripHandle(AnswerStrip? strip)
     {
         if (strip is null) return;
-        // J85: 窓（HWND）と窓の設定を、出す前の今のうちに作っておく
+        // 窓（HWND）と窓の設定を、出す前の今のうちに作っておく
         try { new WindowInteropHelper(strip).EnsureHandle(); }
         catch (Exception ex) { AppLog.Error("strip ensure handle", ex); }
     }
@@ -345,7 +345,7 @@ internal sealed class WindowVisibility : IDisposable
         _panelDragDeferred.Clear();
         if (_panel is null) return;
         bool vis = _panel.IsVisible;
-        WindowMotion.HideNow(_panel, 1.0);   // 7.2: 撮影前の隠しは動き無しで即
+        WindowMotion.HideNow(_panel, 1.0);   // 撮影前の隠しは動き無しで即
         if (vis) _touchPanelGen();
     }
 
@@ -404,7 +404,7 @@ internal sealed class WindowVisibility : IDisposable
         if (active)
         {
             if (!panel.IsVisible) return;
-            // J66: 解答欄がアクティブのまま隠すとアクティブが他アプリへ逃げ、窓ごと移動が止まる。先にキャプチャ窓へ移す
+            // 解答欄がアクティブのまま隠すとアクティブが他アプリへ逃げ、窓ごと移動が止まる。先にキャプチャ窓へ移す
             _panelDragWasActive = panel.IsActive;
             if (_panelDragWasActive)
             {
@@ -556,7 +556,7 @@ internal sealed class WindowVisibility : IDisposable
 
     internal void QuickHidePanels(int px, int py, bool barFollowsQuick)
     {
-        // 修正J92: クイック開始前に窓の中の解答欄が見えていた（消えかけでない）なら、取り消し時に戻せるよう覚える
+        // クイック開始前に窓の中の解答欄が見えていた（消えかけでない）なら、取り消し時に戻せるよう覚える
         bool hadPanel = _panel is { IsVisible: true } && !WindowMotion.IsFadingOut(_panel);
         HidePanelFade(WindowMotion.QuickPanelFadeMs, null);
         _panelResumeAfterQuick = hadPanel;
@@ -641,7 +641,7 @@ internal sealed class WindowVisibility : IDisposable
         _quickOpenedHidden = false;
         _stripResumeAfterQuick = false;
         _panelResumeAfterQuick = false;
-        // 修正J92: 取り消し（fade=true）で元の窓へ戻す時だけ、クイック前に出ていた窓の中の解答欄もふわっと戻す
+        // 取り消し（fade=true）で元の窓へ戻す時だけ、クイック前に出ていた窓の中の解答欄もふわっと戻す
         // （確定 fade=false の時は直後に ThrowManual → 撮影が始まるので戻さない）
         if (fade && resumePanel && !IsCapturing && _cfg.EffectiveResultPlace() != "outside"
             && _panel is { } pn && (pn.View.ModelText.Length > 0 || pn.View.ThinkText.Length > 0))

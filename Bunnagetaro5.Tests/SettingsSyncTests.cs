@@ -17,7 +17,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 整理9.5後半: AppSettings.PropertyChanged の購読による設定ページ↔バー・入力の同期と、
+/// AppSettings.PropertyChanged の購読による設定ページ↔バー・入力の同期と、
 /// 相互書き込みによる再入ループが起きないことの検証。
 /// </summary>
 public class SettingsSyncTests : IDisposable

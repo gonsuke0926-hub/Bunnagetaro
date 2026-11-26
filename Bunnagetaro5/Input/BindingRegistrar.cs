@@ -17,7 +17,7 @@ internal interface IBindingHost
     string QuickKeyTok { get; set; }
     /// <summary>有効なぶん投げホットキー（検証済みトークン。""=未設定）</summary>
     string HotkeyTok { get; set; }
-    /// <summary>修正J58: 有効な範囲ドラッグのホットキー（検証済みトークン。""=未設定）</summary>
+    /// <summary>有効な範囲ドラッグのホットキー（検証済みトークン。""=未設定）</summary>
     string SnipHotkeyTok { get; set; }
     void QuickApply(bool fromUi = false);
     void EnsureQuickPoll();
@@ -30,7 +30,7 @@ internal interface IBindingHost
 }
 
 /// <summary>
-/// 入力の「登録」「解除」とホットキー発火（手順24 / 7.9・6.4。Python版 tw_binding.py）。
+/// 入力の「登録」「解除」とホットキー発火。
 /// 設定ページの「登録」を押すと、次に押されたキー／マウスボタンを1個だけフックが掴んで
 /// （他のアプリへ渡さず）その欄に入る。Esc・同じ「登録」をもう一度・8秒押されない で中止。
 /// 「起動するボタン」欄は選択肢セグメントで登録ボタンが無いので、which="quick" の経路は無い。
@@ -48,7 +48,7 @@ internal sealed class BindingRegistrar
     private string _which = "";   // 待ち中の欄: ""=なし / "kquick" / "hot" / "snip"
     /// <summary>登録待ちを始めた時刻（MinValue=待ってない）</summary>
     internal DateTime CatchAt { get; set; } = DateTime.MinValue;
-    private const double BindCatchTimeoutSec = 8.0;      // Python版 QUICK_CATCH_TIMEOUT
+    private const double BindCatchTimeoutSec = 8.0;
 
     public BindingRegistrar(ConfigStore cfg, QuickInputWatcher quickIn, Action<string> setStatus, IBindingHost host)
     {
@@ -89,7 +89,7 @@ internal sealed class BindingRegistrar
     }
 
     /// <summary>「登録」ボタン: 次に来る入力を掴まえる待機に入る。待っているあいだに
-    /// 同じ欄の「登録」をもう一度押すと中止、別の欄のを押せば乗り換え（Python版 _bind_start）</summary>
+    /// 同じ欄の「登録」をもう一度押すと中止、別の欄のを押せば乗り換え</summary>
     public void Start(string which)
     {
         Fields?.SetBindNotice("", "");
@@ -122,7 +122,7 @@ internal sealed class BindingRegistrar
         _host.EnsureQuickPoll();
     }
 
-    /// <summary>登録待ちの状態だけ下ろす（割り当ての適用は呼び手がやる。Python版 _bind_stop）</summary>
+    /// <summary>登録待ちの状態だけ下ろす（割り当ての適用は呼び手がやる）</summary>
     private void Stop()
     {
         _which = "";
@@ -146,7 +146,7 @@ internal sealed class BindingRegistrar
         _host.QuickApply();
     }
 
-    /// <summary>フックが掴んだ入力（正規形バインド文字列）をいま待っている欄へ割り当てる。esc は中止（Python版 _bind_done）</summary>
+    /// <summary>フックが掴んだ入力（正規形バインド文字列）をいま待っている欄へ割り当てる。esc は中止</summary>
     internal void Done(string raw)
     {
         var tok = Binding.Normalize(raw);
@@ -161,14 +161,14 @@ internal sealed class BindingRegistrar
             case "snip": SnipBindDone(tok); break;
             case "kquick": KquickBindDone(tok); break;
             default:
-                // 「起動するボタン」は選択肢セグメントで登録入口が無い（6.4）ため、
+                // 「起動するボタン」は選択肢セグメントで登録入口が無いため、
                 // ここは通常来ない。来ても値は変えず待機だけ下ろす
                 Stop();
                 break;
         }
     }
 
-    /// <summary>キー起動の欄へ拾った入力を割り当てる（キーだけ。マウスボタンは却下。Python版 _kquick_bind_done）</summary>
+    /// <summary>キー起動の欄へ拾った入力を割り当てる（キーだけ。マウスボタンは却下）</summary>
     private void KquickBindDone(string tok)
     {
         string why = Binding.Validate(tok);
@@ -211,7 +211,7 @@ internal sealed class BindingRegistrar
         _setStatus("キー起動: " + msg);
     }
 
-    /// <summary>キー起動の設定をメモリ・ディスク・欄・フックへ反映（""=解除。Python版 _quick_key_set）</summary>
+    /// <summary>キー起動の設定をメモリ・ディスク・欄・フックへ反映（""=解除）</summary>
     private void QuickKeySet(string tok)
     {
         _cfg.Settings.QuickKey = tok;
@@ -223,8 +223,7 @@ internal sealed class BindingRegistrar
         _setStatus($"キー起動: {Binding.Label(tok)} {(tok.Length > 0 ? "設定しました" : "解除しました")}");
     }
 
-    /// <summary>「解除」ボタン。登録待ちなら先に下ろしてから消す（Python版
-    /// _quick_key_clear / _hotkey_clear）。Applyを通るのでフックからも即外れる</summary>
+    /// <summary>「解除」ボタン。登録待ちなら先に下ろしてから消す。Applyを通るのでフックからも即外れる</summary>
     public void Clear(string which)
     {
         if (which == "kquick")
@@ -244,7 +243,7 @@ internal sealed class BindingRegistrar
         }
     }
 
-    /// <summary>ぶん投げホットキーの欄へ拾った入力を割り当てる（キーでもマウスボタンでも届く。Python版 _hotkey_bind_done）</summary>
+    /// <summary>ぶん投げホットキーの欄へ拾った入力を割り当てる（キーでもマウスボタンでも届く）</summary>
     private void HotkeyBindDone(string tok)
     {
         string why = Binding.Validate(tok);
@@ -300,7 +299,7 @@ internal sealed class BindingRegistrar
         _setStatus("ぶん投げホットキー: " + msg);
     }
 
-    /// <summary>ぶん投げホットキーの設定をメモリ・ディスク・欄・発火待ちへ反映（""=解除。Python版 _hotkey_set）</summary>
+    /// <summary>ぶん投げホットキーの設定をメモリ・ディスク・欄・発火待ちへ反映（""=解除）</summary>
     private void HotkeySet(string tok)
     {
         _cfg.Settings.Hotkey = tok;
@@ -312,7 +311,7 @@ internal sealed class BindingRegistrar
         _setStatus($"ぶん投げホットキー: {Binding.Label(tok)} {(tok.Length > 0 ? "設定しました" : "解除しました")}");
     }
 
-    /// <summary>範囲ドラッグのキーの欄へ拾った入力を割り当てる（修正J58。ぶん投げホットキーと同じ検証で、
+    /// <summary>範囲ドラッグのキーの欄へ拾った入力を割り当てる（ぶん投げホットキーと同じ検証で、
     /// キーでもマウスボタンでも届く。ぶん投げホットキー・キー起動・クイックの起動ボタンと同じ入力は却下）</summary>
     private void SnipBindDone(string tok)
     {
@@ -379,7 +378,7 @@ internal sealed class BindingRegistrar
     }
 
     /// <summary>発火: いま開いているキャプチャ窓をその場でぶん投げる。窓が開いていなければ
-    /// ぶん投げず状態欄だけ（モーダルな警告窓は出さない。Python版 _hotkey_fire）</summary>
+    /// ぶん投げず状態欄だけ（モーダルな警告窓は出さない）</summary>
     public void HotkeyFire(string tok)
     {
         if (_host.QuickSessionActive)

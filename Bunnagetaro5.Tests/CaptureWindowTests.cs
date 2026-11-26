@@ -13,20 +13,19 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順11: キャプチャ窓の純粋な判定部分（7.1）。
-/// 窓の見た目・保存・復元の実物は _check\shot8 で画面検証した（PROGRESS参照）。
-/// 修正A2 で中も掴めるようにした（膜・HTCAPTION・四方向矢印）のでその分もここで見ます。
+/// キャプチャ窓の純粋な判定部分。
+/// 中も掴める（膜・HTCAPTION・四方向矢印）のでその分もここで見ます。
 /// </summary>
 public class CaptureWindowTests : IDisposable
 {
     // ---- WM_NCHITTEST の帯判定（640×400・band 8） ----
 
     [Theory]
-    [InlineData(320, 200, 0)]          // 中は掴みなし域（ここは A2 で HTCAPTION へ置き換える）
+    [InlineData(320, 200, 0)]          // 中は掴みなし域（HTCAPTION へ置き換える）
     [InlineData(2, 200, Native.HTLEFT)]
     [InlineData(638, 200, Native.HTRIGHT)]
     [InlineData(320, 396, Native.HTBOTTOM)]
-    [InlineData(320, 3, Native.HTTOP)]       // 上縁もリサイズ（E3）
+    [InlineData(320, 3, Native.HTTOP)]       // 上縁もリサイズ
     [InlineData(1, 1, Native.HTTOPLEFT)]     // 隅は端より優先
     [InlineData(638, 1, Native.HTTOPRIGHT)]
     [InlineData(1, 398, Native.HTBOTTOMLEFT)]
@@ -50,7 +49,7 @@ public class CaptureWindowTests : IDisposable
         Assert.Equal(Native.HTBOTTOMRIGHT, CaptureWindow.HitTest(29, 29, 30, 30, 8));
     }
 
-    // ---- 開くときの大きさの範囲切り（Python版 min(max(v,MIN), max(MIN,screen))） ----
+    // ---- 開くときの大きさの範囲切り（min(max(v,MIN), max(MIN,screen))） ----
 
     [Theory]
     [InlineData(640, 30, 1920, 640)]   // 普通はそのまま
@@ -86,7 +85,7 @@ public class CaptureWindowTests : IDisposable
         Assert.Equal((CaptureWindow.DefaultX, CaptureWindow.DefaultY), (x, y));
     }
 
-    // ---- 修正A2: 中を掴んで動かす（見えない膜・HTCAPTION・四方向矢印） ----
+    // ---- 中を掴んで動かす（見えない膜・HTCAPTION・四方向矢印） ----
 
     [Fact]
     public void 膜は目に見えない厚さの1_255()
@@ -98,7 +97,6 @@ public class CaptureWindowTests : IDisposable
     public void 中は掴んで移動で解答欄が出ている時だけ素通し()
     {
         // 中のどこを掴んでも窓が動く。解答欄が出ている時だけ下の窓へ返す
-        // （Python版 tw_band 338行の overlay_visible 相当）
         Assert.Equal(Native.HTCAPTION, CaptureWindow.InteriorHit(false));
         Assert.Equal(Native.HTTRANSPARENT, CaptureWindow.InteriorHit(true));
     }
@@ -159,7 +157,7 @@ public class CaptureWindowTests : IDisposable
 
     private static void OnSta(Action body) => TestUtil.OnSta(body, 60, throwOnTimeout: false);
 
-    /// <summary>修正J87: 本物の縁はダミー枠が画面に出てから消えるので、少し回して待つ</summary>
+    /// <summary>本物の縁はダミー枠が画面に出てから消えるので、少し回して待つ</summary>
     private static void PumpMs(int ms) => TestUtil.Pump(ms);
 
     private static object? Fld(object target, string name)
@@ -373,7 +371,7 @@ public class CaptureWindowTests : IDisposable
         public void HideStripFade(int ms = WindowMotion.PanelFadeMs, Action? onHidden = null) => Vis?.HideStripFade(ms, onHidden);
     }
 
-    /// <summary>H9: 上辺を引き始めたら窓の中の解答欄が隠れ、離す／取り消すと出し直す（答え・たずねる欄の文字は残る）</summary>
+    /// <summary>上辺を引き始めたら窓の中の解答欄が隠れ、離す／取り消すと出し直す（答え・たずねる欄の文字は残る）</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -440,8 +438,8 @@ public class CaptureWindowTests : IDisposable
         });
     }
 
-    /// <summary>H11: 右・下・右下のサイズ変更（修正J65 でダミー枠経由）でも、始めで解答欄が隠れ、終わりで出る。
-    /// 窓ごとの移動（ダミー枠で動かす）でも隠れる（2026-11-22 ユーザー決定）</summary>
+    /// <summary>右・下・右下のサイズ変更（ダミー枠経由）でも、始めで解答欄が隠れ、終わりで出る。
+    /// 窓ごとの移動（ダミー枠で動かす）でも隠れる</summary>
     [Theory]
     [InlineData(Native.WMSZ_RIGHT)]
     [InlineData(Native.WMSZ_BOTTOM)]
@@ -477,7 +475,7 @@ public class CaptureWindowTests : IDisposable
                 Native.GetWindowRect(hwnd, out var b);
                 var wndProc = typeof(CaptureWindow).GetMethod("WndProc", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 var cur = new Native.POINT { X = 500, Y = 500 };
-                w.CursorProvider = () => cur;   // 修正J87: 本物のマウスに頼らず、引いた分だけ大きさが変わるようにする
+                w.CursorProvider = () => cur;   // 本物のマウスに頼らず、引いた分だけ大きさが変わるようにする
                 wndProc.Invoke(w, new object?[] { hwnd, Native.WM_ENTERSIZEMOVE, IntPtr.Zero, IntPtr.Zero, false });
                 var (lp, free) = AllocRect(b);
                 try
@@ -485,7 +483,7 @@ public class CaptureWindowTests : IDisposable
                     if (edge == 0)
                     {
                         Assert.True(w.BeginMoveDrag());
-                        Assert.True(panel.IsVisible);    // 修正J87: 掴んだだけでは隠れない（クリックでちらつかない）
+                        Assert.True(panel.IsVisible);    // 掴んだだけでは隠れない（クリックでちらつかない）
                         w.MoveDragTo(b.Left + 20, b.Top + 20);
                         Assert.False(panel.IsVisible);   // 動いたらダミー枠なので隠れる
                         w.MoveDragTo(b.Left + 30, b.Top + 25);
@@ -497,7 +495,7 @@ public class CaptureWindowTests : IDisposable
                     }
                     else
                     {
-                        // 修正J87: 掴んだだけ（大きさが変わらない）ではダミー枠を出さず、解答欄も隠れない
+                        // 掴んだだけ（大きさが変わらない）ではダミー枠を出さず、解答欄も隠れない
                         wndProc.Invoke(w, new object?[] { hwnd, Native.WM_SIZING, new IntPtr(edge), lp, false });
                         Assert.True(panel.IsVisible);
                         cur = new Native.POINT { X = 520, Y = 520 };
@@ -606,7 +604,7 @@ public class CaptureWindowTests : IDisposable
                 var hwnd = new System.Windows.Interop.WindowInteropHelper(w).Handle;
                 Native.GetWindowRect(hwnd, out var b);
                 Assert.True(w.BeginMoveDrag());
-                Assert.Empty(changes);                     // 修正J87: 掴んだだけではダミー枠を出さない
+                Assert.Empty(changes);                     // 掴んだだけではダミー枠を出さない
                 w.MoveDragTo(b.Left, b.Top);               // 同じ場所のままでも出さない
                 Assert.Empty(changes);
                 Assert.Null(w.DragRect);
@@ -654,7 +652,7 @@ public class CaptureWindowTests : IDisposable
 
                 var hwnd = new System.Windows.Interop.WindowInteropHelper(w).Handle;
                 Native.GetWindowRect(hwnd, out var b);
-                // 掴みが外れた（知らせの中で終わる）状況。修正J87: ダミー枠は動いた時（MoveDragTo）に始まる
+                // 掴みが外れた（知らせの中で終わる）状況。ダミー枠は動いた時（MoveDragTo）に始まる
                 Action<bool> endInside = h => { if (h) w.EndMoveDrag(); };
                 w.DummyDragChanged += endInside;
                 Assert.True(w.BeginMoveDrag());
@@ -665,7 +663,7 @@ public class CaptureWindowTests : IDisposable
                 Assert.Same(before, frame.BorderBrush);
                 w.DummyDragChanged -= endInside;
 
-                // 普通に動かす時は、引いている間だけ縁が消える（修正J87: ダミー枠が画面に出てから消える）
+                // 普通に動かす時は、引いている間だけ縁が消える（ダミー枠が画面に出てから消える）
                 Assert.True(w.BeginMoveDrag());
                 Assert.Same(before, frame.BorderBrush);          // 掴んだだけでは消えない
                 w.MoveDragTo(b.Left + 10, b.Top + 10);
@@ -704,7 +702,7 @@ public class CaptureWindowTests : IDisposable
                 var wndProc = typeof(CaptureWindow).GetMethod("WndProc", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 var args = new object?[] { hwnd, Native.WM_NCLBUTTONDOWN, new IntPtr(Native.HTCAPTION), IntPtr.Zero, false };
                 wndProc.Invoke(w, args);
-                Assert.True(w.OwnMoving);          // 修正J87: 掴んだだけではダミー枠を出さない（まだ動かしている途中）
+                Assert.True(w.OwnMoving);          // 掴んだだけではダミー枠を出さない（まだ動かしている途中）
                 cur = new Native.POINT { X = 120, Y = 110 };
                 w.OwnMoveStep();                   // 動いた → ダミー枠を出す → 知らせの中で終わる
                 PumpMs(150);

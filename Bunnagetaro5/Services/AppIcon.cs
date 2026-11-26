@@ -4,7 +4,7 @@ using System.Windows.Media.Imaging;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// アプリのアイコン（FIX_ROUND1 A6）。Assets\app.ico をリソースとして取り込んであり、
+/// アプリのアイコン。Assets\app.ico をリソースとして取り込んであり、
 /// メイン窓・ダイアログ・画像の原寸表示の Icon に設定する（タスクバーと Alt+Tab に出る）。
 /// exe のファイルアイコンは csproj の ApplicationIcon で付く。
 /// </summary>

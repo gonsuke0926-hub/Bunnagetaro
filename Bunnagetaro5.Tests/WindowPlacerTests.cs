@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J89（段階2・置き場所の係）: WindowPlacer の追従順序・タスクバー重なり順・保存保険の動きを確かめる</summary>
+/// <summary>WindowPlacer の追従順序・タスクバー重なり順・保存保険の動きを確かめる</summary>
 public class WindowPlacerTests : IDisposable
 {
     private readonly string _temp;
@@ -155,12 +155,12 @@ public class WindowPlacerTests : IDisposable
                 TestUtil.Pump(100);
                 if (!TrayIsAbove(tray, stripH)) return;
 
-                // 同じ位置のまま 250ms 保険が回ってもタスクバーの裏のまま（J71）
+                // 同じ位置のまま 250ms 保険が回ってもタスクバーの裏のまま
                 w.Session.PlacerForTests.TickInsurance();
                 TestUtil.Pump(150);
                 Assert.True(TrayIsAbove(tray, stripH));
 
-                // 窓を 1px 動かして位置が変わると、タスクバーより手前へ出る（J70・J71）
+                // 窓を 1px 動かして位置が変わると、タスクバーより手前へ出る
                 Native.SetWindowPos(capH, IntPtr.Zero, nx + 1, ny, 0, 0,
                     Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
                 TestUtil.Pump(200);
@@ -246,7 +246,7 @@ public class WindowPlacerTests : IDisposable
                 var capH = new WindowInteropHelper(cap).Handle;
                 var stripH = Native.GetAncestor(new WindowInteropHelper(strip).Handle, Native.GA_ROOT);
 
-                // 1) outside: キャプチャ窓をタスクバーに重なる位置へ動かしたら、枠もタスクバーより手前に出続け、外の解答欄より後ろを保つ（J89d・J89e）
+                // 1) outside: キャプチャ窓をタスクバーに重なる位置へ動かしたら、枠もタスクバーより手前に出続け、外の解答欄より後ろを保つ
                 Native.GetWindowRect(capH, out var cr);
                 int cw = cr.Right - cr.Left, ch = cr.Bottom - cr.Top;
                 int nx = Math.Max(0, (sw - cw) / 2), ny = work0.Value.Bottom + 40 - ch;
@@ -285,7 +285,7 @@ public class WindowPlacerTests : IDisposable
                         "outside の 1px 移動で外の解答欄がキャプチャ枠より後ろに回っている");
                 }
 
-                // タスクバーを押した後は同じ場所の保険巡回が回っても裏のまま（J71・J74）
+                // タスクバーを押した後は同じ場所の保険巡回が回っても裏のまま
                 front.AppIsForeground = () => false;
                 front.OnForeground(tray);
                 TestUtil.Pump(50);
@@ -299,7 +299,7 @@ public class WindowPlacerTests : IDisposable
                     Assert.True(TrayIsAbove(tray, capH));
                 }
 
-                // 2) inside: 窓の中の解答欄を出した状態で手前に出しても、解答欄が常にキャプチャ枠より手前に保たれる（J70）
+                // 2) inside: 窓の中の解答欄を出した状態で手前に出しても、解答欄が常にキャプチャ枠より手前に保たれる
                 CfgTestUtil.SetPlace(cfg, "inside");
                 panel.ShowFinal("中の答え");
                 Assert.True(TestUtil.WaitUntil(() => panel.IsVisible, 3000), "窓の中の解答欄が出ない");

@@ -19,11 +19,10 @@ namespace Bunnagetaro5.Pages;
 /// <summary>設定ページの生成欄・バーとの連動（SettingsPage の partial class）。</summary>
 public partial class SettingsPage
 {
-    // ---------------- バー（ChromeBar）からの連動（手順14） ----------------
+    // ---------------- バー（ChromeBar）からの連動 ----------------
 
     /// <summary>
-    /// バーからプリセットを選ぶ前に、設定ページの書きかけを cfg へ反映する
-    /// （tw_uicfg の save_settings → _prompt_rejected 査読に相当）。
+    /// バーからプリセットを選ぶ前に、設定ページの書きかけを cfg へ反映する。
     /// 通れば null、拒否したときはその理由の一行を返す
     /// </summary>
     public string? TryCommitForExternal()
@@ -51,7 +50,7 @@ public partial class SettingsPage
         _filling = false;
     }
 
-    /// <summary>拒否が出たとき、ぶん投げ方の欄だけ新しい値に合わせる（tw_mode の拒否経路）</summary>
+    /// <summary>拒否が出たとき、ぶん投げ方の欄だけ新しい値に合わせる</summary>
     public void SyncOcrOnly(bool enabled)
     {
         _filling = true;
@@ -102,7 +101,7 @@ public partial class SettingsPage
             _addBtn.IsEnabled = editPreset;
             _delBtn.IsEnabled = editPreset;
             _useGlobalChk.IsEnabled = editPreset;
-            // モデルはプリセットごと（修正J7）。［グローバル設定］にはモデルが無いので欄ごと隠す
+            // モデルはプリセットごと。［グローバル設定］にはモデルが無いので欄ごと隠す
             _modelRow.Visibility = editPreset ? Visibility.Visible : Visibility.Collapsed;
             _nameRow.Opacity = editPreset ? 1.0 : 0.45;
             _rowUseGlobal.Opacity = editPreset ? 1.0 : 0.45;
@@ -147,7 +146,7 @@ public partial class SettingsPage
     private void FillGen(JsonObject src)
     {
         var ml = ModelChoices();
-        // 一覧を入れ替えると欄の文字が消えるので、プリセットのモデルを入れ直す（モデルは src でなくプリセットから。修正J7）
+        // 一覧を入れ替えると欄の文字が消えるので、プリセットのモデルを入れ直す（モデルは src でなくプリセットから）
         string keep = _modelCb.Text;
         _modelCb.ItemsSource = ml;
         _modelCb.Text = keep;
@@ -169,7 +168,7 @@ public partial class SettingsPage
 
         string sz = S(src["builtin_ocr_size"]).Trim();
         _builtinSizeCb.SelectedIndex = sz == BuiltinOcr.SizeMedium ? 1 : 0;
-        _layoutChk.IsChecked = src["builtin_ocr_layout"] is JsonValue lv && lv.GetValueKind() == JsonValueKind.True;   // 修正J96（既定 OFF）
+        _layoutChk.IsChecked = src["builtin_ocr_layout"] is JsonValue lv && lv.GetValueKind() == JsonValueKind.True;   // 既定 OFF
         UpdateOcrSubVisibility();
 
         bool isOutside = S(src["result_place"]) == "outside";
@@ -179,7 +178,7 @@ public partial class SettingsPage
         _otslChk.IsChecked = src["convert_otsl_table"] is not JsonValue c1 || c1.GetValueKind() != JsonValueKind.False;
         _htmlChk.IsChecked = src["convert_html_table"] is not JsonValue c2 || c2.GetValueKind() != JsonValueKind.False;
         _latexChk.IsChecked = src["convert_latex_math"] is not JsonValue c3 || c3.GetValueKind() != JsonValueKind.False;
-        _followChk.IsChecked = src["show_follow_row"] is JsonValue c4 && c4.GetValueKind() == JsonValueKind.True;   // 既定 OFF（人の判断 2026-11-14）
+        _followChk.IsChecked = src["show_follow_row"] is JsonValue c4 && c4.GetValueKind() == JsonValueKind.True;   // 既定 OFF
         string think = S(src["ollama_think"]);
         int ti = Array.FindIndex(ThinkChoices, c => c.Val == think);
         _thinkCb.SelectedIndex = ti < 0 ? 0 : ti;
@@ -214,7 +213,7 @@ public partial class SettingsPage
         else WritePresets();
     }
 
-    /// <summary>モデルはいつもプリセットごと（修正J7）。「グローバル設定を使う」に関係なく、選んでいるプリセットへ書く</summary>
+    /// <summary>モデルはいつもプリセットごと。「グローバル設定を使う」に関係なく、選んでいるプリセットへ書く</summary>
     private void CommitModel()
     {
         if (_filling || _editingGlobal) return;
@@ -224,7 +223,7 @@ public partial class SettingsPage
         if (ConfigStore.PresetModel(item) == m) return;
         item["model"] = m;
         WritePresets();
-        UpdateBuiltinDim();   // 修正J22
+        UpdateBuiltinDim();
     }
 
     private void CommitThink()
@@ -264,7 +263,7 @@ public partial class SettingsPage
     }
 
     /// <summary>
-    /// 修正J50: タスクトレイから「解答欄の場所」を今のプリセットへ書く。欄の radio を押した時と同じ
+    /// タスクトレイから「解答欄の場所」を今のプリセットへ書く。欄の radio を押した時と同じ
     /// 書き先（プリセット専用ならそのプリセットの settings、グローバルを使うならグローバル）へ書き、
     /// 解答欄・帯・設定ページが設定ページで変えた時と同じに追いつく。書けたら true
     /// </summary>
@@ -296,7 +295,7 @@ public partial class SettingsPage
         return ok;
     }
 
-    /// <summary>修正J50: タスクトレイからクイックぶん投げの ON/OFF を変える。欄のチェックを押した時と同じ道を通る</summary>
+    /// <summary>タスクトレイからクイックぶん投げの ON/OFF を変える。欄のチェックを押した時と同じ道を通る</summary>
     internal void SetQuickEnabled(bool on)
     {
         _quickOnChk.IsChecked = on;   // Checked/Unchecked の聞き手が設定へ書いて保存する
@@ -428,7 +427,7 @@ public partial class SettingsPage
     }
 
     /// <summary>作業一覧を検証して prompts / prompt_active / prompt へ書き戻す。
-    /// 名前が空・重複、指示が空なら何も書き戻さない（tw_uicfg._prompt_collect と同じ形）。</summary>
+    /// 名前が空・重複、指示が空なら何も書き戻さない。</summary>
     private bool WritePresets()
     {
         var items = new JsonArray();

@@ -1,6 +1,6 @@
 namespace Bunnagetaro5;
 
-/// <summary>細スクロールバーの棒の最小長（D6）。Track.ViewportSize へ入れる値を作る。
+/// <summary>細スクロールバーの棒の最小長。Track.ViewportSize へ入れる値を作る。
 /// 棒の長さ比 = viewport/(max-min+viewport) が 最小長/トラック長 に満たなければ、
 /// その比になるよう viewport を水増しする。純関数 <see cref="Inflate"/> をテストする</summary>
 public sealed class ThumbMin : System.Windows.Data.IMultiValueConverter

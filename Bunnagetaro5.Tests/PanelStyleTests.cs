@@ -6,10 +6,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順15: 解答欄のスタイル値とストリーミング表示の純粋な道具（7.5）。
-/// 正規化（色・透明度・大きさ）は tw_chrome._panel_style_vals、
-/// 薄い色は tw_panel._mix_toward、差分表示は tw_panel.replace_text_keep_view
-/// の判定部分の移植。窓の実物は _check\run15 で画面検証する。
+/// 解答欄のスタイル値（色・透明度・大きさの正規化、薄い色の混色）とストリーミング差分表示の判定ロジック。
 /// </summary>
 public sealed class PanelStyleTests : IDisposable
 {

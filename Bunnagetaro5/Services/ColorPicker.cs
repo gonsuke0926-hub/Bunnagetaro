@@ -5,7 +5,6 @@ namespace Bunnagetaro5.Services;
 
 /// <summary>
 /// Windowsの色選択ダイアログ（comdlg32 の ChooseColor）。
-/// Python版の tkinter colorchooser に対応（指示書6.4「四角を押すと色選択ダイアログ」）。
 /// 選ぶと #rrggbb、取り消しは null。
 /// </summary>
 public static class ColorPicker

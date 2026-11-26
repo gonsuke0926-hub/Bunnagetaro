@@ -1,15 +1,15 @@
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 修正J10d: 翻訳で書き起こし文を上書きする時、行の訳が終わって残りの英文が外れる所
+/// 翻訳で書き起こし文を上書きする時、行の訳が終わって残りの英文が外れる所
 /// （次の行へ移った時・書き終わり）で、残りをパッと消さず、日本語の末へ吸い込ませる。
-/// 残りは左（日本語の末の側）から、上書きと同じ刻みで食われる（J10e）。
+/// 残りは左（日本語の末の側）から、上書きと同じ刻みで食われる。
 /// 画面だけの話で、答えの文（コピー・ログ）は外れた後のもの。ここは文字の計算だけ（テストできる形）
 /// </summary>
 public static class SuckText
 {
     /// <summary>吸い込み中の1行ぶん。Line 行目が Base のままの間だけ、後ろに Suffix の残りを付けて見せる。
-    /// 食い方は訳の上書きと同じ刻み（StepMs ごとに StepChars 字ずつ。J10e）</summary>
+    /// 食い方は訳の上書きと同じ刻み（StepMs ごとに StepChars 字ずつ）</summary>
     public sealed class Ghost
     {
         public int Line;
@@ -32,8 +32,7 @@ public static class SuckText
     /// 40ms ごとに6字＝150字/秒。流しの間引きと同じ 40ms）</summary>
     public const double DefaultStepMs = 40;
     public const double DefaultStepChars = 6;
-    /// <summary>安全のための上限だけ。ふだんは訳の刻みのまま食べる（J10e: 3秒の上限をやめた。
-    /// とても遅いモデルで長い残りが、いつまでも残らないようにするためだけのもの）</summary>
+    /// <summary>安全のための上限だけ。ふだんは訳の刻みのまま食べる（とても遅いモデルで長い残りが、いつまでも残らないようにするためだけのもの）</summary>
     public const int MaxMs = 10000;
     /// <summary>刻みの間がこれより長い時は数えない（モデルが一瞬止まった所で遅く覚えない）</summary>
     public const int MaxGapMs = 500;
@@ -111,7 +110,7 @@ public static class SuckText
             if (rem >= b[i].Length) { _line = -1; return; }   // 前に足しただけ等、上書きではない
             if (i == _line && now > _t && now - _t <= MaxGapMs)
             {
-                // 修正J118: 残りが実際に減った回（rem < _rem）だけ時間と歩数を数える。
+                // 残りが実際に減った回（rem < _rem）だけ時間と歩数を数える。
                 // 減らなかった回の待ち時間まで _ms に足すと _ms / _steps が膨らみ、短い文で極端に遅く食われていた
                 if (rem < _rem)
                 {

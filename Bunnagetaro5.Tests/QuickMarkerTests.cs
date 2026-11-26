@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND4 E9: クイックの四角のダミー枠（専用スレッドの Win32 窓）と、四角の計算の純関数</summary>
+/// <summary>クイックの四角のダミー枠（専用スレッドの Win32 窓）と、四角の計算の純関数</summary>
 public class QuickMarkerTests
 {
     // ---- 純関数（今の FollowTo と同じ値） ----
@@ -146,7 +146,7 @@ public class QuickMarkerTests
         var m = new QuickMarker(0x00, 0x67, 0xC0, 4);
         try
         {
-            // 修正J60b: 本物のマウスに頼らない（テスト中に人がマウスを動かす・画面の端にあると落ちていた）。
+            // 本物のマウスに頼らない（テスト中に人がマウスを動かす・画面の端にあると落ちていた）。
             // 決まったカーソル (700,600) を「離した後に動いた先」に見立てる
             var p = (X: 700, Y: 600);
             m.CursorProvider = () => (p.X, p.Y);

@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>F35: 解答欄の段落間（まとまりの間）・行間・単一改行の LineBreak 化。</summary>
+/// <summary>解答欄の段落間（まとまりの間）・行間・単一改行の LineBreak 化。</summary>
 public class AnswerSpacingTests : IDisposable
 {
     private readonly string _temp;

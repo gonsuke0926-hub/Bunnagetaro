@@ -18,7 +18,7 @@ using Xunit.Abstractions;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// FIX_ROUND5 F7（計測）: 長い思考が流れている間のカクつきの手がかりを、2つに分けて測る。
+/// 計測: 長い思考が流れている間のカクつきの手がかりを、2つに分けて測る。
 ///  A. OllamaClient の string.Concat(thinkParts)（思考のかけらのたびに全文を作り直す）の1回の時間
 ///  B. AnswerView.ApplyThink（末尾4000字を TextBlock へ入れ直し＋ScrollToEnd）の1回の時間。
 ///     Text の入れ直し・ScrollToEnd・それぞれのレイアウトを分けて測る。窓を SetWindowPos で動かす1回の時間も併記。

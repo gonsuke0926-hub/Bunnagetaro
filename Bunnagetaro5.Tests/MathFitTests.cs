@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>H2: 欄の幅に収まらない式だけ縦横比を保って縮める</summary>
+/// <summary>欄の幅に収まらない式だけ縦横比を保って縮める</summary>
 public class MathFitTests
 {
     [Fact]

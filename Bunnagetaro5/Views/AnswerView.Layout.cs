@@ -6,9 +6,9 @@ using Bunnagetaro5.Services;
 
 namespace Bunnagetaro5.Views;
 
-/// <summary>修正J97・J115: 位置の反映（枠の中の解答欄）。答えが「1行＝1段落」で位置が渡された時、
+/// <summary>位置の反映（枠の中の解答欄）。答えが「1行＝1段落」で位置が渡された時、
 /// 本文と同じ場所に重ねた描き板（Canvas）に、n 行目を n 番目の位置（解答欄の本文の広さ × 割合）へ置く。
-/// 修正J115: 各区画の中身を TextBlock から軽量な AnswerView（RichTextBox）へ変更し、
+/// 各区画の中身を TextBlock から軽量な AnswerView（RichTextBox）へ変更し、
 /// 通常の解答欄の数式（KaTeX/WpfMath）・表・文字ドラッグ選択・コピーをそのまま使い回す。
 /// 位置の反映中は裏の _body を IsHitTestVisible=false にして、見えている区画の文字上だけで選択／余白は窓移動を判定する</summary>
 public partial class AnswerView
@@ -17,9 +17,9 @@ public partial class AnswerView
     private IReadOnlyList<OcrBlock>? _layout;
     private readonly List<AnswerView> _layoutViews = new();
     private readonly List<string> _layoutRawTexts = new();
-    /// <summary>修正J98: 段落ごとの今の字の大きさ（訳の途中は小さくなる向きだけにするため）</summary>
+    /// <summary>段落ごとの今の字の大きさ（訳の途中は小さくなる向きだけにするため）</summary>
     private readonly List<double> _layoutFonts = new();
-    /// <summary>修正J115: 字の大きさ計算に使い回す非表示の測定用 TextBlock</summary>
+    /// <summary>字の大きさ計算に使い回す非表示の測定用 TextBlock</summary>
     private readonly TextBlock _measureTb = new() { TextWrapping = TextWrapping.Wrap };
 
     /// <summary>字の大きさの上限・下限（DIP）</summary>
@@ -40,10 +40,10 @@ public partial class AnswerView
     /// <summary>並べている文（テスト用）</summary>
     internal IReadOnlyList<string> LayoutTexts => _layoutRawTexts;
 
-    /// <summary>修正J114: この解答欄で位置の反映（座標配置）を使うか。外窓（AnswerStrip）は false（読む順で上から並べる）</summary>
+    /// <summary>この解答欄で位置の反映（座標配置）を使うか。外窓（AnswerStrip）は false（読む順で上から並べる）</summary>
     public bool LayoutAllowed { get; set; } = true;
 
-    /// <summary>修正J115: 位置の反映の 1 区画として初期化する（思考・たずねる・スクロールバーなし、背景透明）</summary>
+    /// <summary>位置の反映の 1 区画として初期化する（思考・たずねる・スクロールバーなし、背景透明）</summary>
     internal void InitLayoutItem(AnswerView parent)
     {
         _layoutItemMode = true;
@@ -78,7 +78,7 @@ public partial class AnswerView
         _body.ContextMenu = menu;
     }
 
-    /// <summary>修正J115: 区画の文字サイズを更新する（数式や表がある場合も再計算に追従）</summary>
+    /// <summary>区画の文字サイズを更新する（数式や表がある場合も再計算に追従）</summary>
     internal void SetLayoutItemFontSize(double fs)
     {
         FontSize = fs;
@@ -114,7 +114,7 @@ public partial class AnswerView
     }
 
     /// <summary>段落の位置を渡す（null・空なら位置の反映をやめて、本文をそのまま見せる）。
-    /// 修正J107: 段落ごとに、文の後ろへ「マスク」（解答欄の背景色で塗った四角）を置く。文がまだ無くても位置が分かった時点で出す</summary>
+    /// 段落ごとに、文の後ろへ「マスク」（解答欄の背景色で塗った四角）を置く。文がまだ無くても位置が分かった時点で出す</summary>
     public void SetLayout(IReadOnlyList<OcrBlock>? blocks)
     {
         if (_logMode || !LayoutAllowed) blocks = null;
@@ -151,7 +151,7 @@ public partial class AnswerView
         RefreshLayout();
     }
 
-    /// <summary>修正J113: この文を位置の反映で出せるか（行数が区画数と一致、または空）</summary>
+    /// <summary>この文を位置の反映で出せるか（行数が区画数と一致、または空）</summary>
     private bool CanShowLayoutFor(string shown)
     {
         if (_layout is null) return false;
@@ -161,7 +161,7 @@ public partial class AnswerView
         return lines == _layout.Count;
     }
 
-    /// <summary>見えている文（_model）を段落ごとに描き板へ写す。文がまだ無い時はマスクだけ出す（修正J107）。
+    /// <summary>見えている文（_model）を段落ごとに描き板へ写す。文がまだ無い時はマスクだけ出す。
     /// 行の数が段落の数と合わない時は本文をそのまま見せる</summary>
     private void RefreshLayout()
     {
@@ -191,10 +191,10 @@ public partial class AnswerView
         }
         _layoutCanvas.Visibility = Visibility.Visible;
         _body.Opacity = 0;
-        _body.IsHitTestVisible = false;   // 修正J115: 裏の見えない _body にヒットさせない
+        _body.IsHitTestVisible = false;   // 裏の見えない _body にヒットさせない
         ApplyRootBg();
-        // 修正J113: すでに表示中なら、文が変わった区画だけ再計測・配置する
-        PlaceLayout(remeasure: !wasVisible, onlyIndices: changed);   // 修正J98: 文が変わった時は字を小さくする向きだけ
+        // すでに表示中なら、文が変わった区画だけ再計測・配置する
+        PlaceLayout(remeasure: !wasVisible, onlyIndices: changed);   // 文が変わった時は字を小さくする向きだけ
     }
 
     private void HideLayout()
@@ -210,7 +210,7 @@ public partial class AnswerView
         ApplyRootBg();
     }
 
-    // ---------------- 修正J115: 余白ドラッグ・文字選択のヒット判定 ----------------
+    // ---------------- 余白ドラッグ・文字選択のヒット判定 ----------------
 
     /// <summary>マウスが本文エリア（思考欄や「たずねる」欄以外の領域）の上にあるか</summary>
     internal bool IsInBodyArea(MouseEventArgs e)
@@ -264,9 +264,9 @@ public partial class AnswerView
         foreach (var item in _layoutViews) item.Body.Cursor = cur;
     }
 
-    /// <summary>修正J103: 解答欄の地（設定の背景色・不透明度）。ApplyStyle で作る</summary>
+    /// <summary>解答欄の地（設定の背景色・不透明度）。ApplyStyle で作る</summary>
     private Brush? _rootBg;
-    /// <summary>修正J103・J107: 位置の反映の時、段落（区画）の所だけに背景（マスク）を敷く（設定 layout_text_bg。既定 ON）</summary>
+    /// <summary>位置の反映の時、段落（区画）の所だけに背景（マスク）を敷く（設定 layout_text_bg。既定 ON）</summary>
     private bool _layoutTextBg = true;
     private readonly List<Border> _layoutMasks = new();
 
@@ -276,9 +276,9 @@ public partial class AnswerView
     internal IReadOnlyList<Border> LayoutMasks => _layoutMasks;
 
     /// <summary>地の塗り分け。区画の所だけの時は、全体の地をほぼ透明にし、区画のマスクに解答欄の地を塗る。
-    /// 修正J104: 全体の地は完全な透明（アルファ 0）にしない。透ける窓はアルファ 0 の所のクリックを後ろの窓へ通すので、
+    /// 全体の地は完全な透明（アルファ 0）にしない。透ける窓はアルファ 0 の所のクリックを後ろの窓へ通すので、
     /// 空いている所をつかんで窓を動かせなかった。
-    /// 修正J107: 背景は J104 の「行ごとに文字の後ろだけ」をやめて、区画の四角のマスクにした（人の判断 2026-11-26）</summary>
+    /// 背景は行ごとではなく区画の四角のマスクとする</summary>
     private void ApplyRootBg()
     {
         if (_rootBg is null) return;
@@ -287,7 +287,7 @@ public partial class AnswerView
         foreach (var m in _layoutMasks) m.Background = textOnly ? _rootBg : null;
     }
 
-    /// <summary>修正J104: 見えないがクリックは受ける地（同じ色のアルファ 1）</summary>
+    /// <summary>見えないがクリックは受ける地（同じ色のアルファ 1）</summary>
     private static Brush NearlyClear(Brush b)
     {
         var c = b is SolidColorBrush s ? s.Color : Colors.Black;
@@ -296,7 +296,7 @@ public partial class AnswerView
         return nb;
     }
 
-    /// <summary>段落を置き、字の大きさを決める（修正J98。人の判断 2026-11-24）。字はまず解答欄の文字サイズ。
+    /// <summary>段落を置き、字の大きさを決める。字はまず解答欄の文字サイズ。
     /// 自分の矩形の幅で、下の段落（無ければ欄の下の端）にぶつからずに入ればそのまま。入らなければ右の空き
     /// （右にある別の段落か欄の端まで）に広げてみる。それでもぶつかる時だけ字を小さくし、下限でも入らなければ下へはみ出してよい。
     /// 訳の途中（文が変わった時）は小さくなる向きだけにする（揺れないように）。remeasure（欄の大きさ・字の設定が変わった）なら測り直す</summary>
@@ -340,7 +340,7 @@ public partial class AnswerView
         Canvas.SetLeft(item, x);
         Canvas.SetTop(item, y);
 
-        // 修正J107: マスクは区画の四角。文がはみ出した時（右・下へ広げた時）は、文の所まで広げて文の後ろを必ず覆う
+        // マスクは区画の四角。文がはみ出した時（右・下へ広げた時）は、文の所まで広げて文の後ろを必ず覆う
         var mask = _layoutMasks[i];
         _measureTb.FontSize = fs;
         _measureTb.Measure(new Size(width, double.PositiveInfinity));
@@ -352,7 +352,7 @@ public partial class AnswerView
         Canvas.SetTop(mask, y);
     }
 
-    /// <summary>修正J115: 数式画像や表が後から描かれて区画の高さ・幅が伸びた時も、マスクを追従させる</summary>
+    /// <summary>数式画像や表が後から描かれて区画の高さ・幅が伸びた時も、マスクを追従させる</summary>
     private void SyncMaskFromActual(int i)
     {
         if (_layout is null || i < 0 || i >= _layout.Count || i >= _layoutMasks.Count || i >= _layoutViews.Count) return;
@@ -400,7 +400,7 @@ public partial class AnswerView
     /// <summary>字の大きさと幅を決める（start の大きさから試し、矩形の幅→右の空きの幅の順に、下の空きに収まるかを見る）</summary>
     internal static (double Font, double Width) FitLayoutFont(TextBlock tb, double start, double w, double hOwn, double wide, double hWide)
     {
-        tb.Width = double.NaN;   // 修正J103: 前に決めた幅が残っていると、試す幅で測れない（Measure が決まった幅を使う）
+        tb.Width = double.NaN;   // 前に決めた幅が残っていると、試す幅で測れない（Measure が決まった幅を使う）
         double fs = Math.Clamp(start, LayoutMinFont, LayoutMaxFont);
         while (true)
         {
@@ -414,7 +414,7 @@ public partial class AnswerView
 
     private static bool Fits(TextBlock tb, double width, double h)
     {
-        // 修正J115: RichTextBox の内部余白（約 10px）分を引いた幅で測り、実表示が下の段落にぶつからないようにする
+        // RichTextBox の内部余白（約 10px）分を引いた幅で測り、実表示が下の段落にぶつからないようにする
         double w = Math.Max(LayoutMinFont, width - 10);
         tb.Measure(new Size(w, double.PositiveInfinity));
         return tb.DesiredSize.Height <= h + 0.5 && tb.DesiredSize.Width <= w + 0.5;

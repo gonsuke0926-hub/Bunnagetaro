@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND4 E11: キャプチャ窓の枠の色・不透明度・太さ。既定値で今の見た目・撮る範囲・掴める幅が変わらない</summary>
+/// <summary>キャプチャ窓の枠の色・不透明度・太さ。既定値で今の見た目・撮る範囲・掴める幅が変わらない</summary>
 public class CaptureBorderTests : IDisposable
 {
     private readonly string _temp;

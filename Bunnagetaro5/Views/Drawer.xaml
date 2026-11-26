@@ -1,7 +1,7 @@
 <UserControl x:Class="Bunnagetaro5.Views.Drawer"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- 6.2 メニュー（☰）: 右端から幅280が180msでスライド。
+    <!-- メニュー（☰）: 右端から幅280が180msでスライド。
          出ている間はパネル以外に黒の不透明度0.2。そこを押すと閉じる。Escでも閉じる -->
     <Grid x:Name="DrawerLayer" Visibility="Collapsed">
         <Rectangle x:Name="Scrim" Fill="{StaticResource Scrim}" MouseLeftButtonUp="Scrim_Click"/>

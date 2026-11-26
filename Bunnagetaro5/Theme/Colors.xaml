@@ -1,7 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- 4.1 色トークン。ここ以外で色を直接書かない（例外: overlay_bg / overlay_fg） -->
+    <!-- 色トークン。ここ以外で色を直接書かない（例外: overlay_bg / overlay_fg） -->
     <Color x:Key="BgColor">#F3F3F3</Color>
     <Color x:Key="SurfaceColor">#FFFFFF</Color>
     <Color x:Key="SurfaceHoverColor">#F5F5F5</Color>
@@ -13,7 +13,7 @@
     <Color x:Key="AccentColor">#0067C0</Color>
     <Color x:Key="AccentHoverColor">#1975C5</Color>
     <Color x:Key="AccentPressColor">#3283CB</Color>
-    <!-- 主ボタン用の淡い青（E8）。AccentColor は据え置き（チェック欄などが使う） -->
+    <!-- 主ボタン用の淡い青。AccentColor は据え置き（チェック欄などが使う） -->
     <Color x:Key="AccentSoftColor">#D6E8F8</Color>
     <Color x:Key="AccentSoftHoverColor">#C6DEF5</Color>
     <Color x:Key="AccentSoftPressColor">#B5D3F1</Color>
@@ -45,7 +45,7 @@
     <SolidColorBrush x:Key="BarBg" Color="{StaticResource BarBgColor}"/>
     <SolidColorBrush x:Key="Scrim" Color="{StaticResource ScrimColor}"/>
 
-    <!-- フォント（4.2） -->
+    <!-- フォント -->
     <FontFamily x:Key="UiFont">Yu Gothic UI</FontFamily>
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 

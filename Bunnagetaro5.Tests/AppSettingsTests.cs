@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>整理1.5: AppSettings（型のある設定の窓口）。全キーの読み書き・知らないキーが残る・
+/// <summary>AppSettings（型のある設定の窓口）。全キーの読み書き・知らないキーが残る・
 /// 保存したJSONが今と同じ・値が変わった時だけ通知。</summary>
 public sealed class AppSettingsTests : IDisposable
 {
@@ -167,7 +167,7 @@ public sealed class AppSettingsTests : IDisposable
         s.Settings.SetOcrSplitModeEffective(true);
         Assert.True((bool)s.ActivePreset()!["settings"]!["ocr_split_mode"]!);
         Assert.True(s.Settings.OcrSplitMode);   // 既定のグローバルは true のまま（触っていない）
-        // 既定のプリセットは全部 use_global=false になった（2026-11-14）ので、グローバルを使うものを足す
+        // 既定のプリセットは全部 use_global=false になったので、グローバルを使うものを足す
         s.Root["prompts"]!.AsArray().Add(new JsonObject { ["name"] = "自分の", ["text"] = "x", ["use_global"] = true });
         s.Settings.SelectPreset("自分の");      // use_global=true
         s.Settings.SetOcrSplitModeEffective(false);

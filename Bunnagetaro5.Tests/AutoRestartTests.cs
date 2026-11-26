@@ -14,7 +14,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// F11: 自動で始めたぶん投げは、画面が変わった時（AutoFire）に打ち切って投げ直す。
+/// 自動で始めたぶん投げは、画面が変わった時（AutoFire）に打ち切って投げ直す。
 /// 手動・追加の問いは打ち切らない。応答を返さない偽サーバーへ向けて「ぶん投げ中」を保つ。
 /// </summary>
 public class AutoRestartTests : IDisposable

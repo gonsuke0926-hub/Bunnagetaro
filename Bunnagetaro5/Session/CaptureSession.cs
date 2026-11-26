@@ -15,7 +15,7 @@ internal interface IBarActions
     /// <summary>プリセット選択。設定タブの書きかけが拒否されたら false（バーは選択を直前に戻す）</summary>
     bool BarPresetSelect(string name);
     void BarTranslatePressed();
-    /// <summary>F3: バーだけが（くっつけるOFF のドラッグで）この矩形へ動く直前。外の解答欄を同じフレームで置く</summary>
+    /// <summary>バーだけが（くっつけるOFF のドラッグで）この矩形へ動く直前。外の解答欄を同じフレームで置く</summary>
     void BarMovingTo(Native.RECT newBarRect);
     void PlaceBar(Native.RECT? target = null);
     void CloseCaptureAll();
@@ -53,8 +53,8 @@ internal interface IBarSettingsView
 }
 
 /// <summary>
-/// キャプチャ窓・バー・解答欄（inside）・帯（outside）をまとめて開く/閉じる/位置合わせ/フェード/案内する
-/// （手順11・14・15・16 / 7.1・7.5・7.7）。窓と同時に生まれ同時に閉じる。
+/// キャプチャ窓・バー・解答欄（inside）・帯（outside）をまとめて開く/閉じる/位置合わせ/フェード/案内する。
+/// 窓と同時に生まれ同時に閉じる。
 /// ぶん投げの実行は ThrowController（IThrowOps 越し）、クイックぶん投げの窓の出し入れは
 /// QuickThrowController（IQuickOps 越し）から頼まれる。
 /// </summary>
@@ -72,22 +72,22 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
     internal IBarSettingsView? SettingsView { get; set; }
 
     private CaptureWindow? _capture;
-    /// <summary>バー（手順14 / 7.7）。キャプチャ窓と同時に生まれ同時に閉じる</summary>
+    /// <summary>バー。キャプチャ窓と同時に生まれ同時に閉じる</summary>
     private ChromeBar? _bar;
-    /// <summary>解答欄 inside（手順15 / 7.5）。キャプチャ窓と同時に生まれ、
+    /// <summary>解答欄 inside。キャプチャ窓と同時に生まれ、
     /// 中身ができる（最初のdelta・done）まで表示は出さない</summary>
     private AnswerPanel? _panel;
-    /// <summary>解答欄 outside（手順16 / 7.5）。キャプチャ窓の外側へ付く帯。
+    /// <summary>解答欄 outside。キャプチャ窓の外側へ付く帯。
     /// 同じく窓と同時に生まれ、表示と配置は250ms巡回（Sync）が every 決める</summary>
     private AnswerStrip? _strip;
-    /// <summary>bar配置と帯の保存・配置を確かめる巡回（tw_place._sync_chrome の
-    /// 250ms）。キャプチャ窓が開いている間だけ回る</summary>
+    /// <summary>bar配置と帯の保存・配置を確かめる巡回（250ms）。
+    /// キャプチャ窓が開いている間だけ回る</summary>
     private DispatcherTimer? _chromeSync;
 
     /// <summary>自動トリガのON/OFF（バーのトグルと同期）。巡回そのものは MainWindow の TriggerWatcher</summary>
     internal bool AutoMode { get; set; }
 
-    /// <summary>自分の表示を変えた回数。手順19/20の「自分の表示で発火しない」の下準備
+    /// <summary>自分の表示を変えた回数。「自分の表示で発火しない」の下準備
     /// （解答欄の表示・非表示・本文・思考・スタイル適用のたびに増える）</summary>
     public int PanelGen { get; private set; }
     public void TouchPanelGen() => PanelGen++;
@@ -163,10 +163,10 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
             case nameof(AppSettings.OverlayBg):
             case nameof(AppSettings.OverlayFg):
             case nameof(AppSettings.OverlayAlpha):
-            case nameof(AppSettings.StripBg):      // 修正J102: 外窓の色・不透明度（J101 で足したのにここに無く、変えても外窓へ効かなかった）
+            case nameof(AppSettings.StripBg):      // 外窓の色・不透明度
             case nameof(AppSettings.StripFg):
             case nameof(AppSettings.StripAlpha):
-            case nameof(AppSettings.LayoutTextBg):   // 修正J103
+            case nameof(AppSettings.LayoutTextBg):
             case nameof(AppSettings.OverlayFontFamily):
             case nameof(AppSettings.OverlayFontSize):
             case nameof(AppSettings.ResultPlace):
@@ -200,7 +200,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
     internal bool? BarPassthru => _bar?.PassthruActive;
 
     /// <summary>
-    /// キャプチャ窓を開く。開いているときは前に出すだけ（Python版 open_capture）。
+    /// キャプチャ窓を開く。開いているときは前に出すだけ。
     /// 窓が外側で壊されていた場合は作り直す（死んだHWNDの残留で次回が無言で壊れないように）
     /// </summary>
     public void OpenCapture(bool animate = true) => OpenCaptureCore(animate, forQuick: false);
@@ -220,7 +220,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
             }
             _capture = null;
         }
-        // F36: メイン窓を最小化してもキャプチャ窓が隠れないよう Owner は付けない（Alt+Tab 除外は各窓の WS_EX_TOOLWINDOW）
+        // メイン窓を最小化してもキャプチャ窓が隠れないよう Owner は付けない（Alt+Tab 除外は各窓の WS_EX_TOOLWINDOW）
         var w = new CaptureWindow(_cfg, _setStatus);
         w.Closed += (_, _) =>
         {
@@ -242,14 +242,14 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
             try { b?.Close(); } catch (InvalidOperationException) { }
             try { pn?.Close(); } catch (InvalidOperationException) { }
             try { sp?.Close(); } catch (InvalidOperationException) { }
-            _setStatus("キャプチャ窓を閉じました");   // Python版 _close_capture と同じ一言
+            _setStatus("キャプチャ窓を閉じました");
         };
         _capture = w;
         var bar = new ChromeBar(_cfg, this, w);
         bar.Closed += (_, _) => { if (_bar == bar) _bar = null; };
         var panel = new AnswerPanel(_cfg, this, w);
         panel.Closed += (_, _) => { if (_panel == panel) _panel = null; };
-        // 解答欄が出ている間だけ、キャプチャ窓の中を素通しへ戻す（A2）。
+        // 解答欄が出ている間だけ、キャプチャ窓の中を素通しへ戻す。
         // 解答欄はこの窓より下にいることがあるので、膜で取ったクリックを返す
         w.InteriorBlocked = () => panel.IsVisible;
         var strip = new AnswerStrip(_cfg, this);
@@ -267,11 +267,11 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
         _chromeSync = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _chromeSync.Tick += (_, _) => _placer.TickInsurance();
         _chromeSync.Start();
-        // 窓を開いた=使い始めた合図。ここで裏からモデルを載せに行く（初回ぶん投げで読み込みを待たせない。A4）
+        // 窓を開いた=使い始めた合図。ここで裏からモデルを載せに行く（初回ぶん投げで読み込みを待たせない）
         _ = Throw.WarmAiAsync("open_capture");
         if (forQuick)
-            return;   // 案内（A3）は出さない。F4 の同時のふわっとも要らない（動き無し）
-        // 訳文が出ていない場所へ、窓を開いた直後の案内を出す（A3。tw_overlay._show_hint）
+            return;   // 案内は出さない。同時のふわっと表示も要らない（動き無し）
+        // 訳文が出ていない場所へ、窓を開いた直後の案内を出す
         ShowHint();
         if (animate) _vis.CompleteOpenAnimated();
     }
@@ -287,11 +287,11 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
     /// <summary>キャプチャ窓とバーと解答欄をまとめて閉じる（バーの「閉じる」）</summary>
     public void CloseCaptureAll() => _vis.BeginClose();
 
-    /// <summary>修正J80: アプリ終了時、見えている関連窓をバーの「閉じる」と同じ薄れ＋縮みで隠し始める（待たない）。
+    /// <summary>アプリ終了時、見えている関連窓をバーの「閉じる」と同じ薄れ＋縮みで隠し始める（待たない）。
     /// 1つでも始めたら true</summary>
     public bool FadeAllForQuit(int ms) => _vis.BeginQuitFade(ms);
 
-    /// <summary>アプリ終了時: モデル降ろし待ちで窓が残って見えないよう、関連窓を即座に隠す（F33）。</summary>
+    /// <summary>アプリ終了時: モデル降ろし待ちで窓が残って見えないよう、関連窓を即座に隠す。</summary>
     public void HideAllForQuit()
     {
         foreach (Window? w in new Window?[] { _panel, _strip, _bar, _capture })
@@ -301,7 +301,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
         }
     }
 
-    /// <summary>メイン窓が閉じた時に Owner を持たない関連窓をすべて即時閉じる（F36）。</summary>
+    /// <summary>メイン窓が閉じた時に Owner を持たない関連窓をすべて即時閉じる。</summary>
     public void CloseAllNow()
     {
         foreach (Window? w in new Window?[] { _panel, _strip, _bar, _capture })
@@ -311,7 +311,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
         }
     }
 
-    // ---------------- バーからの操作（手順14 / 7.7） ----------------
+    // ---------------- バーからの操作 ----------------
 
     /// <summary>バーのぶん投げるボタン。ぶん投げ中なら「やめる」に化けている（_translate_btn_pressed）</summary>
     public void BarTranslatePressed()
@@ -320,18 +320,18 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
         else Throw.TranslateNow();
     }
 
-    /// <summary>バーの自動トリガ。mode を即保存し、設定タブのチェック欄にも反映（tw_mode._mode_changed）</summary>
+    /// <summary>バーの自動トリガ。mode を即保存し、設定タブのチェック欄にも反映</summary>
     public void BarAutoTrig(bool on)
     {
-        AutoMode = on;   // F12c: 出ていた答えは消さない（切替で答えは動かさない）
+        AutoMode = on;   // 出ていた答えは消さない（切替で答えは動かさない）
         WriteSelf(() => _cfg.Settings.Mode = on ? "auto" : "manual");
         _cfg.Save();
-        // 解答欄の撮る前消しは manual/auto 問わず ThrowController.TranslateNow が消す（手順19の発火も同じ経路）
+        // 解答欄の撮る前消しは manual/auto 問わず ThrowController.TranslateNow が消す（自動発火も同じ経路）
         _setStatus(on ? "自動トリガON（監視開始）" : "自動トリガOFF（「ぶん投げる」ボタンで都度）");
     }
 
     /// <summary>
-    /// バーのプリセット選択（tw_uicfg._preset_select）。
+    /// バーのプリセット選択。
     /// 設定タブの書きかけが拒否されたら false（バーは選択を直前に戻す）
     /// </summary>
     public bool BarPresetSelect(string name)
@@ -352,7 +352,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
             return true;
         }
         _cfg.Save();
-        // 修正J20: プリセット専用の表示の設定（「たずねる」欄・表や式の変換・色など）を解答欄へ反映する。
+        // プリセット専用の表示の設定（「たずねる」欄・表や式の変換・色など）を解答欄へ反映する。
         // WriteSelf の中の書き換えは OnSettingsPropertyChanged を通らないので、ここで設定ページからの切り替えと同じ塗り直しをする
         SyncBarFromCfg();
         Throw.AfterRunCfgChange();   // プリセットでモデル・載せ方が変わる時の載せ直し（_after_run_cfg_change）
@@ -361,16 +361,16 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
     }
 
     /// <summary>設定タブ側で cfg が変わった。バーの表示を cfg から塗り直し、
-    /// 解答欄のスタイル（色・透明度・フォント）も即反映（tw_panel._apply_panel_style）</summary>
+    /// 解答欄のスタイル（色・透明度・フォント）も即反映</summary>
     public void SyncBarFromCfg()
     {
         if (_syncingBar) return;
         _syncingBar = true;
         try
         {
-            AutoMode = _cfg.Settings.Mode == "auto";   // F12c: 切り替えても出ていた答えは消さない
-            _capture?.ApplyBorderSettings(_cfg.Settings);   // 枠の色・不透明度・太さ（E11）
-            _capture?.ApplyCaptureAffinity();               // 配信・録画に映す切替（修正J30）
+            AutoMode = _cfg.Settings.Mode == "auto";   // 切り替えても出ていた答えは消さない
+            _capture?.ApplyBorderSettings(_cfg.Settings);   // 枠の色・不透明度・太さ
+            _capture?.ApplyCaptureAffinity();               // 配信・録画に映す切替
             _bar?.ApplyCaptureAffinity();
             _panel?.ApplyCaptureAffinity();
             _strip?.ApplyCaptureAffinity();
@@ -383,7 +383,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
             string place = _cfg.EffectiveResultPlace();
             if (place != _lastPlace)
             {
-                // F6: 窓に重ねる⇔外の解答欄を切り替えても、出ていた答えは新しい側へ移して出す
+                // 窓に重ねる⇔外の解答欄を切り替えても、出ていた答えは新しい側へ移して出す
                 bool toOutside = place == "outside";
                 _lastPlace = place;
                 if (toOutside)
@@ -408,7 +408,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
     public void SyncPanelPassthru(bool on) => _panel?.ApplyPassthru(on);
 
     /// <summary>バーの現在の物理矩形（出ていなければ null）。帯の配置と
-    /// strip_offset_x の保存が使う（tw_place._position_chrome の ch_rect 相当）</summary>
+    /// strip_offset_x の保存が使う</summary>
     public Native.RECT? BarRectNow() => _bar?.BarRectNow();
 
     void IAnswerHost.PlacePanel(Native.RECT? target) => _placer.PlacePanel(target);
@@ -438,7 +438,6 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
     bool? IThrowOps.Stream(string s, string p, bool capturePending)
     {
         // ストリームの便は place を問わず必ず付ける。流す先はイベントごとに今の result_place を見て切り替える
-        // （Python版 drain が self.result_place を都度読むのと同じ）
         if (_cfg.EffectiveResultPlace() != "outside")
         {
             // 撮影中は黙る（drainの capture_pending チェックと同じ）
@@ -453,7 +452,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
         // outside: 帯は撮影矩形と絶対に重ならないので pending を待たない
         var strip = _strip;
         if (strip is null) return null;
-        if (s.Length > 0 || p.Length > 0) _hint.DropStripHintForAnswer(strip);   // 修正J81
+        if (s.Length > 0 || p.Length > 0) _hint.DropStripHintForAnswer(strip);
         if (s.Length > 0) strip.ApplyThink(s);
         if (p.Length > 0) strip.ApplyBody(p);
         return s.Length > 0 && strip.ModelText.Length == 0;
@@ -465,25 +464,25 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
         if (_cfg.EffectiveResultPlace() != "outside") _panel?.ShowFinal(text);
         else if (_strip is { } sp)
         {
-            _hint.DropStripHintForAnswer(sp);   // 修正J81
+            _hint.DropStripHintForAnswer(sp);
             sp.ShowFinal(text);
         }
     }
 
     void IThrowOps.HideAnswers()
     {
-        // 修正J80: 失敗・やめた・空の答えの時は撮った後なので、窓の中の解答欄は薄れて消える（前は即）。
-        // 修正J81: 外の解答欄は消さずに、前の中身（案内・途中まで届いた答え）を残す（人の判断 2026-11-22）
+        // 失敗・やめた・空の答えの時は撮った後なので、窓の中の解答欄は薄れて消える。
+        // 外の解答欄は消さずに、前の中身（案内・途中まで届いた答え）を残す
         _vis.HidePanelFade();
     }
 
     void IThrowOps.SetBarBusy(bool busy, bool cancelling) => _bar?.SetBusy(busy, cancelling);
 
-    /// <summary>修正J97・J114: 段落の位置は窓の中の解答欄だけへ渡す（外窓は位置配置せず読む順で上から並べる）</summary>
+    /// <summary>段落の位置は窓の中の解答欄だけへ渡す（外窓は位置配置せず読む順で上から並べる）</summary>
     void IThrowOps.SetLayout(IReadOnlyList<OcrBlock>? blocks, bool capturePending)
     {
-        // 修正J112: 区画が分かった時点で、窓の中の解答欄を出す（撮影中は黙る）。
-        // 修正J114: 外窓（AnswerStrip）は位置配置・マスクを行わず、文字が届いた時に読む順の通常表示で出す
+        // 区画が分かった時点で、窓の中の解答欄を出す（撮影中は黙る）。
+        // 外窓（AnswerStrip）は位置配置・マスクを行わず、文字が届いた時に読む順の通常表示で出す
         bool has = blocks is { Count: > 0 };
         bool outside = _cfg.EffectiveResultPlace() == "outside";
         _panel?.View.SetLayout(blocks);

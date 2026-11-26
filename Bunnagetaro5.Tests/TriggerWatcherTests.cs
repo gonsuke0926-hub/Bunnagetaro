@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>手順19: 自動トリガ巡回（動いた→落ち着いた→発火、クールダウン、busy、
+/// <summary>自動トリガ巡回（動いた→落ち着いた→発火、クールダウン、busy、
 /// 同じ訳の再発防止、窓移動の基準直し）。Tick を直接刻んで調べる（スレッドは回さない）</summary>
 public class TriggerWatcherTests
 {
@@ -21,7 +21,7 @@ public class TriggerWatcherTests
     {
         public Native.RECT Rect = new() { Left = 10, Top = 20, Right = 130, Bottom = 80 };
         public bool Enabled = true, Busy;
-        public bool AutoRun;                          // 今のぶん投げが自動で始めたもの（F11）
+        public bool AutoRun;                          // 今のぶん投げが自動で始めたもの
         public DateTime Clock = new(2026, 11, 13, 12, 0, 0, DateTimeKind.Utc);
         public void Advance(double sec) => Clock = Clock.AddSeconds(sec);
         public int Fires;
@@ -108,7 +108,7 @@ public class TriggerWatcherTests
     public void 最短間隔0なら間隔なしで続けて発火できる()
     {
         var r = new Rig();
-        r.P.Cooldown = 0.0;   // 既定は 1 秒（2026-11-15）。ここは 0 の時の動きを見る
+        r.P.Cooldown = 0.0;   // 既定は 1 秒。ここは 0 の時の動きを見る
         r.Push(40); r.Tick();
         r.Push(200); r.Tick(); r.Push(200); r.Tick(); r.Push(200); r.Tick();
         Assert.Equal(1, r.Fires);
@@ -134,7 +134,7 @@ public class TriggerWatcherTests
     public void F11_自動のぶん投げの最中に画面が変わって止まったら打ち切って投げ直す()
     {
         var r = new Rig();
-        r.P.Cooldown = 0.0;   // 最短間隔の間は見ない（I10）ので、打ち切りの動きだけを見るため 0
+        r.P.Cooldown = 0.0;   // 最短間隔の間は見ないので、打ち切りの動きだけを見るため 0
         r.Push(40); r.Tick();
         r.Push(200); r.Tick(); r.Push(200); r.Tick(); r.Push(200); r.Tick();
         Assert.Equal(1, r.Fires);

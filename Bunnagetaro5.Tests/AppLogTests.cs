@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>app.log の記録と1MB回転（3世代）・crash.log（手順2）。</summary>
+/// <summary>app.log の記録と1MB回転（3世代）・crash.log。</summary>
 public sealed class AppLogTests : IDisposable
 {
     private readonly string _dir;

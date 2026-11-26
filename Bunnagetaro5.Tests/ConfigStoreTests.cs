@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>config.json の読み書き（手順2: 未知キー保持／原子保存／
+/// <summary>config.json の読み書き（未知キー保持／原子保存／
 /// effective_config相当の重ね書き）。</summary>
 public sealed class ConfigStoreTests : IDisposable
 {
@@ -51,9 +51,9 @@ public sealed class ConfigStoreTests : IDisposable
         Assert.Equal(new[] { "翻訳", "OCR", "数式", "表" }, prompts.OfType<JsonObject>().Select(p => p["name"]!.GetValue<string>()));
         Assert.Equal("翻訳", store.GetStr("prompt_active"));
         Assert.True(store.GetBool("presets_v5", false));
-        string M(string n) => prompts.OfType<JsonObject>().First(p => p["name"]!.GetValue<string>() == n)["model"]!.GetValue<string>();   // 修正J7: プリセットの "model"
+        string M(string n) => prompts.OfType<JsonObject>().First(p => p["name"]!.GetValue<string>() == n)["model"]!.GetValue<string>();   // プリセットの "model"
         string T(string n) => prompts.OfType<JsonObject>().First(p => p["name"]!.GetValue<string>() == n)["text"]!.GetValue<string>();
-        Assert.Equal("", M("OCR"));   // 修正J27: OCR プリセットは throw_mode=builtin_ocr でモデル欄は空
+        Assert.Equal("", M("OCR"));   // OCR プリセットは throw_mode=builtin_ocr でモデル欄は空
         Assert.Equal("glm-ocr", M("数式"));
         Assert.Equal("hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF", M("表"));
         Assert.Equal("Text Recognition:", T("OCR"));
@@ -65,14 +65,14 @@ public sealed class ConfigStoreTests : IDisposable
         Assert.False(st["ocr_split_mode"]!.GetValue<bool>());
         Assert.Equal(ConfigStore.ThrowModeBuiltinOcr, st["throw_mode"]!.GetValue<string>());
         Assert.Equal(BuiltinOcr.SizeSmall, st["builtin_ocr_size"]!.GetValue<string>());
-        Assert.Equal("", ocr["model"]!.GetValue<string>());   // 修正J27: 内蔵 OCR はモデル欄に置かない
+        Assert.Equal("", ocr["model"]!.GetValue<string>());   // 内蔵 OCR はモデル欄に置かない
         var tr = prompts.OfType<JsonObject>().First(p => p["name"]!.GetValue<string>() == "翻訳")["settings"]!.AsObject();
         Assert.Equal(ConfigStore.ThrowModeOcr, tr["throw_mode"]!.GetValue<string>());
         Assert.Equal(ConfigStore.OcrEngineBuiltin, tr["ocr_engine"]!.GetValue<string>());
         Assert.Equal(BuiltinOcr.SizeSmall, tr["builtin_ocr_size"]!.GetValue<string>());
     }
 
-    // ------------------------------------------------------------ I2: プリセットの入れ替え
+    // ------------------------------------------------------------ プリセットの入れ替え
 
     [Fact]
     public void PresetsV5_OldNamesAreRewrittenOnce_OwnPresetsKept_SelectionFollows()
@@ -90,7 +90,7 @@ public sealed class ConfigStoreTests : IDisposable
         Assert.Equal(new[] { "翻訳", "OCR", "数式", "表", "自作" }, ps.Select(p => p["name"]!.GetValue<string>()));
         Assert.Equal("my tr", ps[0]["text"]!.GetValue<string>());   // 翻訳は名前だけ
         Assert.Equal("Text Recognition:", ps[1]["text"]!.GetValue<string>());
-        Assert.Equal("glm-ocr:latest", ps[1]["model"]!.GetValue<string>());   // 修正J7: プリセットの "model" へ
+        Assert.Equal("glm-ocr:latest", ps[1]["model"]!.GetValue<string>());   // プリセットの "model" へ
         Assert.False(ps[1]["settings"]!.AsObject().ContainsKey("model"));
         Assert.False(ps[1]["settings"]!["ocr_split_mode"]!.GetValue<bool>());
         Assert.Equal(4096, ps[1]["settings"]!["ollama_num_ctx"]!.GetValue<int>());   // 他の専用設定は残す
@@ -339,7 +339,7 @@ public sealed class ConfigStoreTests : IDisposable
     public void SafeHostRejectsMalformed(string url, string? expected)
         => Assert.Equal(expected, ConfigStore.SafeHost(ConfigStore.NormBase(url)));
 
-    // ------------------------------------------------------------ E2: LaTeX プリセット既定文と引っ越し
+    // ------------------------------------------------------------ LaTeX プリセット既定文と引っ越し
 
     [Fact]
     public void LatexPresetDefaultText_MatchesSpecCharForChar()

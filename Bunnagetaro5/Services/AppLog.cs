@@ -5,9 +5,9 @@ namespace Bunnagetaro5.Services;
 
 /// <summary>
 /// app.log / crash.log への記録。1MBで回転・3世代（app.log, app.log.1, app.log.2）。
-/// 形式は Python版 logging と同じ「yyyy-MM-dd HH:mm:ss,fff LEVEL 本文」。
+/// 形式は「yyyy-MM-dd HH:mm:ss,fff LEVEL 本文」。
 /// Windowsでは別プロセスがapp.logを開いているとリネームできないので、
-/// 回れない時は黙ってそのまま書き続ける（Python版 _RotatingLog と同じ方針）。
+/// 回れない時は黙ってそのまま書き続ける。
 /// </summary>
 public static class AppLog
 {
@@ -59,7 +59,7 @@ public static class AppLog
             }
             catch
             {
-                // ログの失敗でアプリを止めない（Python版と同じ）
+                // ログの失敗でアプリを止めない
             }
         }
     }

@@ -5,7 +5,7 @@ using System.Windows.Media.Imaging;
 
 namespace Bunnagetaro5.Views;
 
-/// <summary>画素に揃える計算（E10）。式の画像は文字の組みで半端な位置（y=12.37px など）に置かれ、
+/// <summary>画素に揃える計算。式の画像は文字の組みで半端な位置（y=12.37px など）に置かれ、
 /// 1:1 の画像だと前後の画素が混ざってにじむ。端数を打ち消して整数の物理pxへ寄せる。</summary>
 internal static class PixelSnap
 {

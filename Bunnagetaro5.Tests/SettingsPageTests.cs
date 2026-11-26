@@ -13,9 +13,9 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 設定ページ（手順6: AI接続と答えの表示）のその場保存の動き。
+/// 設定ページ（AI接続と答えの表示）のその場保存の動き。
 /// 窓に出さなくてもRaisedイベントで直接発火できるので、ページ単体でSTAで動かす。
-/// 保存が300ms間引かれていることも、ここで確かめる（指示書6.4）。
+/// 保存が300ms間引かれていることも、ここで確かめる。
 /// </summary>
 public class SettingsPageTests : IDisposable
 {
@@ -124,7 +124,7 @@ public class SettingsPageTests : IDisposable
         });
     }
 
-    /// <summary>E11: キャプチャ窓の枠の欄（色・不透明度・太さ）は即書かれ、本体へ知らせ、「既定に戻す」で3つだけ戻る</summary>
+    /// <summary>キャプチャ窓の枠の欄（色・不透明度・太さ）は即書かれ、本体へ知らせ、「既定に戻す」で3つだけ戻る</summary>
     [Fact]
     public void CaptureBorderFieldsWriteNotifyAndReset()
     {

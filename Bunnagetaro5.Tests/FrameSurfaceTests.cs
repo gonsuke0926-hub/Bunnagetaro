@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J65: FrameSurface（外・枠・中の3色の四角を差分の帯だけ塗り直す部品）の正しさと、仕事量が辺の長さに比例すること</summary>
+/// <summary>FrameSurface（外・枠・中の3色の四角を差分の帯だけ塗り直す部品）の正しさと、仕事量が辺の長さに比例すること</summary>
 public class FrameSurfaceTests
 {
     private const int SL = 100, ST = 50, SW = 400, SH = 300;

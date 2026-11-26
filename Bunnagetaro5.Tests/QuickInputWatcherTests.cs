@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>手順22: 入力フック（tw_input.py QuickInputWatcher）のコールバック判定。
+/// <summary>入力フック（QuickInputWatcher）のコールバック判定。
 /// フック自体は張らず、コールバック相当を合成した HOOKSTRUCT へ直接叩いて確かめる。
 /// （素通しの戻り値は次のフックの値が混ざりうるので「1でない＝素通し」で見る。
 /// キー系は GetAsyncKeyState の実状態（テスト実行中に物理修飾キーが下がっていないこと）に依存する。）</summary>
@@ -39,7 +39,7 @@ public class QuickInputWatcherTests
         string hotkey = "", string kdrag = "")
     {
         // 既存のテストは「離したらすぐ確定」を見るので、チャタリングの預かりは切っておく
-        // 修正J46: 離した時の終点は本物のカーソルを読むので、合成したイベントの座標で見るテストでは読まない
+        // 離した時の終点は本物のカーソルを読むので、合成したイベントの座標で見るテストでは読まない
         var w = new QuickInputWatcher { ChatterMs = 0, UpCursor = () => null };
         w.Apply(enabled, button, hotkey, kdrag);
         return w;
@@ -308,7 +308,7 @@ public class QuickInputWatcherTests
     [Fact]
     public void OFFでもホットキーだけは生きていてクイック追跡だけ止まる()
     {
-        // Python版と同じ：有効チェックはクイックぶん投げ用。hotkey 指定中はキーボードフックだけ張る
+        // 有効チェックはクイックぶん投げ用。hotkey 指定中はキーボードフックだけ張る
         var w = Fresh(false, "wheel", hotkey: "ctrl+f8");
         Assert.True(w.Enabled());
         Assert.True(Key(w, 0x77).ToInt64() != 1);                      // 修飾不一致で素通し（物理Ctrl前提）
@@ -365,7 +365,7 @@ public class QuickInputWatcherTests
         Assert.Null(w.Drag);
     }
 
-    // ---- 修正J58: 範囲ドラッグのホットキー（2つ目の枠） ----
+    // ---- 範囲ドラッグのホットキー（2つ目の枠） ----
 
     private static QuickInputWatcher FreshSnip(string snip, string hotkey = "", bool enabled = false, string button = "off")
     {

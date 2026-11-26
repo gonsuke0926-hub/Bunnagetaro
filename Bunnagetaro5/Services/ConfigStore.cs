@@ -8,13 +8,12 @@ using System.Text.RegularExpressions;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// config.json の読み書きと、古い既定値の引っ越し（Python版 tw_config.py 相当）。
+/// config.json の読み書きと、古い既定値の引っ越し。
 ///
-/// Python版は「既知キーだけメモリへ」という方針だったが、WPF版は指示書5.2の
-/// 「知らないキーも消さずに残す」を全面採用し、ファイル全体を JsonObject として
+/// 未知のキーも消さずに残すため、ファイル全体を JsonObject として
 /// 保持する（trig_* のマージ再読込も不要になる）。
 /// prompts（ぶん投げ文の一覧）と prompt_active（選んでいる名前）と prompt は
-/// 常に結び直す（Python版と同じく、ぶん投げる側は prompt だけ読めばよい）。
+/// 常に結び直す（ぶん投げる側は prompt だけ読めばよい）。
 /// </summary>
 public sealed partial class ConfigStore
 {
@@ -33,7 +32,7 @@ public sealed partial class ConfigStore
     public string? LoadWarning { get; private set; }
 
     public const string DefaultBaseUrl = "http://localhost:11434";
-    /// <summary>グローバル設定の既定モデル。空（人の判断 2026-11-16: 既定のモデルはプリセットごとに持たせ、グローバルは空でよい）</summary>
+    /// <summary>グローバル設定の既定モデル。空（既定のモデルはプリセットごとに持たせるため、グローバルは空）</summary>
     public const string DefaultModel = "";
     public const string DefaultPromptName = "翻訳";
 
@@ -41,7 +40,7 @@ public sealed partial class ConfigStore
     public const string TranslatePresetModel = "hf.co/pfnet/plamo-3-translate-0.8b-GGUF:Q4_K_M";
     /// <summary>前の既定の OCR のモデル。旧名のプリセットの書き換え（presets_v5）や VLM 文字起こしの既定に使う</summary>
     public const string OcrPresetModel = "glm-ocr:latest";
-    /// <summary>新しく作る設定の「OCR」プリセットのモデル（修正J27 で内蔵OCRはぶん投げ方へ移したため空）</summary>
+    /// <summary>新しく作る設定の「OCR」プリセットのモデル（内蔵OCRはぶん投げ方へ移したため空）</summary>
     public const string OcrPresetDefaultModel = "";
     public const string FormulaPresetModel = "glm-ocr";
     public const string TablePresetModel = "hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF";
@@ -49,19 +48,19 @@ public sealed partial class ConfigStore
     public const string FormulaPresetText = "Formula Recognition:";
     public const string TablePresetText = "Table Recognition:";
 
-    /// <summary>ぶん投げ方（修正J27: 文字起こし / 画像そのまま / 内蔵OCRのみ）</summary>
+    /// <summary>ぶん投げ方（文字起こし / 画像そのまま / 内蔵OCRのみ）</summary>
     public const string ThrowModeOcr = "ocr";
     public const string ThrowModeImage = "image";
     public const string ThrowModeBuiltinOcr = "builtin_ocr";
-    /// <summary>文字起こしの方法（修正J27: 内蔵OCR / VLM）</summary>
+    /// <summary>文字起こしの方法（内蔵OCR / VLM）</summary>
     public const string OcrEngineBuiltin = "builtin";
     public const string OcrEngineVlm = "vlm";
-    /// <summary>内蔵OCRモデルの既定（修正J27: 人の判断で small）</summary>
+    /// <summary>内蔵OCRモデルの既定（small）</summary>
     public const string DefaultBuiltinOcrSize = BuiltinOcr.SizeSmall;
 
     /// <summary>プリセットが「グローバル設定を使う」を外した時に専用で持つキー。
-    /// グローバルにも同じキーがある物だけ（tw_config.PRESET_KEYS）。
-    /// モデルは入れない: モデルはいつもプリセットごとに持つ（修正J7。プリセットの "model"）</summary>
+    /// グローバルにも同じキーがある物だけ。
+    /// モデルは入れない: モデルはいつもプリセットごとに持つ（プリセットの "model"）</summary>
     public static readonly string[] PresetKeys =
     {
         "throw_mode", "ocr_split_mode", "ocr_engine", "builtin_ocr_size", "builtin_ocr_layout",
@@ -97,7 +96,7 @@ public sealed partial class ConfigStore
         "only the Japanese translation of the visible text; do not explain or summarize.";
 
     /// <summary>v3.3で既定文を「あらゆる言語→日本語」へ広げた。旧既定文がそのまま
-    /// 入っている人だけを差し替えるための比較用（tw_ollama... でなく translator_window._OLD_PROMPT_EN）。</summary>
+    /// 入っている人だけを差し替えるための比較用。</summary>
     public const string OldPromptEn =
         "Translate every readable English sentence in the image from English into natural Japanese. " +
         "Do not copy English sentences into the answer. Preserve proper names and short UI labels " +
@@ -105,7 +104,7 @@ public sealed partial class ConfigStore
         "this image. Do not infer missing content, reconstruct an article, or add facts. Output " +
         "only the Japanese translation of the visible text; do not explain or summarize.";
 
-    /// <summary>LaTeX プリセットの既定文（E2: $$ ... $$ で囲ませて数式として表示する）</summary>
+    /// <summary>LaTeX プリセットの既定文（$$ ... $$ で囲ませて数式として表示する）</summary>
     public const string DefaultLatexPrompt =
         "Convert the mathematical expressions in the image into LaTeX. Reproduce them " +
         "exactly as shown; do not solve, simplify, or explain them. Write each equation " +
@@ -113,7 +112,7 @@ public sealed partial class ConfigStore
         "\\times, \\partial, \\frac, \\rho, \\mathbf. Never use Unicode math symbols like " +
         "∇ · × ∂ ρ. Output nothing else.";
 
-    /// <summary>LaTeX プリセットの旧既定文（E2 の引っ越し比較用）</summary>
+    /// <summary>LaTeX プリセットの旧既定文（引っ越し比較用）</summary>
     public const string OldLatexPrompt =
         "Convert the mathematical expressions in the image into LaTeX. Reproduce them " +
         "exactly as shown; do not solve, simplify, or explain them. Put each separate " +
@@ -123,7 +122,7 @@ public sealed partial class ConfigStore
     private static readonly Regex SchemeRe = new("^[A-Za-z][A-Za-z0-9+.\\-]*://", RegexOptions.Compiled);
     private static readonly object SaveGate = new();
 
-    /// <summary>型のある設定の窓口（変更通知つき。REFACTOR_ROUND1 1.1）。使う側はこれを読み書きする</summary>
+    /// <summary>型のある設定の窓口（変更通知つき）。使う側はこれを読み書きする</summary>
     public AppSettings Settings { get; }
 
     public ConfigStore(Paths paths)
@@ -135,7 +134,7 @@ public sealed partial class ConfigStore
 
     // ---------------------------------------------------------------- 既定値
 
-    /// <summary>DEFAULT_CONFIG（translator_window.py）。キーの並びもPython版と同じ順。</summary>
+    /// <summary>config.json の既定値。</summary>
     public static JsonObject DefaultConfig()
     {
         var cfg = new JsonObject
@@ -167,7 +166,7 @@ public sealed partial class ConfigStore
             ["overlay_bg"] = "#202020",
             ["overlay_fg"] = "#f5f5f5",
             ["overlay_alpha"] = PanelStyle.DefaultAlpha,
-            // 修正J101: 外窓（枠の外に出す解答欄）の色と不透明度。枠の中とは別（人の判断 2026-11-25）
+            // 外窓（枠の外に出す解答欄）の色と不透明度。枠の中とは別
             ["strip_bg"] = PanelStyle.DefaultBg,
             ["strip_fg"] = PanelStyle.DefaultFg,
             ["strip_alpha"] = PanelStyle.DefaultStripAlpha,
@@ -188,10 +187,10 @@ public sealed partial class ConfigStore
             ["ocr_split_mode"] = true,
             ["ocr_engine"] = OcrEngineBuiltin,
             ["builtin_ocr_size"] = DefaultBuiltinOcrSize,
-            ["builtin_ocr_layout"] = false,   // 修正J96: 内蔵 OCR の時、読み取った位置に並べる（OCR_LAYOUT_ROUND1）
-            // 修正J100: 位置の反映の細かい値（全体で1つ。設定ページの「位置の反映（内蔵OCR）」）
-            ["layout_text_bg"] = true,   // 修正J103・J107: 区画の所だけに背景（マスク）
-            ["layout_score_thresh"] = LayoutParams.Default.ScoreThresh,   // 修正J116: 区画判定のしきい値
+            ["builtin_ocr_layout"] = false,   // 内蔵 OCR の時、読み取った位置に並べる
+            // 位置の反映の細かい値（全体で1つ。設定ページの「位置の反映（内蔵OCR）」）
+            ["layout_text_bg"] = true,   // 区画の所だけに背景（マスク）
+            ["layout_score_thresh"] = LayoutParams.Default.ScoreThresh,   // 区画判定のしきい値
             ["layout_batch_chars"] = LayoutParams.Default.BatchChars,
             ["layout_label_words"] = LayoutParams.Default.LabelWords,
             ["layout_label_chars"] = LayoutParams.Default.LabelChars,
@@ -213,7 +212,7 @@ public sealed partial class ConfigStore
             ["snip_hotkey"] = "",
             ["presets_v5"] = true,
             ["presets_offered"] = new JsonArray("翻訳", "OCR", "数式", "表"),
-            // OLLAMA_DEFAULTS（tw_ollama.py。DEFAULT_CONFIG.update で後ろに足される順）
+            // Ollama 関連の既定値
             ["ollama_num_ctx"] = 8192,
             ["ollama_num_predict"] = 4096,
             ["ollama_temperature"] = 0.0,
@@ -244,7 +243,7 @@ public sealed partial class ConfigStore
                 ["ocr_split_mode"] = true,
                 ["ocr_engine"] = OcrEngineBuiltin,
                 ["builtin_ocr_size"] = DefaultBuiltinOcrSize,
-                ["builtin_ocr_layout"] = true,   // 修正J119: 既定の「翻訳」は位置の反映 ON
+                ["builtin_ocr_layout"] = true,   // 既定の「翻訳」は位置の反映 ON
                 ["ocr_vlm_model"] = OcrPresetModel,
                 ["ocr_vlm_prompt"] = OcrPresetText,
                 ["clip_answer"] = false,
@@ -259,7 +258,7 @@ public sealed partial class ConfigStore
                 ["throw_mode"] = ThrowModeBuiltinOcr,
                 ["ocr_split_mode"] = false,
                 ["builtin_ocr_size"] = DefaultBuiltinOcrSize,
-                ["builtin_ocr_layout"] = true,   // 修正J119: 既定の「OCR」は位置の反映 ON
+                ["builtin_ocr_layout"] = true,   // 既定の「OCR」は位置の反映 ON
                 ["clip_answer"] = false,
             },
             ["text"] = OcrPresetText,
@@ -279,7 +278,7 @@ public sealed partial class ConfigStore
     // ---------------------------------------------------------------- 読み込み
 
     /// <summary>config.json を読む（無ければ既定値）。
-    /// 引っ越しを実施したら、Python版のAppと同じくここで一度ディスクへ書き戻す。</summary>
+    /// 引っ越しを実施したら、ここで一度ディスクへ書き戻す。</summary>
     public void Load()
     {
         Migrations.Clear();
@@ -333,7 +332,7 @@ public sealed partial class ConfigStore
         }
 
         // 手編集configのbase_urlも読み込み時点で正規化する。解析不能ならDEFAULTへ退避
-        // （不正値で走り続けて後で意味不明に失敗するよりマシ。tw_config.load_config）
+        // （不正値で走り続けて後で意味不明に失敗するよりマシ）
         try
         {
             string nb = NormBase(GetStr("base_url"));
@@ -352,9 +351,9 @@ public sealed partial class ConfigStore
         NormalizeBaseUrlList();
         NormalizePrompts(HadSaved);
 
-        // 引っ越しを実施したら一度ディスクへ書き戻す（Python版はApp側がやっていたが、
-        // 忘れると直したつもりが次回また引っ越しになるのでここでやる）
-        // ただし壊れた config.json を読んで既定起動した回は、起動直後の Save() をしない（G1）
+        // 引っ越しを実施したら一度ディスクへ書き戻す
+        // （忘れると直したつもりが次回また引っ越しになるのでここでやる）
+        // ただし壊れた config.json を読んで既定起動した回は、起動直後の Save() をしない
         if ((!HadSaved && !loadFailed) || Migrations.Count > 0)
             Save();
         Settings.RaiseAll();
@@ -425,12 +424,12 @@ public sealed partial class ConfigStore
                 saved[kv.Key] = kv.Value?.DeepClone();
     }
 
-    /// <summary>プリセットのモデル（修正J7: モデルはいつもプリセットごと）。</summary>
+    /// <summary>プリセットのモデル（モデルはいつもプリセットごと）。</summary>
     public static string PresetModel(JsonObject? p) => p is null ? "" : NodeToStr(p["model"]).Trim();
 
     /// <summary>読み込み時のプリセットのモデル。持っていればそれ。無い古い config では、
     /// 今まで実際に使っていたモデルを写す:「グローバル設定を使う」を外したプリセットは
-    /// settings の model、使うプリセットはグローバルの model（修正J7）</summary>
+    /// settings の model、使うプリセットはグローバルの model</summary>
     private static string PresetModelFrom(JsonObject cfg, JsonObject p, bool useGlobal)
     {
         if (p.ContainsKey("model")) return NodeToStr(p["model"]).Trim();
@@ -439,7 +438,7 @@ public sealed partial class ConfigStore
     }
 
     /// <summary>プリセット専用の設定を PresetKeys だけの形にそろえる。無いキーは
-    /// グローバル（cfg）の今の値で埋める（tw_config.preset_settings_from）。</summary>
+    /// グローバル（cfg）の今の値で埋める。</summary>
     public static JsonObject PresetSettingsFrom(JsonObject cfg, JsonNode? raw)
     {
         var defaults = DefaultConfig();
@@ -458,7 +457,7 @@ public sealed partial class ConfigStore
     // ---------------------------------------------------------------- 保存
 
     /// <summary>原子保存: config.&lt;pid&gt;.tmp へ全量書いて Flush(true) → 入れ替え。
-    /// 入れ替え前は config.json.bak に残す（Python版の tmp.replace + 指示書の .bak）。</summary>
+    /// 入れ替え前は config.json.bak に残す。</summary>
     public void Save()
     {
         lock (SaveGate)
@@ -505,12 +504,12 @@ public sealed partial class ConfigStore
 
     /// <summary>ぶん投げに使う設定。使っているプリセットが「グローバル設定を使う」を
     /// 外していれば、そのプリセットの設定をグローバルの上へ重ねる。
-    /// 読むだけの写しで、ディスクへ書く物ではない（tw_config.effective_config）。</summary>
+    /// 読むだけの写しで、ディスクへ書く物ではない。</summary>
     public JsonObject EffectiveConfig()
     {
         var p = ActivePreset();
         var outObj = ConfigFor(p, withPrompt: false);   // 使っている物のぶん投げ文は Root["prompt"] のまま
-        // 修正J27: 文字起こし（VLM）の設定は、プリセット自身の ocr_vlm_model / ocr_vlm_prompt から組み立てる
+        // 文字起こし（VLM）の設定は、プリセット自身の ocr_vlm_model / ocr_vlm_prompt から組み立てる
         if (TranslatePipeline.ThrowModeOf(outObj) == ThrowModeOcr && !TranslatePipeline.UsesBuiltinOcrForTranscribe(outObj))
         {
             string vlmModel = NodeToStr(outObj["ocr_vlm_model"]).Trim();
@@ -526,7 +525,7 @@ public sealed partial class ConfigStore
         return outObj;
     }
 
-    /// <summary>文字起こしに使うプリセットの名前（修正I6）</summary>
+    /// <summary>文字起こしに使うプリセットの名前</summary>
     public const string OcrPresetName = "OCR";
     /// <summary>EffectiveConfig の写しの中で、文字起こし用の設定を入れるキー（ディスクへは書かない）</summary>
     public const string OcrStageKey = "_ocr_stage";
@@ -574,7 +573,7 @@ public sealed partial class ConfigStore
                 if (PresetKeys.Contains(kv.Key))
                     outObj[kv.Key] = kv.Value?.DeepClone();
         }
-        // モデルは「グローバル設定を使う」に関係なく、いつもそのプリセットの物（修正J7）
+        // モデルは「グローバル設定を使う」に関係なく、いつもそのプリセットの物
         outObj["model"] = PresetModel(p);
         if (withPrompt) outObj["prompt"] = p["text"]?.DeepClone();
         return outObj;
@@ -675,10 +674,10 @@ public sealed partial class ConfigStore
     private static string CollapseWs(string s) => Regex.Replace(s, @"\s+", " ").Trim();
 
 
-    // ---------------------------------------------------------------- URL補助（tw_ollama）
+    // ---------------------------------------------------------------- URL補助
 
     /// <summary>"localhost:11434"等のスキーム無しURLへ http:// を補う。
-    /// 部分一致でなく先頭から本物のスキーム接頭辞を見る（tw_ollama._norm_base）。</summary>
+    /// 部分一致でなく先頭から本物のスキーム接頭辞を見る。</summary>
     public static string NormBase(string u)
     {
         u = (u ?? "").Trim();
@@ -687,7 +686,7 @@ public sealed partial class ConfigStore
     }
 
     /// <summary>URLから接続先ホストを安全に取る。不正（バックスラッシュ・
-    /// netloc空・不正ポート等）は全部 null に揃える（tw_ollama._safe_host）。</summary>
+    /// netloc空・不正ポート等）は全部 null に揃える。</summary>
     public static string? SafeHost(string? url)
     {
         try

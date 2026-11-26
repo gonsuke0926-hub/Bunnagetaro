@@ -8,7 +8,7 @@ using System.Windows.Threading;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 窓の出る・消える動き（ANIM_ROUND1）の部品。各窓は「出す・消す・閉じる」を頼むだけ。
+/// 窓の出る・消える動きの部品。各窓は「出す・消す・閉じる」を頼むだけ。
 ///
 /// 大原則:
 ///  1. 撮影前の隠しは動きを付けない（<see cref="HideNow"/>。走っている動きを打ち切って即 Hide）。
@@ -20,19 +20,19 @@ namespace Bunnagetaro5.Services;
 /// </summary>
 public static class WindowMotion
 {
-    // ---- 時間・大きさの一覧（DECISIONS にも残す） ----
-    public const int OpenMs = 180;          // E1 キャプチャ窓・バーを開く
-    public const int CloseMs = 180;         // E2 閉じる
+    // ---- 時間・大きさの一覧 ----
+    public const int OpenMs = 180;          // キャプチャ窓・バーを開く
+    public const int CloseMs = 180;         // 閉じる
     public const double OpenCloseScale = 0.96;
-    public const int PanelFadeMs = 150;     // E3 解答欄・帯の出入り
-    public const int HintFadeMs = 200;      // E4 2回目以降の案内が消える
-    // F28 クイック開始の吸い込み（人が見て決める数値はここの3つだけ。窓の矩形は動かさず中身を縮める）
-    public const int QuickMs = 120;         // 吸い込みの時間（FIX_ROUND4 E4: 90ms → F28: 120ms）
+    public const int PanelFadeMs = 150;     // 解答欄・帯の出入り
+    public const int HintFadeMs = 200;      // 2回目以降の案内が消える
+    // クイック開始の吸い込み（調整用の数値はここの3つだけ。窓の矩形は動かさず中身を縮める）
+    public const int QuickMs = 120;         // 吸い込みの時間
     public const double QuickScaleTo = 0.15;// 吸い込み先の縮小率（1.0→0.15。大きさは ease-in＝だんだん速く）
     public const double QuickFadeStart = 0.5;// 透明度は時間のここまでほぼそのまま、残りで一気に消える（0〜1）
-    public const int QuickPanelFadeMs = 90; // F28(追加): 解答欄（窓に重ねる側）の薄れ。吸い込み(QuickMs)とは別。元の 90ms
-    public const int QuickRestoreMs = 120;  // E5 小さい四角で元へ戻る時の出（FIX_ROUND4 E4）
-    /// <summary>修正J91: 透過窓の ShowFade 開始時に古い DWM 絵が一瞬出ないよう cloak を保つ Rendering フレーム数と安全タイマー</summary>
+    public const int QuickPanelFadeMs = 90; // 解答欄（窓に重ねる側）の薄れ。吸い込み(QuickMs)とは別
+    public const int QuickRestoreMs = 120;  // 小さい四角で元へ戻る時の出
+    /// <summary>透過窓の ShowFade 開始時に古い DWM 絵が一瞬出ないよう cloak を保つ Rendering フレーム数と安全タイマー</summary>
     internal const int ShowCloakFrames = 2;
     internal const int ShowCloakGuardMs = 60;
 
@@ -50,10 +50,10 @@ public static class WindowMotion
 
     public static double Lerp(double a, double b, double t) => a + (b - a) * t;
 
-    /// <summary>F28 吸い込みの大きさ。経過 t（0〜1）で from→QuickScaleTo を ease-in で（だんだん速く）</summary>
+    /// <summary>吸い込みの大きさ。経過 t（0〜1）で from→QuickScaleTo を ease-in で（だんだん速く）</summary>
     public static double SuckScale(double from, double t) => Lerp(from, QuickScaleTo, EaseIn(t));
 
-    /// <summary>F28 吸い込みの透明度。時間の前半（QuickFadeStart まで）は from のまま、後半で一気に 0 へ</summary>
+    /// <summary>吸い込みの透明度。時間の前半（QuickFadeStart まで）は from のまま、後半で一気に 0 へ</summary>
     public static double SuckAlpha(double from, double t)
         => Lerp(from, 0, Math.Clamp((t - QuickFadeStart) / (1.0 - QuickFadeStart), 0, 1));
 
@@ -104,9 +104,9 @@ public static class WindowMotion
     public static void Run(object key, int ms, Func<double, double> ease, Action<double> apply, Action? done = null)
         => RunFrom(key, ms, ease, apply, done, Clock());
 
-    /// <summary>修正J83: 時刻 start(ms。<see cref="Clock"/> の値) に始まっていたものとして動きを始める。
+    /// <summary>時刻 start(ms。<see cref="Clock"/> の値) に始まっていたものとして動きを始める。
     /// 遅れて出る窓を、先に動き始めた窓と同じ進み具合から途中参加させる（同じ時に出終わる）。
-    /// 修正J86: start が先の時刻なら、その時刻まで始まりの値（0）のまま止めておく（<see cref="Held"/> を渡し、後で <see cref="Restart"/> で動かす）</summary>
+    /// start が先の時刻なら、その時刻まで始まりの値（0）のまま止めておく（<see cref="Held"/> を渡し、後で <see cref="Restart"/> で動かす）</summary>
     public static void RunFrom(object key, int ms, Func<double, double> ease, Action<double> apply, Action? done, long start)
     {
         Cancel(key);
@@ -117,13 +117,13 @@ public static class WindowMotion
         EnsureHook();
     }
 
-    /// <summary>修正J86: 「まだ始めない」印の時刻。これを start に渡した動きは、<see cref="Restart"/> されるまで始まりの値のまま止まる</summary>
+    /// <summary>「まだ始めない」印の時刻。これを start に渡した動きは、<see cref="Restart"/> されるまで始まりの値のまま止まる</summary>
     public const long Held = long.MaxValue / 4;
 
-    /// <summary>修正J86: key の動きが <see cref="Held"/> で止めてあるか</summary>
+    /// <summary>key の動きが <see cref="Held"/> で止めてあるか</summary>
     public static bool IsHeld(object key) => Jobs.Exists(j => ReferenceEquals(j.Key, key) && j.Start >= Held);
 
-    /// <summary>修正J85: 走っている key の動きを、時刻 start(ms) に始まったものとして数え直す（今の進み具合で1回当てる）。
+    /// <summary>走っている key の動きを、時刻 start(ms) に始まったものとして数え直す（今の進み具合で1回当てる）。
     /// 走っていなければ何もしない（false）</summary>
     public static bool Restart(object key, long start)
     {
@@ -169,7 +169,7 @@ public static class WindowMotion
                 {
                     if (fromRendering)
                     {
-                        // 修正J91: 透明度 0 の新フレーム（新しい位置・答え）が DWM へ渡るまで cloak したまま 0 を保つ
+                        // 透明度 0 の新フレーム（新しい位置・答え）が DWM へ渡るまで cloak したまま 0 を保つ
                         if (j.Start < Held) j.Start = now;
                         try { j.Apply(0.0); }
                         catch (Exception ex) { AppLog.Error("motion cloak apply", ex); }
@@ -224,7 +224,7 @@ public static class WindowMotion
         public double Opacity = double.NaN;   // NaN = まだ触っていない（rest とみなす）
         public double Scale = 1.0;
         public bool Out;                      // 消える動きの最中
-        public IntPtr CloakHwnd;              // 修正J91: 再表示ちらつき防止で DWM cloak 中の HWND
+        public IntPtr CloakHwnd;              // 再表示ちらつき防止で DWM cloak 中の HWND
         public int CloakFrames;               // cloak を外すまでに待つ Rendering フレーム数
         public DispatcherTimer? CloakGuard;   // Rendering が止まった環境向けの安全タイマー
     }
@@ -268,7 +268,7 @@ public static class WindowMotion
     public static double CurrentOpacity(Window w, double rest)
         => States.TryGetValue(w, out var s) && !double.IsNaN(s.Opacity) ? s.Opacity : rest;
 
-    /// <summary>透過する窓の濃さを変える。透過しない窓は WPF が WS_EX_LAYERED を付けさせず濃さが効かないため何もしない（修正J88）</summary>
+    /// <summary>透過する窓の濃さを変える。透過しない窓は WPF が WS_EX_LAYERED を付けさせず濃さが効かないため何もしない</summary>
     public static void SetOpacity(Window w, double a)
     {
         if (!w.AllowsTransparency) return;
@@ -278,7 +278,7 @@ public static class WindowMotion
     }
 
     /// <summary>透過する窓の中身のルートを指定基準（省略時は中心）で拡縮して見せる（窓の矩形は変えない）。
-    /// 窓の大きさは変えないので中身の折り返しは動かない。透過しない窓は何もしない（修正J88）</summary>
+    /// 窓の大きさは変えないので中身の折り返しは動かない。透過しない窓は何もしない</summary>
     public static void SetScale(Window w, double s, Point? origin = null)
     {
         if (!w.AllowsTransparency) return;
@@ -303,9 +303,9 @@ public static class WindowMotion
         St(w).Out = false;
     }
 
-    /// <summary>出す（E1/E3）。消えている窓は Show して 0 から、消えかけなら今の透明度から出る方へ戻す。
+    /// <summary>出す。消えている窓は Show して 0 から、消えかけなら今の透明度から出る方へ戻す。
     /// すでに出ていて動きも無ければ何もしない。rest = 出し終わりの透明度（設定値）。
-    /// 透過しない窓は動きを付けずすぐ出す（修正J88）</summary>
+    /// 透過しない窓は動きを付けずすぐ出す</summary>
     public static void ShowFade(Window w, double rest, int ms, double fromScale = 1.0, long? startedAt = null)
     {
         if (!w.AllowsTransparency)
@@ -366,7 +366,7 @@ public static class WindowMotion
             return;
         }
         st.Out = false;
-        // 修正J83: startedAt があれば、その時刻に出始めていたものとして途中から（消えている窓を出す時だけ）
+        // startedAt があれば、その時刻に出始めていたものとして途中から（消えている窓を出す時だけ）
         long start = startedAt is { } sa && from == 0 ? sa : Clock();
         RunFrom(w, ms, EaseOut, p =>
         {
@@ -393,9 +393,9 @@ public static class WindowMotion
         });
     }
 
-    /// <summary>消す（E3/E4）。薄れてから Hide。もう消えている・消えかけなら何もしない。
+    /// <summary>消す。薄れてから Hide。もう消えている・消えかけなら何もしない。
     /// onHidden は Hide した直後に呼ぶ（打ち切られたら呼ばない）。
-    /// 透過しない窓は待たずにすぐ Hide して onHidden を呼ぶ（修正J88）</summary>
+    /// 透過しない窓は待たずにすぐ Hide して onHidden を呼ぶ</summary>
     public static void HideFade(Window w, double rest, int ms, Action? onHidden = null, double toScale = 1.0)
     {
         if (!w.IsVisible || IsFadingOut(w)) return;
@@ -415,8 +415,8 @@ public static class WindowMotion
         });
     }
 
-    /// <summary>閉じる（E2）。薄れて縮んでから Close。消えかけなら何もしない（連打で再発火しない）。
-    /// 既に出ていない窓・透過しない窓は待たずにすぐ Close する（修正J88）</summary>
+    /// <summary>閉じる。薄れて縮んでから Close。消えかけなら何もしない（連打で再発火しない）。
+    /// 既に出ていない窓・透過しない窓は待たずにすぐ Close する</summary>
     public static void CloseFade(Window w, double rest, int ms, double toScale, Action? beforeClose = null)
     {
         if (IsFadingOut(w)) return;
@@ -453,11 +453,11 @@ public static class WindowMotion
         Reset(w, rest);
     }
 
-    // ---------------- E5: 吸い込み ----------------
+    // ---------------- 吸い込み ----------------
 
     /// <summary>キャプチャ窓の矩形は動かさず、押した点 (px,py)（物理px）を窓の物理矩形に対する割合にして
-    /// RenderTransformOrigin に据え、中身のルートを 1.0→QuickScaleTo(0.15) へ ease-in で縮め、透明度は後半で一気に落とし（F28）、
-    /// 終わったら Hide → Reset → onHidden。途中で <see cref="Restore"/> すれば即やめられる（FIX_ROUND4 E4）</summary>
+    /// RenderTransformOrigin に据え、中身のルートを 1.0→QuickScaleTo(0.15) へ ease-in で縮め、透明度は後半で一気に落とし、
+    /// 終わったら Hide → Reset → onHidden。途中で <see cref="Restore"/> すれば即やめられる</summary>
     public static void SuckIn(Window w, int px, int py, double rest, int ms, Action? onHidden = null)
     {
         var hwnd = new WindowInteropHelper(w).Handle;
@@ -475,7 +475,7 @@ public static class WindowMotion
         double o0 = CurrentOpacity(w, rest);
         double s0 = st.Scale;
         st.Out = true;
-        Run(w, ms, t => t, t =>   // 時間そのものを渡し、大きさと透明度を別々の曲線にする（F28）
+        Run(w, ms, t => t, t =>   // 時間そのものを渡し、大きさと透明度を別々の曲線にする
         {
             SetOpacity(w, SuckAlpha(o0, t));
             SetScale(w, SuckScale(s0, t), origin);

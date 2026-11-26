@@ -7,7 +7,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 修正J9: 書き起こし文を訳で上書きする速さを、過去の訳の長さから覚える。
+/// 書き起こし文を訳で上書きする速さを、過去の訳の長さから覚える。
 /// </summary>
 public class LenRatioTests
 {

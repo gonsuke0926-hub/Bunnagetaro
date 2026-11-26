@@ -28,16 +28,16 @@ internal interface IThrowOps
     void HideAnswers();
     /// <summary>バーの「ぶん投げる」ボタンの形（ぶん投げ中は「やめる」に化ける）</summary>
     void SetBarBusy(bool busy, bool cancelling);
-    /// <summary>修正J97: 内蔵 OCR の段落の位置を解答欄と帯へ渡す（null は位置の反映をやめる）</summary>
-    /// <summary>修正J97・J112: 段落（区画）の位置を渡す。区画がある時は、文字を待たずに今の置き場所の窓を出す（撮影中は黙る）</summary>
+    /// <summary>内蔵 OCR の段落の位置を解答欄と帯へ渡す（null は位置の反映をやめる）</summary>
+    /// <summary>段落（区画）の位置を渡す。区画がある時は、文字を待たずに今の置き場所の窓を出す（撮影中は黙る）</summary>
     void SetLayout(IReadOnlyList<OcrBlock>? blocks, bool capturePending = false);
 }
 
 /// <summary>
-/// ぶん投げの実行（手順13・14 / 7.3・7.4）。手動・自動・追加の問い、やめる、失敗の扱い、
+/// ぶん投げの実行。手動・自動・追加の問い、やめる、失敗の扱い、
 /// モデルの準備と前提チェック（ThrowController.Env.cs）、busy/thinking などの状態。
-/// 窓や解答欄は知らない（IThrowOps 越し）。UIスレッドの決まりは今までどおり
-/// （busy はワーカーが走る前に UI スレッドで立てる。ワーカーは窓そのものへ触れず HWND だけでやる）
+/// 窓や解答欄は知らない（IThrowOps 越し）。UIスレッド上の制約として、
+/// busy はワーカーが走る前に UI スレッドで立て、ワーカーは窓そのものへ触れず HWND だけで扱う。
 /// </summary>
 internal sealed partial class ThrowController
 {
@@ -51,25 +51,25 @@ internal sealed partial class ThrowController
     /// <summary>状態欄の印（ぶん投げ中・思考中・前提の問題・温め中）。文言を決めるのは StatusModel</summary>
     internal StatusModel Status { get; }
 
-    /// <summary>ぶん投げのやめ要求（手順14 / 7.4）。バーの「やめる」から叩く</summary>
+    /// <summary>ぶん投げのやめ要求。バーの「やめる」から叩く</summary>
     private CancellationTokenSource? _cts;
     private bool _cancelRequested;
 
     /// <summary>busy予約から撮影が終わるまで立つ。立っている間、ストリームの
-    /// 反映は黙る（Python版 capture_pending と同じ。撮影に自分が写らないための段取り）</summary>
+    /// 反映は黙る（撮影に自分が写らないための段取り）</summary>
     internal bool CapturePending { get; private set; }
 
     /// <summary>ストリームの書き置き（worker側が「これまでの全文」を置いていく。
-    /// UI側が Interlocked で空けながら流す。Python版 result_q のdelta便相当）</summary>
+    /// UI側が Interlocked で空けながら流す）</summary>
     private string _stPartial = "";
     private string _stThink = "";
 
     /// <summary>直近で確定した答え（追加の問いが対にするもの。失敗時は空へ戻る。
-    /// Python版 tw_panel._answer_text。done の確定の瞬間だけ更新する）</summary>
+    /// done の確定の瞬間だけ更新する）</summary>
     private string _answerText = "";
 
     /// <summary>直前に撮って黒チェックを通った写真（追加の問いで「画像も」OFFの時の
-    /// 使い回し。Python版 app._last_img。フリーズ済みBitmapSourceなので裏⇄UIの受け渡しは安全）</summary>
+    /// 使い回し。フリーズ済みBitmapSourceなので裏⇄UIの受け渡しは安全）</summary>
     private BitmapSource? _lastImg;
 
     public ThrowController(ConfigStore cfg, LogStore store, Pages.LogPage logPage, StatusModel status,
@@ -84,24 +84,24 @@ internal sealed partial class ThrowController
         _dispatcher = dispatcher;
     }
 
-    // ---------------- 手動ぶん投げ（手順13 / 7.3） ----------------
+    // ---------------- 手動ぶん投げ ----------------
 
-    // メイン窓の「ぶん投げる」ボタンは無い（Python版 v3.3 で廃止。口はバーの「ぶん投げる」・ホットキー・クイック）
+    // メイン窓の「ぶん投げる」ボタンは無い（口はバーの「ぶん投げる」・ホットキー・クイック）
 
-    /// <summary>今のぶん投げの種類（manual / auto / follow。ぶん投げ中だけ）。F11: 自動の最中だけ画面の変化で打ち切れる</summary>
+    /// <summary>今のぶん投げの種類（manual / auto / follow。ぶん投げ中だけ）。自動の最中だけ画面の変化で打ち切れる</summary>
     private string _runKind = "";
 
-    /// <summary>F11: 自動で始めたぶん投げが走っていて、まだやめ要求が出ていない（打ち切って投げ直してよい状態）</summary>
+    /// <summary>自動で始めたぶん投げが走っていて、まだやめ要求が出ていない（打ち切って投げ直してよい状態）</summary>
     internal bool AutoRunInFlight => Status.Busy && _runKind == "auto" && !_cancelRequested;
 
-    /// <summary>F11: 打ち切りの後、終わりに1回だけ自動で投げ直す印</summary>
+    /// <summary>打ち切りの後、終わりに1回だけ自動で投げ直す印</summary>
     private bool _restartAuto;
 
-    /// <summary>F11: 投げ直してよいか（自動トリガが有効か）。MainWindow が結ぶ</summary>
+    /// <summary>投げ直してよいか（自動トリガが有効か）。MainWindow が結ぶ</summary>
     internal Func<bool> AutoAllowed { get; set; } = () => true;
 
     /// <summary>
-    /// 自動トリガの発火（F11）。busy でなければ自動で投げる。自動で始めた最中なら打ち切り、
+    /// 自動トリガの発火。busy でなければ自動で投げる。自動で始めた最中なら打ち切り、
     /// 終わったあとに1回投げ直す。手動・追加の問いの最中は何もしない（false）
     /// </summary>
     internal bool AutoFire()
@@ -161,7 +161,7 @@ internal sealed partial class ThrowController
         SyncBarButton();   // ボタンは「やめる」に化ける（_sync_translate_btn）
     }
 
-    /// <summary>G9: 終了時にぶん投げ中ならやめる処理を呼んで、ログの条目を「（ぶん投げをやめました）」で確定する。</summary>
+    /// <summary>終了時にぶん投げ中ならやめる処理を呼んで、ログの条目を「（ぶん投げをやめました）」で確定する。</summary>
     internal void CancelOnQuit(int waitMs = 1500)
     {
         _quitting = true;
@@ -190,7 +190,7 @@ internal sealed partial class ThrowController
     }
 
     /// <summary>
-    /// 追加の問いをぶん投げる（tw_panel._follow_send）。前の答え（_answerText）と
+    /// 追加の問いをぶん投げる。前の答え（_answerText）と
     /// たずねる文だけを送る。□「画像も」ONはその瞬間の枠を撮り直して添える
     /// （撮る前に解答欄を消す＝順番の決まりはぶん投げと同じ）。OFFは直前に撮った
     /// 写真を使い回してモデルへは画像を送らない。使い回しが無い時だけ撮り直す
@@ -279,12 +279,10 @@ internal sealed partial class ThrowController
         Task? persistTask = null;
         List<object?>? rectNow = null;
         var diag = new Dictionary<string, object?>();
-        // 解答欄へ流す便（inside のときだけ）。payloadは毎回「これまでの全文」
-        // （Python版 worker の make_on_delta / make_on_thinking と同じ形）。
+        // 解答欄へ流す便（inside のときだけ）。payloadは毎回「これまでの全文」。
         // worker側で最短40msに間引き、UIは Interlocked で最新的なものだけ流す
-        // ストリームの便は place を問わず必ず付ける。流す先はdrainの側でイベントごとに
-        // 今の result_place を見て切り替える（Python版 drain が self.result_place を
-        // 都度読むのと同じ。実行中に place を切り替えると流れもその場で行き先が変わる）
+        // ストリームの便は place を問わず必ず付ける。流す先は受け手側でイベントごとに
+        // 今の result_place を見て切り替える（実行中に place を切り替えると流れもその場で行き先が変わる）
         Action<string>? onDelta = null;
         Action<string>? onThink = null;
         void Push()
@@ -306,7 +304,7 @@ internal sealed partial class ThrowController
         onThink = v =>
         {
             Interlocked.Exchange(ref _stThink, v);
-            // F7: 思考欄の入れ直し（折り返しの TextBlock に末尾4000字。1回 25〜45ms のレイアウト）は
+            // 思考欄の入れ直し（折り返しの TextBlock に末尾4000字。1回 25〜45ms のレイアウト）は
             // 本文と同じ40ms刻みだとUIスレッドをほぼ塞ぐ。思考は 200ms に1回だけ画面へ（間の分は最新が残り、次の push で出る）
             if (!ShouldPushThink(Environment.TickCount64, ref lastThinkPushMs)) return;
             Push();
@@ -318,7 +316,7 @@ internal sealed partial class ThrowController
                 WarnResult("ぶん投げる前にキャプチャ窓が閉じられました。スキップします");
                 return;
             }
-            // 解答欄は TranslateNow が撮る前に即隠している（v1.6順序）。
+            // 解答欄は TranslateNow が撮る前に即隠している。
             // WaitScreenSettled（DwmFlush）はその隠れが画面へ出るのを待てるので十分
             Native.WaitScreenSettled(2);
             if (!Native.IsWindow(hwnd))
@@ -345,12 +343,11 @@ internal sealed partial class ThrowController
                     return;
                 }
                 rectNow = new List<object?> { area.Left, area.Top, area.Right, area.Bottom };
-                // 黒チェックを通った写真だけ使い回しに覚える（Python版 grab直後の
-                // app._last_img = img。黒い映像を次の問いへ添えない）
+                // 黒チェックを通った写真だけ使い回しに覚える（黒い映像を次の問いへ添えない）
                 Ui(() => _lastImg = img);
             }
             {
-                // G6: SendPrep と PNG エンコードは 1 回だけ行い、entries.json 等の書き出しは裏へ回して送信開始を先へ進める
+                // SendPrep と PNG エンコードは 1 回だけ行い、entries.json 等の書き出しは裏へ回して送信開始を先へ進める
                 var prepared = ImagePrep.SendPrep(img);
                 var sendPng = ScreenShot.PngBytes(prepared);
                 diag["raw_size"] = new List<object?> { img.PixelWidth, img.PixelHeight };
@@ -358,7 +355,7 @@ internal sealed partial class ThrowController
 
                 // 条目は撮影の瞬間に作る（写真は先に出し、訳文は Finish で後から追いつく）。
                 // 追加の問いは source=follow（ログには「追加」と出る）。
-                // 使い回しの段は rect_now を残さない（Python版の rect未定義と同じ）
+                // 使い回しの段は rect_now を残さない
                 var extra = new Dictionary<string, object?>
                 {
                     ["kind"] = kind,
@@ -373,7 +370,7 @@ internal sealed partial class ThrowController
                 _ = persistTask.ContinueWith(_ => Ui(() =>
                 {
                     _logPage.AppendLiveCard(entry!);
-                    // 撮影直後の一言（Python版 drain の card 受け）。追加の問いは撮り直さないこともあるので「撮影完了」は出さない
+                    // 撮影直後の一言。追加の問いは撮り直さないこともあるので「撮影完了」は出さない
                     _setStatus(kind == "follow" ? "追加の問いをぶん投げ中"
                         : "撮影完了・ぶん投げ中（" + (kind == "auto" ? "自動" : "手動") + "）");
                 }), TaskScheduler.Default);
@@ -389,13 +386,13 @@ internal sealed partial class ThrowController
                     ? Convert.ToBase64String(sendPng)
                     : null;
 
-                // ストリーム表示（解答欄）は手順15。やめ要求はCancellationTokenで伝わる（手順14）
+                // 解答欄へストリーム表示を行い、やめ要求は CancellationToken で伝わる
                 string text;
                 if (kind == "follow")
                 {
                     // 追加の問いは前の答えとたずねる文だけ送る（ぶん投げ文は足さない）。
                     // 写真の添付は □ ON の時だけ。pipeline名・follow_q・prev_charsは
-                    // FollowupAsync 側が残す（tw_ollama.ollama_followup と同じ分割）
+                    // FollowupAsync 側が残す
                     diag["follow"] = new Dictionary<string, object?>
                     {
                         ["q"] = followQ,
@@ -408,11 +405,11 @@ internal sealed partial class ThrowController
                 }
                 else
                 {
-                    // 修正J9: 書き起こし文を訳で上書きする速さを、ログに残る直近の訳の長さから覚える
+                    // 書き起こし文を訳で上書きする速さを、ログに残る直近の訳の長さから覚える
                     var lenRatio = TranslatePipeline.LearnedLengthRatio(_store.Snapshot(), CfgStr(cfg, "model"));
                     cfg[TranslatePipeline.LengthRatioKey] = lenRatio;
                     diag["len_ratio"] = Math.Round(lenRatio, 3);
-                    // 修正J97: 前の答えの位置は外す。位置の反映が ON なら、読んだ段落の位置を本文より先に渡す
+                    // 前の答えの位置は外す。位置の反映が ON なら、読んだ段落の位置を本文より先に渡す
                     // （Ui は順に流れるので、位置 → 原文 → 訳の上書き の順に届く）
                     Ui(() => { if (ReferenceEquals(_ops.Capture, capRef)) _ops.SetLayout(null); });
                     text = await TranslatePipeline.TranslateImageAsync(
@@ -445,17 +442,16 @@ internal sealed partial class ThrowController
                 {
                     _logPage.RefreshOrAppend(entry!);
                     // 追加の問いが対にする答えは、枠に見えている文字ではなく
-                    // ここで確定したもの（Python版 drain の _answer_text）
+                    // ここで確定したもの
                     _answerText = text;
-                    // done ok の仕上げは今の place 側の窓へ（drainが結果の時点で
-                    // result_place を読むのと同じ）。窓を作り直されていた時は
-                    // 古いstreamの完成をどちらにも出さない（手順15same方針）
+                    // 正常完了時の仕上げは今の place 側の窓へ。窓を作り直されていた時は
+                    // 古いstreamの完成をどちらにも出さない
                     if (ReferenceEquals(_ops.Capture, capRef))
                         _ops.ShowFinal(text);
                     // ここまで来た＝ぶん投げが通った。前提の理由（AIサーバー未起動など）はもう事実でないので消す
                     // （起動直後に Ollama がまだ立っていなかった時、ぶん投げ1本で状態欄の文言が元に戻る）
                     Status.EnvProblem = "";
-                    // 完了の一言（Python版 drain の done）。追加の問いは「追加の問い」と分かるように
+                    // 完了の一言。追加の問いは「追加の問い」と分かるように
                     var kindLabel = kind == "follow" ? "追加" : kind == "auto" ? "自動" : "手動";
                     var doneNote = diag.TryGetValue("truncated", out var tr) && tr is string trReason && trReason.Length > 0
                         ? $"完了（{kindLabel}・上限で打ち切り）"
@@ -476,7 +472,7 @@ internal sealed partial class ThrowController
         }
         catch (OllamaCancelledException)
         {
-            // 「やめる」からのやめ経路（7.4）。条目には CancelText を残す
+            // 「やめる」からのやめ経路。条目には CancelText を残す
             diag["total_sec"] = Math.Round(Stopwatch.GetElapsedTime(t0).TotalSeconds, 3);
             diag["cancelled"] = true;
             AppLog.Info("手動ぶん投げをやめました");
@@ -524,7 +520,7 @@ internal sealed partial class ThrowController
                 _cts = null;
                 c?.Dispose();
                 SyncBarButton();   // ボタンを「ぶん投げる」へ戻す
-                // F11: 自動の打ち切りで終わったら、新しい画面で1回だけ投げ直す
+                // 自動の打ち切りで終わったら、新しい画面で1回だけ投げ直す
                 if (_restartAuto)
                 {
                     _restartAuto = false;
@@ -588,7 +584,7 @@ internal sealed partial class ThrowController
         };
     }
 
-    /// <summary>F7: 思考欄の更新の最短間隔（ms）。測定: 4000字の入れ直しのレイアウトが 1回 25〜45ms</summary>
+    /// <summary>思考欄の更新の最短間隔（ms）。測定: 4000字の入れ直しのレイアウトが 1回 25〜45ms</summary>
     internal const int ThinkPushMinMs = 200;
 
     /// <summary>思考の更新を画面へ出してよいか。前回から <see cref="ThinkPushMinMs"/> 以上たっていれば true で、前回時刻を更新する</summary>

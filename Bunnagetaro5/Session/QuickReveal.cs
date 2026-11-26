@@ -8,8 +8,8 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Session;
 
 /// <summary>
-/// クイックぶん投げ時のキャプチャ窓・バーの隠し／出し／I4 DWM Cloak 解除／配置（QuickPlace）を担当する。
-/// CaptureSession から分割（段階4・整理）。動き・WindowMotion 呼び出しは WindowVisibility 側へ任せる。
+/// クイックぶん投げ時のキャプチャ窓・バーの隠し／出し／DWM Cloak 解除／配置（QuickPlace）を担当する。
+/// 動き・WindowMotion 呼び出しは WindowVisibility 側へ任せる。
 /// </summary>
 internal sealed class QuickReveal
 {
@@ -26,14 +26,14 @@ internal sealed class QuickReveal
     private DispatcherTimer? _revealGuard;
     private readonly List<Action> _afterReveal = new();
 
-    // 修正J45: クイックの確定位置がまれに左上へずれる件の調べ用（狙った四角・隠しを外した理由・その後の本当の位置）
+    // クイックの確定位置がまれに左上へずれる件の調べ用（狙った四角・隠しを外した理由・その後の本当の位置）
     private readonly Stopwatch _revealSw = new();
     private (int L, int T, int W, int H)? _quickWant;
 
     /// <summary>隠し中か（テスト用）</summary>
     internal bool RevealPending => _revealHwnd != IntPtr.Zero;
 
-    /// <summary>F34: くっつける ON なら、バーと外の解答欄は窓の枠といっしょに消える（OFF は消さない）</summary>
+    /// <summary>くっつける ON なら、バーと外の解答欄は窓の枠といっしょに消える（OFF は消さない）</summary>
     private bool BarFollowsQuick => _cfg.Settings.ChromeLinked;
 
     internal QuickReveal(ConfigStore cfg, WindowVisibility vis,
@@ -70,7 +70,7 @@ internal sealed class QuickReveal
     internal void QuickHidePanels(int px, int py) => _vis.QuickHidePanels(px, py, BarFollowsQuick);
 
     /// <summary>キャプチャ窓を開いて (窓, HWND) を返す。既に開いていて壊れていなければ
-    /// それをそのまま。開けられなければ null（Python版の IsWindow 再確認と同じ段取り）</summary>
+    /// それをそのまま。開けられなければ null</summary>
     internal (CaptureWindow Window, IntPtr Hwnd)? EnsureCaptureForQuick()
     {
         var cap = _getCapture();
@@ -92,7 +92,7 @@ internal sealed class QuickReveal
     /// <summary>消した窓・バーを出す</summary>
     internal void QuickShowWindow(bool fade = false) => _vis.QuickShowWindow(fade, ShowCloakedUntilRendered);
 
-    // ---- 離した瞬間のちらつき対策（I4） ----
+    // ---- 離した瞬間のちらつき対策 ----
     // 吸い込みで消した窓には、途中まで縮んだ絵が残っている。新しい大きさで WPF が描き直す前に Show すると
     // その小さい絵が一瞬出る（起動して1発目は描き直しが遅いので目立つ）。DWM の cloak で画面に出さないまま Show し、
     // 2フレーム描けてから（最長 RevealMaxMs）cloak を外す。その間はダミー枠が出たままなので空白は出ない
@@ -137,7 +137,7 @@ internal sealed class QuickReveal
         }
     }
 
-    /// <summary>修正J45: 隠しを外した時と、その 300ms 後の窓の本当の位置を、狙った四角と比べて app.log に書く</summary>
+    /// <summary>隠しを外した時と、その 300ms 後の窓の本当の位置を、狙った四角と比べて app.log に書く</summary>
     private void LogQuickPlaced(IntPtr hwnd, string by, long ms)
     {
         if (_quickWant is not { } want) return;
@@ -168,8 +168,8 @@ internal sealed class QuickReveal
     }
 
     /// <summary>キャプチャ窓（とバー）を矩形（物理px）へまとめて寄せる。キャプチャ窓の枠と膜が
-    /// そのまま「撮る四角」の目印になる（自前の別窓は足さない:
-    /// Python版 _quick_place の方針）。隠れている途中でも位置だけは合わせてから出す</summary>
+    /// そのまま「撮る四角」の目印になる（自前の別窓は足さない）。
+    /// 隠れている途中でも位置だけは合わせてから出す</summary>
     internal void QuickPlace(int l, int t, int w, int h, bool fade = false)
     {
         var cap = _getCapture();
@@ -182,15 +182,15 @@ internal sealed class QuickReveal
                         cur.Right - cur.Left == w && cur.Bottom - cur.Top == h;
         if (sameRect && !wasHidden)
             return;
-        if (!fade) _quickWant = (l, t, w, h);   // 修正J45: 確定（離した時）の狙った四角。取り消して戻す時（fade）は書かない
+        if (!fade) _quickWant = (l, t, w, h);   // 確定（離した時）の狙った四角。取り消して戻す時（fade）は書かない
         if (!sameRect)
         {
             Native.SetWindowPos(hwnd, IntPtr.Zero, l, t, w, h,
                 Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
         }
         QuickShowWindow(fade);
-        if (_revealHwnd == IntPtr.Zero) _quickWant = null;   // 修正J45: 隠して出す道を通らなかった（次の確定に持ち越さない）
-        // 窓が隠れていて Moving が来なかった時（または同じ矩形で出すだけの時）だけバーを置き直す（E5）
+        if (_revealHwnd == IntPtr.Zero) _quickWant = null;   // 隠して出す道を通らなかった（次の確定に持ち越さない）
+        // 窓が隠れていて Moving が来なかった時（または同じ矩形で出すだけの時）だけバーを置き直す
         if (wasHidden)
             _getBar()?.PositionChrome();
     }

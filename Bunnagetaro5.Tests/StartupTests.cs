@@ -15,7 +15,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 修正J54: Windows の起動時にトレイで起動する。レジストリは HKCU\Software\Bunnagetaro5Tests\... の使い捨てキーだけを使い、
+/// Windows の起動時にトレイで起動する。レジストリは HKCU\Software\Bunnagetaro5Tests\... の使い捨てキーだけを使い、
 /// 本物の Run は触らない（終わったら消す）
 /// </summary>
 public class StartupTests : IDisposable

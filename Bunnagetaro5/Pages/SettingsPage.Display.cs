@@ -28,7 +28,7 @@ public partial class SettingsPage
         // 背景色・文字色（四角を押すと色パレット、欄へ #rrggbb も直接書ける）
         _bgRow = new SettingRow("背景色", "", MakeColorRow("overlay_bg", out _bgSwatch, out _bgBox));
         _fgRow = new SettingRow("文字色", "", MakeColorRow("overlay_fg", out _fgSwatch, out _fgBox));
-        // 修正J101: 外窓（枠の外に出す解答欄）の色は枠の中と別
+        // 外窓（枠の外に出す解答欄）の色は枠の中と別
         _stripBgRow = new SettingRow("背景色", "", MakeColorRow("strip_bg", out _stripBgSwatch, out _stripBgBox));
         _stripFgRow = new SettingRow("文字色", "", MakeColorRow("strip_fg", out _stripFgSwatch, out _stripFgBox));
         _stripAlphaLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
@@ -102,12 +102,12 @@ public partial class SettingsPage
         _sizeRow = new SettingRow("文字の大きさ", "8〜72", _sizeBox);
 
         // プレビュー（通常設定でも色・フォントの確認ができるよう _fontRow の下段に置く）
-        // 修正J101: 枠の中・枠の外（外窓）の見本を並べる
+        // 枠の中・枠の外（外窓）の見本を並べる
         (_previewBg, _previewText) = MakePreviewBox();
         (_previewStripBg, _previewStripText) = MakePreviewBox();
         _fontRow.SetBottom(MakePreviewHost());
 
-        // まとまりの間（F35。文字の大きさに対する倍率 0〜1.5、0.1刻み、既定 0.8）
+        // まとまりの間（文字の大きさに対する倍率 0〜1.5、0.1刻み、既定 0.8）
         _paraSpacingLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
         _paraSpacingSlider = new Slider
         {
@@ -125,7 +125,7 @@ public partial class SettingsPage
         paraCtl.Children.Add(_paraSpacingLbl);
         var paraRow = new SettingRow("まとまりの間", "段落間の空き（文字サイズの倍率）", paraCtl);
 
-        // 行間（F35。文字の大きさに対する倍率 1.0〜2.0、0.1刻み、既定は指定なし相当）
+        // 行間（文字の大きさに対する倍率 1.0〜2.0、0.1刻み、既定は指定なし相当）
         _lineSpacingLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), MinWidth = 32 };
         _lineSpacingSlider = new Slider
         {
@@ -152,7 +152,7 @@ public partial class SettingsPage
         lineCtl.Children.Add(_lineSpacingResetBtn);
         var lineRow = new SettingRow("行間", "行の高さの倍率（1.0〜2.0）", lineCtl);
 
-        // LaTeX のコピーの形（F13）
+        // LaTeX のコピーの形
         var copyPanel = new StackPanel { Orientation = Orientation.Horizontal };
         string copyNow = _cfg.Settings.LatexCopy;
         RadioButton CopyRadio(string text, string key, bool last)
@@ -194,7 +194,7 @@ public partial class SettingsPage
         expStack.Children.Add(MakeDivider());
         expStack.Children.Add(copyRow.AsGrouped());
 
-        // 修正J101: 枠の中・枠の外（外窓）を見出しで分ける（人の指示 2026-11-25: 中と外がはっきり分かる見た目に）
+        // 枠の中・枠の外（外窓）を見出しで分ける（中と外がはっきり分かる見た目に）
         BodyPanel.Children.Add(MakeGroupCard(
             GroupHeading("枠の中に出す時"), _bgRow, _fgRow, MakeExpertWrap(alphaRow.AsGrouped(), withTopDivider: true),
             GroupHeading("枠の外（外窓）に出す時"), _stripBgRow, _stripFgRow, MakeExpertWrap(stripAlphaRow.AsGrouped(), withTopDivider: true),
@@ -202,7 +202,7 @@ public partial class SettingsPage
             MakeExpertWrap(expStack, withTopDivider: true)));
     }
 
-    /// <summary>修正J101: 欄の中の小見出し（枠の中・枠の外などの区切り）。MakeGroupCard は見出しの直後に区切り線を入れない</summary>
+    /// <summary>欄の中の小見出し（枠の中・枠の外などの区切り）。MakeGroupCard は見出しの直後に区切り線を入れない</summary>
     private Border GroupHeading(string text)
     {
         var tb = new TextBlock { Text = text, FontWeight = FontWeights.SemiBold, FontSize = 13 };
@@ -538,7 +538,7 @@ public partial class SettingsPage
         {
             _sizeBox.BorderBrush = SettingRow.DangerBrush();
             _sizeRow.SetDesc("8〜72の数値");
-            return; // 範囲外は保存しない（指示書6.4）
+            return; // 範囲外は保存しない
         }
         _sizeBox.BorderBrush = SettingRow.NormalBorderBrush();
         _sizeRow.SetDesc("8〜72");
@@ -570,7 +570,7 @@ public partial class SettingsPage
         double ls = _cfg.Settings.AnswerLineSpacing;
         _previewText.LineHeight = ls > 0 ? fsize * ls : double.NaN;
 
-        // 修正J101: 外窓の見本（色・不透明度は外窓の設定、字は共通）
+        // 外窓の見本（色・不透明度は外窓の設定、字は共通）
         _previewStripBg.Background = ColorUtil.ToBrush(_cfg.Settings.StripBg) ?? Brushes.Black;
         _previewStripBg.Opacity = Math.Clamp(_cfg.Settings.StripAlpha, 0.15, 1.0);
         _previewStripText.Foreground = ColorUtil.ToBrush(_cfg.Settings.StripFg) ?? Brushes.White;

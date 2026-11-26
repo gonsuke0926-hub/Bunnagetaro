@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>ANIM_ROUND1: 動きの部品（補間・イージング・途中取り消し・連打）</summary>
+/// <summary>動きの部品（補間・イージング・途中取り消し・連打）</summary>
 [Collection("WindowMotion")]
 public class WindowMotionTests
 {
@@ -239,7 +239,7 @@ public class WindowMotionTests
         Assert.Equal(0.0, WindowMotion.SuckAlpha(1.0, 1), 6);
         Assert.Equal(0.46, WindowMotion.SuckAlpha(0.92, 0.75), 6);   // 設定の透明度から始まる
         Assert.InRange(WindowMotion.QuickMs, 100, 140);
-        Assert.Equal(90, WindowMotion.QuickPanelFadeMs);   // F28(追加): 解答欄の薄れは吸い込みと別の定数で、元の 90ms
+        Assert.Equal(90, WindowMotion.QuickPanelFadeMs);   // 解答欄の薄れは吸い込みと別の定数で、元の 90ms
     }
 
     [Fact]
@@ -258,7 +258,7 @@ public class WindowMotionTests
                 int px = (r0.Left + r0.Right) / 2, py = (r0.Top + r0.Bottom) / 2;
                 WindowMotion.SuckIn(w, px, py, 0.92, WindowMotion.QuickMs, () => hidden++);
 
-                // F28: 前半（30ms）は透明度がほぼそのまま・縮みはまだわずか、矩形は不変
+                // 前半（30ms）は透明度がほぼそのまま・縮みはまだわずか、矩形は不変
                 now = 30; WindowMotion.Tick(now);
                 Assert.True(w.Opacity > 0.9, $"30ms 時点の Opacity={w.Opacity} がほぼそのままではない");
                 var trMid = ((FrameworkElement)w.Content).RenderTransform as System.Windows.Media.ScaleTransform;

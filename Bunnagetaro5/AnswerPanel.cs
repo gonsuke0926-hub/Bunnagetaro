@@ -14,18 +14,17 @@ using Bunnagetaro5.Views;
 namespace Bunnagetaro5;
 
 /// <summary>
-/// 解答欄 inside（7.5）。キャプチャ窓のクライアント矩形にぴったり重なる別窓。
+/// 解答欄（inside）。キャプチャ窓のクライアント矩形にぴったり重なる別窓。
 /// 地色 overlay_bg を overlay_alpha の不透明度で塗り、文字は不透明のまま
-/// （AllowsTransparency の窓に半透明 Border を置く WPF 版の作り。Tk版の
-/// -alpha と違い文字まで薄くならない。指示書7.5の方針）。
+/// （AllowsTransparency の窓に半透明 Border を置くことで文字まで薄くならない）。
 /// 本文は読み取り専用の RichTextBox: 選択・Ctrl+C・右クリック
-/// 「選択部分をコピー」「全文をコピー」。文字の上は何も無い場所を押すと
-/// キャプチャ窓ごとにつかんで動かせる（Tk版の余白ドラッグ fleur 相当）。
+/// 「選択部分をコピー」「全文をコピー」。文字の無い余白を押すと
+/// キャプチャ窓ごとにつかんで動かせる。
 /// 思考欄は本文の下。思考が無い間は畳み、有る間だけ出る。文字は薄色
 /// （overlay_fg を overlay_bg 側へ45%寄せ）で最後の4000字だけ。
 /// 表示中はキャプチャ窓の移動・サイズ変更・最小化に毎回ついて回る。
-/// 撮影の直前には必ず隠す（消え方は即。人が閉じるときのフェードは host 側）。
-/// 本文には LaTeX 式を混ぜられる（手順25）: $...$ は文中、$$..$$・\[..\] は
+/// 撮影の直前には必ず隠す（消え方は即。ユーザーが閉じるときのフェードは host 側）。
+/// 本文には LaTeX 式を混ぜられる: $...$ は文中、$$..$$・\[..\] は
 /// 独立行で中央。WpfMath で解答欄の色・大きさ合わせ表示し、表示できない式は
 /// 元の文字のまま。ストリーミング中は文字で出し、閉じ記号で式に差し替え。
 /// </summary>
@@ -41,7 +40,7 @@ public class AnswerPanel : Window
     /// <summary>解答欄の中身（本文・思考・追加の問い・数式・コピー・見た目）。窓は枠だけ</summary>
     internal AnswerView View { get; }
 
-    /// <summary>解答欄に触れた最後の時刻（手順19の巡回が「自分の表示」と見なす材料）</summary>
+    /// <summary>解答欄に触れた最後の時刻（巡回が「自分の表示」と見なす材料）</summary>
     public DateTime LastInteractUtc => _lastWinInteract > View.LastInteractUtc ? _lastWinInteract : View.LastInteractUtc;
     private DateTime _lastWinInteract = DateTime.MinValue;
 
@@ -65,13 +64,13 @@ public class AnswerPanel : Window
 
         View = new AnswerView(host, followRightMargin: 18, thinkMaxHeight: 90);
         Content = View;
-        // 余白ドラッグでキャプチャ窓ごと動かす（窓としての仕事。見えている文字の上は選択に任せる。修正J115: 位置の反映中も正しく判定）
+        // 余白ドラッグでキャプチャ窓ごと動かす（窓としての仕事。見えている文字の上は選択に任せる。位置の反映中も正しく判定）
         View.PreviewMouseLeftButtonDown += Body_Down;
         View.PreviewMouseMove += Body_Hover;
         ApplyStyle();
     }
 
-    /// <summary>解答欄自身が見えているか（Python版 overlay_visible 相当）</summary>
+    /// <summary>解答欄自身が見えているか</summary>
     public bool ShownUp => IsVisible;
 
     private IntPtr RootHwnd
@@ -94,7 +93,7 @@ public class AnswerPanel : Window
 
     // ---------------- 見た目 ----------------
 
-    /// <summary>設定（色・透明度・フォント）を実窓へ反映（tw_panel._apply_panel_style）。
+    /// <summary>設定（色・透明度・フォント）を実窓へ反映。
     /// 保存時と表示直前に host から呼ばれる。中身の適用は AnswerView（地色は overlay_alpha で透ける）</summary>
     public void ApplyStyle()
     {
@@ -119,7 +118,7 @@ public class AnswerPanel : Window
 
     // ---------------- 表示の中身（ストリーミング。中身・表示判断は AnswerView / WindowVisibility） ----------------
 
-    /// <summary>新しいぶん投げの開始。本文・思考を空にして上から（tw_panelのcard開始 yview 0）</summary>
+    /// <summary>新しいぶん投げの開始。本文・思考を空にして先頭から表示</summary>
     public void ResetRun()
     {
         _host.ResetPanelRun();
@@ -136,7 +135,7 @@ public class AnswerPanel : Window
     }
 
     /// <summary>思考のdelta。思考が届いた時点で窓を出す（本文より長く思考するモデルで、
-    /// 本文が来るまで思考が見えないのを防ぐ。tw_panelは本文deltaでだけ出していた）</summary>
+    /// 本文が来るまで思考が見えないのを防ぐ）</summary>
     public void ApplyThink(string think)
     {
         if (think.Length > 0 && _host.DeferPanelWhileDragging(() => ApplyThink(think))) return;
@@ -144,7 +143,7 @@ public class AnswerPanel : Window
         View.ApplyThink(think);
     }
 
-    /// <summary>修正J112: 区画（マスク）が渡された時、文字を待たずに窓を出す（出ていなければ。出し方は ApplyThink と同じ）</summary>
+    /// <summary>区画（マスク）が渡された時、文字を待たずに窓を出す（出ていなければ。出し方は ApplyThink と同じ）</summary>
     public void RevealForLayout()
     {
         if (_host.DeferPanelWhileDragging(RevealForLayout)) return;
@@ -159,7 +158,7 @@ public class AnswerPanel : Window
         View.ShowFinal(text);
     }
 
-    /// <summary>設定で置き場所が切り替わった時、前の側の答えを写して出す（F6）</summary>
+    /// <summary>設定で置き場所が切り替わった時、前の側の答えを写して出す</summary>
     internal bool AdoptFrom(AnswerView other)
     {
         if (_host.DeferPanelWhileDragging(() => AdoptFrom(other))) return true;
@@ -174,7 +173,7 @@ public class AnswerPanel : Window
     /// <summary>撮影の直前: 即隠す（フェード無し。_hide_overlay相当。人は WindowVisibility の HidePanelFade）</summary>
     public void HideForCapture() => _host.HidePanelForCapture();
 
-    /// <summary>E3/E4: 薄れてから隠す（モード切替・最小化・案内の自動消し）。撮影前の隠しはこちらでなく
+    /// <summary>薄れてから隠す（モード切替・最小化・案内の自動消し）。撮影前の隠しはこちらでなく
     /// <see cref="HideForCapture"/>（即）。onHidden は隠れた直後（打ち切られたら呼ばれない）</summary>
     public void HideFade(int ms = WindowMotion.PanelFadeMs, Action? onHidden = null)
         => _host.HidePanelFade(ms, onHidden);
@@ -184,7 +183,7 @@ public class AnswerPanel : Window
     private void Body_Down(object sender, MouseButtonEventArgs e)
     {
         _lastWinInteract = DateTime.UtcNow;
-        // 本文エリア外（思考欄・たずねる欄）や、見えている文字の上なら選択・操作に任せる（修正J115）
+        // 本文エリア外（思考欄・たずねる欄）や、見えている文字の上なら選択・操作に任せる
         if (!View.IsInBodyArea(e) || View.IsOverText(e)) return;
         var cap = CapRootHwnd;
         if (cap == IntPtr.Zero || !Native.IsWindow(cap)) return;
@@ -201,7 +200,7 @@ public class AnswerPanel : Window
 
     // ---------------- 素通し・作成時 ----------------
 
-    /// <summary>透過（7.7のバーと同じ切換）。解答欄も下地操作を通す（_sync_panel_passthru）</summary>
+    /// <summary>透過（バーと同じ切換）。解答欄も下地操作を通す</summary>
     public void ApplyPassthru(bool on)
     {
         var h = RootHwnd;
@@ -210,7 +209,7 @@ public class AnswerPanel : Window
             AppLog.Error("解答欄の素通し切替に失敗（set_click_through）");
     }
 
-    /// <summary>修正J30: 配信・録画に映す設定を反映する</summary>
+    /// <summary>配信・録画に映す設定を反映する</summary>
     internal void ApplyCaptureAffinity()
     {
         var h = new WindowInteropHelper(this).Handle;
@@ -225,7 +224,7 @@ public class AnswerPanel : Window
         long ex = Native.GetWindowLongPtrW(h, Native.GWL_EXSTYLE).ToInt64();
         Native.SetWindowLongPtrW(h, Native.GWL_EXSTYLE, new IntPtr(ex | WS_EX_TOOLWINDOW));
         Native.NoTransitions(h);
-        // 7.2: 自分の窓は作成時に撮影へ写らない指定を付ける（配信・録画に映す ON なら WDA_NONE。修正J30）
+        // 自分の窓は作成時に撮影へ写らない指定を付ける（配信・録画に映す ON なら WDA_NONE）
         if (!Native.ApplyCaptureAffinity(h, _cfg.Settings.AllowCaptureOverlay))
             AppLog.Error("解答欄の SetWindowDisplayAffinity 失敗");
 
@@ -237,7 +236,7 @@ public class AnswerPanel : Window
     /// <summary>
     /// 解答欄は窓の中いっぱいに重なるので、そのままだとキャプチャ窓の縁（リサイズ・上端の移動）を
     /// 覆ってしまい、答えが出ている間は縁を掴めなくなる。縁の帯の上は HTTRANSPARENT を返して
-    /// 下のキャプチャ窓へ渡す（Python版 tw_band の _panel_resize_subclass_proc と同じ）。
+    /// 下のキャプチャ窓へ渡す。
     /// 中（文字の余白の掴み移動・文字の選択）はこれまでどおり解答欄が受ける
     /// </summary>
     private IntPtr PanelWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

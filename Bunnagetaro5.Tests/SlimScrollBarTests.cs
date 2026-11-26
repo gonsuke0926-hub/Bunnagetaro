@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND3 D6: 細スクロールバーは縦なら幅だけ8・高さは親いっぱい。棒は最小長を持つ</summary>
+/// <summary>細スクロールバーは縦なら幅だけ8・高さは親いっぱい。棒は最小長を持つ</summary>
 public class SlimScrollBarTests
 {
     private static void OnSta(Action body) => TestUtil.OnSta(body, 60);

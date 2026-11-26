@@ -2,15 +2,13 @@ using System.Text.Json.Nodes;
 
 namespace Bunnagetaro5.Services;
 
-/// <summary>修正J100: 位置の反映（「読み取った位置に並べる」）の細かい値。全体で1つ（人の判断 2026-11-25）。
-/// 設定ページの「位置の反映」（上級者モード）で変える。手で書き換えて範囲を外れても、ここで範囲に収める。
-/// 修正J109: 段落の分け方・つなぎ方の値（J99〜J106。左右に分ける間・上下につなぐ決まり・行間・字の大きさ）は、
-/// 区画をレイアウトのモデルに任せたので消した。残るのは訳の頼み方だけ（OCR_LAYOUT_ROUND2）</summary>
+/// <summary>位置の反映（「読み取った位置に並べる」）の細かい値。全体で1つ。
+/// 設定ページの「位置の反映」（上級者モード）で変える。手で書き換えて範囲を外れても、ここで範囲に収める。</summary>
 public sealed record LayoutParams(
     int BatchChars,        // layout_batch_chars: 1回にまとめて頼む文字数（0 なら1段落ずつ）
     int LabelWords,        // layout_label_words: この語数以下は短いラベルとして1つずつ頼む
     int LabelChars,        // layout_label_chars: 日本語などはこの文字数以下を短いラベルとする
-    double ScoreThresh = LayoutModel.ScoreThreshold)   // 修正J116: layout_score_thresh: 区画判定のしきい値（0.1〜0.95、既定 0.5）
+    double ScoreThresh = LayoutModel.ScoreThreshold)   // layout_score_thresh: 区画判定のしきい値（0.1〜0.95、既定 0.5）
 {
     /// <summary>既定（頼み方は sonoba の README の値、しきい値は PP-DocLayoutV3 の既定 0.5）</summary>
     public static readonly LayoutParams Default = new(240, 3, 8, LayoutModel.ScoreThreshold);

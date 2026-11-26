@@ -4,7 +4,7 @@ using System.Threading;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 多重起動防止（G4）。ユーザーごとの名前付き Mutex（Local\Bunnagetaro5-&lt;ユーザーSID&gt;）を取り、
+/// 多重起動防止。ユーザーごとの名前付き Mutex（Local\Bunnagetaro5-&lt;ユーザーSID&gt;）を取り、
 /// 2つ目以降はすでに動いているメイン窓を前に出して終了する。
 /// </summary>
 public sealed class SingleInstanceGuard : IDisposable

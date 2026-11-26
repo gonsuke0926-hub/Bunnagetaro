@@ -12,13 +12,13 @@ using WpfMath.Controls;
 
 namespace Bunnagetaro5.Views;
 
-/// <summary>解答欄の数式（KaTeX・WpfMath の描画、幅合わせ、式の画像コピー）（AnswerView を分けたもの。修正J43）</summary>
+/// <summary>解答欄の数式（KaTeX・WpfMath の描画、幅合わせ、式の画像コピー）（AnswerView を分けたもの）</summary>
 public partial class AnswerView
 {
-    // ---------------- KaTeX（整理8.6） ----------------
+    // ---------------- KaTeX ----------------
 
-    /// <summary>表示用の式は画面の倍率の2倍の画素で撮り、DIP の大きさに縮めて出す（にじみ対策 F29）。
-    /// 2倍で見えない窓に収まらない式は、画面の倍率（等倍）まで下げて撮る（F19）</summary>
+    /// <summary>表示用の式は画面の倍率の2倍の画素で撮り、DIP の大きさに縮めて出す（にじみ対策）。
+    /// 2倍で見えない窓に収まらない式は、画面の倍率（等倍）まで下げて撮る</summary>
     internal const double DisplaySuperSample = 2.0;
 
     private (Color Fg, double Font, double Scale) MathParams()
@@ -53,7 +53,7 @@ public partial class AnswerView
         var ui = MakeImageInline(img, seg);
         p.Inlines.InsertBefore(run, ui);
         p.Inlines.Remove(run);
-        if (ui.Child is SnapImage sim && _natSizes.TryGetValue(sim, out var n)) ApplyFit(sim, n);   // 修正J48: 直後のつっかえ棒を合わせる
+        if (ui.Child is SnapImage sim && _natSizes.TryGetValue(sim, out var n)) ApplyFit(sim, n);   // 直後のつっかえ棒を合わせる
         if (wasBottom) _body.ScrollToEnd();
     }
 
@@ -78,7 +78,7 @@ public partial class AnswerView
         return null;
     }
 
-    /// <summary>H2: 本文を流せる幅。ScrollViewer の見える幅（縦スクロールバーの分は既に引かれている）
+    /// <summary>本文を流せる幅。ScrollViewer の見える幅（縦スクロールバーの分は既に引かれている）
     /// − 文書の PagePadding。固定の数字は引かない（250% の実測: PagePadding 5,0,5,0・細バー 8）。
     /// 見える幅がまだ決まっていなければ欄の幅 − Padding − PagePadding、それも未定なら 0（縮めない）</summary>
     internal double AvailableBodyWidth()
@@ -100,7 +100,7 @@ public partial class AnswerView
     private DateTime _lastNarrowUtc;
     private double _lastNarrow;
 
-    /// <summary>H2: 見える幅が変わったら式を付け直す（欄のサイズ変更も、本文が伸びて縦スクロールバーが後から出た時も）。
+    /// <summary>見える幅が変わったら式を付け直す（欄のサイズ変更も、本文が伸びて縦スクロールバーが後から出た時も）。
     /// 縮めた結果スクロールバーが消え、広げるとまた出る…の行ったり来たりを避けるため、
     /// 直前（300ms 以内）に狭まったのと同じ分だけ広がった時は付け直さない（狭い方のまま）</summary>
     private void OnBodyScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -112,7 +112,7 @@ public partial class AnswerView
         RefitMathImages();
     }
 
-    /// <summary>H2: 幅 avail に収まらない時だけ縦横比を保って縮める（収まる・avail 未定なら元のまま）</summary>
+    /// <summary>幅 avail に収まらない時だけ縦横比を保って縮める（収まる・avail 未定なら元のまま）</summary>
     internal static (double W, double H) FitToWidth(double w, double h, double avail)
     {
         if (avail <= 0 || w <= avail || w <= 0) return (w, h);
@@ -133,9 +133,9 @@ public partial class AnswerView
         SyncSpacer(im, -n.MarginBottom * s);
     }
 
-    // ---------------- 修正J48: 文中の式の下の「つっかえ棒」 ----------------
+    // ---------------- 文中の式の下の「つっかえ棒」 ----------------
     // 文中の式は基準線に揃えるため、基準線より下（分母など）を行の高さに数えない（下の余白をマイナス）。
-    // そのままだと、下が大きい式は次の行に重なる（修正J47 で直そうとして式を持ち上げたら、左の文字と並びがずれた）。
+    // そのままだと、下が大きい式は次の行に重なる（式自体を持ち上げると、左の文字と並びがずれる）。
     // 式の直後に幅0の見えない部品を置き、文字の上端から「字の上の高さ＋式のはみ出し」まで伸ばして、
     // 行の下の空きだけを広げる。式そのものは基準線にぴったりのまま。コピーは Tag の無いこの部品を拾わない
 
@@ -187,7 +187,7 @@ public partial class AnswerView
             Tag = seg.Raw,   // $ 付きの原文字（コピー経路26）
             IsHitTestVisible = true,
             // 文中の式: 下の余白（基準線より下）を行の高さに数えず、文字の基準線へ合わせる（下の行と重ならないよう、
-            // 直後のつっかえ棒で行の下を広げる。修正J48）。余白は下の ApplyFit で付ける
+            // 直後のつっかえ棒で行の下を広げる）。余白は下の ApplyFit で付ける
         };
         RenderOptions.SetBitmapScalingMode(im, BitmapScalingMode.HighQuality);
         im.ContextMenu = BuildKatexMenu(seg);
@@ -198,7 +198,7 @@ public partial class AnswerView
         return new InlineUIContainer(im) { BaselineAlignment = BaselineAlignment.Baseline };
     }
 
-    /// <summary>式の右クリックメニュー（KaTeX版）。画像でコピーは3倍の解像度で撮り直し、黒い文字・透明な地（E12）</summary>
+    /// <summary>式の右クリックメニュー（KaTeX版）。画像でコピーは3倍の解像度で撮り直し、黒い文字・透明な地</summary>
     private ContextMenu BuildKatexMenu(MathSeg seg)
     {
         var miTex = new MenuItem { Header = "LaTeXでコピー" };
@@ -216,9 +216,9 @@ public partial class AnswerView
         LastInteractUtc = DateTime.UtcNow;
         try
         {
-            // 慣例どおり黒(#000000)・地は透明（E12）。表示用とは色が違うのでキャッシュも別
+            // 慣例どおり黒(#000000)・地は透明。表示用とは色が違うのでキャッシュも別
             var (_, font, _) = MathParams();
-            // 大きすぎて3倍で撮れない式は、撮れる倍率まで下げて撮る（欠けた画像は渡さない。F19）
+            // 大きすぎて3倍で撮れない式は、撮れる倍率まで下げて撮る（欠けた画像は渡さない）
             var img = await MathRenderer.RenderAsync(seg.Tex, seg.Kind == MathSegKind.Display, Colors.Black, null, font, 3.0, 1.0);
             if (img is null) { _host.SetStatus("式を画像でコピーできませんでした"); return; }
             Clipboard.SetDataObject(BuildImageData(img.Bmp, img.Scale > 0 ? img.Scale : 3.0), true);
@@ -253,7 +253,7 @@ public partial class AnswerView
         return fc;
     }
 
-    /// <summary>式の右クリックメニュー（手順26）。「LaTeXでコピー」「画像でコピー」</summary>
+    /// <summary>式の右クリックメニュー。「LaTeXでコピー」「画像でコピー」</summary>
     private ContextMenu BuildFormulaMenu(FormulaControl fc, string raw)
     {
         var miTex = new MenuItem { Header = "LaTeXでコピー" };
@@ -266,11 +266,11 @@ public partial class AnswerView
         return menu;
     }
 
-    /// <summary>「画像でコピー」用のクリップボード内容（E12）。透明付きの PNG（"PNG" 形式。Word・PowerPoint・
+    /// <summary>「画像でコピー」用のクリップボード内容。透明付きの PNG（"PNG" 形式。Word・PowerPoint・
     /// ブラウザ・チャットアプリが読む）と、白地に合成した不透明の Bitmap（透明を扱えない古い形式。ペイント等）を
     /// 同時に入れる。img は黒い文字・透明な地のもの。
-    /// 画素は細かく持ち（pixelsPerDip＝3 なら解答欄の3倍）、PNG には 96×pixelsPerDip dpi（3倍なら 288dpi）の解像度情報を付ける
-    /// （F13b）。貼った時、Word・PowerPoint は解像度情報を見て解答欄で見えている大きさで置く（見ないアプリは画素のまま大きく出る）</summary>
+    /// 画素は細かく持ち（pixelsPerDip＝3 なら解答欄の3倍）、PNG には 96×pixelsPerDip dpi（3倍なら 288dpi）の解像度情報を付ける。
+    /// 貼った時、Word・PowerPoint は解像度情報を見て解答欄で見えている大きさで置く（見ないアプリは画素のまま大きく出る）</summary>
     internal static DataObject BuildImageData(BitmapSource img, double pixelsPerDip = 3.0)
     {
         var data = new DataObject();
@@ -313,7 +313,7 @@ public partial class AnswerView
         return conv;
     }
 
-    /// <summary>WpfMath の予備の経路の「画像でコピー」（E12）。式を黒い文字で作り直して、地は透明のまま3倍で撮る。
+    /// <summary>WpfMath の予備の経路の「画像でコピー」。式を黒い文字で作り直して、地は透明のまま3倍で撮る。
     /// クリップボードは KaTeX 版と同じ2形式（透明 PNG と白地 Bitmap）</summary>
     private void CopyFormulaImage(FrameworkElement src)
     {

@@ -6,10 +6,10 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Session;
 
 /// <summary>
-/// 修正J89（段階2・置き場所の係）: キャプチャ窓の移動・大きさ変更を受けて、
+/// キャプチャ窓の移動・大きさ変更を受けて、
 /// ① バー → ② 窓の中の解答欄 → ③ 外の解答欄 の順に物理pxで位置を決める。
 /// タスクバーより手前に出す処理（RaiseIfOutsideWorkArea と TaskbarFront）もここにまとめる。
-/// 表示・非表示の判断自体は WindowVisibility へ通知して任せる（修正J90）。
+/// 表示・非表示の判断自体は WindowVisibility へ通知して任せる。
 /// </summary>
 internal sealed class WindowPlacer : IDisposable
 {
@@ -29,7 +29,7 @@ internal sealed class WindowPlacer : IDisposable
     internal WindowPlacer(ConfigStore cfg)
     {
         _cfg = cfg;
-        // J72・J90: 下→上の順（キャプチャ窓 → 窓の中の解答欄 → バー → 外の解答欄）でタスクバーより手前を保つ
+        // 下→上の順（キャプチャ窓 → 窓の中の解答欄 → バー → 外の解答欄）でタスクバーより手前を保つ
         _taskbarFront = new TaskbarFront(TaskbarFrontWindows);
     }
 
@@ -104,7 +104,7 @@ internal sealed class WindowPlacer : IDisposable
 
     private void OnCapMoving(Native.RECT wr) => PlaceAll(wr, syncStripVisibility: false);
 
-    /// <summary>J71: 出した時（置き場所が前と同じでも）、タスクバーに重なっていたら描画タイミングで手前へ出す</summary>
+    /// <summary>出した時（置き場所が前と同じでも）、タスクバーに重なっていたら描画タイミングで手前へ出す</summary>
     private void OnChildVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.NewValue is not true || sender is not Window w) return;
@@ -124,7 +124,7 @@ internal sealed class WindowPlacer : IDisposable
         }));
     }
 
-    /// <summary>J70・J90: 下→上（キャプチャ窓 → 窓の中の解答欄 → バー → 外の解答欄）の前後順を保ったままタスクバーより手前へ出す</summary>
+    /// <summary>下→上（キャプチャ窓 → 窓の中の解答欄 → バー → 外の解答欄）の前後順を保ったままタスクバーより手前へ出す</summary>
     private void RaiseAboveTaskbarPreservingOrder(Window target, Native.RECT? rectOpt = null)
     {
         if (!target.IsVisible) return;
@@ -158,7 +158,7 @@ internal sealed class WindowPlacer : IDisposable
         capHwnd = RootHwnd(cap);
         if (capHwnd == IntPtr.Zero || !Native.IsWindow(capHwnd)) return false;
 
-        Native.RECT? effTarget = target ?? cap.DragRect;   // H6: 縁・窓ごとドラッグ中はダミー枠の矩形を最優先
+        Native.RECT? effTarget = target ?? cap.DragRect;   // 縁・窓ごとドラッグ中はダミー枠の矩形を最優先
         clientOpt = effTarget ?? Native.ClientRectScreen(capHwnd);
         wrOpt = effTarget is { } tg
             ? tg
@@ -245,7 +245,7 @@ internal sealed class WindowPlacer : IDisposable
         PlaceStripCore(capHwnd, wrOpt, clientOpt, barRect, syncVisibility);
     }
 
-    /// <summary>F3: バーだけが newBarRect へ動く直前に、外の解答欄をそのバーに合わせて同じフレームで置く</summary>
+    /// <summary>バーだけが newBarRect へ動く直前に、外の解答欄をそのバーに合わせて同じフレームで置く</summary>
     internal void PlaceStripForBar(Native.RECT newBarRect)
     {
         try
@@ -298,7 +298,7 @@ internal sealed class WindowPlacer : IDisposable
         {
             Native.SetWindowPos(barHwnd, IntPtr.Zero, pick.Value.X, pick.Value.Y, 0, 0,
                 Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE | Native.SWP_NOOWNERZORDER);
-            // J69/J71: 置き場所が変わった時と出した時だけ手前へ出す（同じ場所のままでは出し直さない）
+            // 置き場所が変わった時と出した時だけ手前へ出す（同じ場所のままでは出し直さない）
             if (bar.IsVisible) RaiseAboveTaskbarPreservingOrder(bar, newRect);
         }
         bar.RememberPos(pick.Value.X, pick.Value.Y);
@@ -323,7 +323,7 @@ internal sealed class WindowPlacer : IDisposable
         {
             Native.SetWindowPos(hwnd, IntPtr.Zero, r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top,
                 Native.SWP_NOZORDER | Native.SWP_NOACTIVATE | Native.SWP_NOOWNERZORDER);
-            // J70/J71: 置き場所が変わった時と出した時だけ手前へ出す（同じ場所のままでは出し直さない）
+            // 置き場所が変わった時と出した時だけ手前へ出す（同じ場所のままでは出し直さない）
             RaiseAboveTaskbarPreservingOrder(panel, r);
         }
         panel.UpdateThinkMaxHeight();
@@ -345,7 +345,7 @@ internal sealed class WindowPlacer : IDisposable
     {
         var own = RootHwnd(strip);
         if (own == IntPtr.Zero) return;
-        // 同じ矩形のままでは動かさず、タスクバーより手前にも出し直さない（J71・J74）
+        // 同じ矩形のままでは動かさず、タスクバーより手前にも出し直さない
         if (Native.GetWindowRect(own, out var cur) && SameRect(cur, rect)) return;
         Native.SetWindowPos(own, IntPtr.Zero, rect.Left, rect.Top,
             rect.Right - rect.Left, rect.Bottom - rect.Top,

@@ -14,7 +14,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// F34: クイックの時のバー。くっつける OFF なら消さない・動かさない。
+/// クイックの時のバー。くっつける OFF なら消さない・動かさない。
 /// ON なら枠と同じ吸い込みで消し、新しい位置へ置いてからふわっと出す（出てから動いて見えない）。
 /// マウス・キーは動かさない（QuickThrowController.BeginAt / CancelRestore と QuickPlace を直接呼ぶ）
 /// </summary>
@@ -130,7 +130,7 @@ public class QuickBarTests : IDisposable
                 Pump(400);
                 Assert.False(cap.IsVisible);
                 Assert.False(bar.IsVisible);        // 巡回が来ても出ない
-                Assert.False(panel.IsVisible);      // 開いた直後の案内（A3）も出ない
+                Assert.False(panel.IsVisible);      // 開いた直後の案内も出ない
                 // 離した: 新しい四角へ置いてから初めて出る
                 typeof(Bunnagetaro5.Session.CaptureSession).GetMethod("QuickPlace", F)!.Invoke(w.Session, new object[] { 500, 300, 420, 260, false });
                 Pump(400);
@@ -430,13 +430,13 @@ public class QuickBarTests : IDisposable
                 var bar = Get<ChromeBar>(w.Session, "_bar");
                 var strip = Get<AnswerStrip>(w.Session, "_strip");
                 strip.ShowFinal("前の答え");
-                // 整理（2026-11-22）: 決まった時間ではなく、条件がそろうまで待つ（PC が忙しい時に時々落ちていた）
+                // 決まった時間ではなく、条件がそろうまで待つ（PC が忙しい時に時々落ちていた）
                 Assert.True(TestUtil.WaitUntil(() => strip.IsVisible && !WindowMotion.IsRunning(strip), 3000), "外の解答欄が出ない");
                 var capRect = Rect(cap);
                 var barBefore = Rect(bar);
                 w.Quick.BeginAt((capRect.Left + capRect.Right) / 2, (capRect.Top + capRect.Bottom) / 2);
                 Assert.True(WindowMotion.IsFadingOut(strip));            // 吸い込みが始まっている
-                // 縮んでいる（修正J82: 外の解答欄も透過する窓になったので、ほかの窓と同じく中身を縮めて見せる。窓の見える範囲の絞りは使わない）
+                // 縮んでいる（外の解答欄も透過する窓になったので、ほかの窓と同じく中身を縮めて見せる。窓の見える範囲の絞りは使わない）
                 Assert.True(TestUtil.WaitUntil(() => ((FrameworkElement)strip.Content).RenderTransform is System.Windows.Media.ScaleTransform st0 && st0.ScaleX < 1.0, 300, 5),
                             "吸い込みで縮んでいない");
                 Assert.True(TestUtil.WaitUntil(() => !strip.IsVisible && !bar.IsVisible, 3000), "吸い込みの後に外の解答欄・バーが隠れない");
@@ -633,7 +633,6 @@ public class QuickBarTests : IDisposable
         });
     }
 
-    // ---- 修正J69 ----
     [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 
     [Fact]
@@ -714,7 +713,7 @@ public class QuickBarTests : IDisposable
 
                 Native.GetWindowRect(capH, out var cr2);
                 Native.GetWindowRect(barH, out var br);
-                Assert.Equal(cr2.Bottom, br.Top);            // F38: 位置は窓の真下のまま（J69 は動かさない）
+                Assert.Equal(cr2.Bottom, br.Top);            // 位置は窓の真下のまま
                 Assert.True(Native.OutsideWorkArea(br));     // タスクバーにかかっている
 
                 for (var h = GetWindow(barH, GW_HWNDPREV); h != IntPtr.Zero; h = GetWindow(h, GW_HWNDPREV))
@@ -841,7 +840,6 @@ public class QuickBarTests : IDisposable
             finally { WindowMotion.Cancel(w); w.Close(); }
         });
     }
-    // ---- 修正J71 ----
     private static bool TrayIsAbove(IntPtr tray, IntPtr h)
     {
         const uint GW_HWNDPREV = 3;

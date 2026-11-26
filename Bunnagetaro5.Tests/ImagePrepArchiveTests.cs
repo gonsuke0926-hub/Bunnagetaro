@@ -18,7 +18,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 画像の加工と記録（手順10）: ImagePrep（send_prep・真っ黒判定）、ShotArchive、
+/// 画像の加工と記録: ImagePrep（send_prep・真っ黒判定）、ShotArchive、
 /// LogStore の AddPending/Finish。本物には繋がず、HTTPは差し替えた偽の相手で行う。
 /// </summary>
 public class ImagePrepArchiveTests : IDisposable
@@ -101,7 +101,7 @@ public class ImagePrepArchiveTests : IDisposable
     {
         BitmapSource img = Gray(800, 600, 128);
         Assert.Same(img, ImagePrep.SendPrep(img));
-        // 極小窓でも「長辺」で見る（Python版と同じ式）: 1×800 は変えない
+        // 極小窓でも「長辺」で見る: 1×800 は変えない
         BitmapSource thin = Gray(1, 800, 128);
         Assert.Same(thin, ImagePrep.SendPrep(thin));
     }
@@ -131,7 +131,7 @@ public class ImagePrepArchiveTests : IDisposable
     public void Stemはtsを時刻の並びに変えてidと結ぶ()
     {
         Assert.Equal("20261107-180512-abc", ShotArchive.Stem("2026-11-07 18:05:12", "abc"));
-        // ts が壊れていれば今の時刻に逃げる（Python版 time.strftime と同じ形）
+        // ts が壊れていれば今の時刻に逃げる
         Assert.Matches(@"^\d{8}-\d{6}-x$", ShotArchive.Stem("", "x"));
     }
 
@@ -253,7 +253,7 @@ public class ImagePrepArchiveTests : IDisposable
         Assert.Equal("Q4_K_M", info["quantization"]);
         Assert.Equal("4.6B", info["parameter_size"]);
         Assert.Equal("gemma4", info["architecture"]);
-        Assert.False(info.ContainsKey("parent_model"));          // 空文字は載せない（Python版の truthy）
+        Assert.False(info.ContainsKey("parent_model"));          // 空文字は載せない
         Assert.Equal(131072L, info["trained_context"]);
         Assert.Equal("shot-Q4.gguf", info["gguf"]);              // basename だけ
         Assert.Equal(new[] { "/api/version", "/api/show" }, stub.Uris);
@@ -391,7 +391,7 @@ public class ImagePrepArchiveTests : IDisposable
         JsonArray saved = (JsonArray)JsonNode.Parse(File.ReadAllText(paths.EntriesJson))!;
         Assert.Equal("手動で入れた訳", saved[0]!["text"]!.GetValue<string>());
         Assert.True(File.Exists(Path.Combine(paths.ImagesDir, Path.GetFileName(entry["image"]!.GetValue<string>()))));
-        // shots へは行かない（Python版 add も _archive_capture を呼ばない）
+        // shots へは行かない
         Assert.False(Directory.Exists(paths.DefaultShotsDir));
     }
 

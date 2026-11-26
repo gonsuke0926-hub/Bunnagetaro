@@ -18,34 +18,32 @@ public class OllamaException : Exception
     public OllamaException(string message) : base(message) { }
 }
 
-/// <summary>ぶん投げを途中でやめた（バーの「やめる」・アプリ終了）。失敗とは分けて扱う
-/// （Python版 Cancelled と同じ）。</summary>
+/// <summary>ぶん投げを途中でやめた（バーの「やめる」・アプリ終了）。失敗とは分けて扱う。</summary>
 public class OllamaCancelledException : Exception
 {
     public OllamaCancelledException() : base("ぶん投げをやめました") { }
 }
 
 /// <summary>
-/// Ollamaへの問い合わせ（Python版 tw_ollama.py に対応）。
+/// Ollamaへの問い合わせ。
 /// tags/show/chatストリーミング・温め・降ろし・「やめる」。温め・降ろし・vision確認は MainWindowEnv.cs から使う。
 /// </summary>
 public static class OllamaClient
 {
-    /// <summary>接続テストの一発待ち。指示書6.4（5秒）。</summary>
+    /// <summary>接続テストの一発待ち（5秒）。</summary>
     public static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(5);
 
-    /// <summary>HTTP_TIMEOUT の読み側（Python版 (5,180) の 180。接続5秒はハンドラ側）。</summary>
+    /// <summary>HTTP 読み取り側のタイムアウト（180秒。接続5秒はハンドラ側）。</summary>
     public static readonly TimeSpan HttpReadTimeout = TimeSpan.FromSeconds(180);
 
-    /// <summary>ストリームで「次の1行」を待つ上限（Python版 STREAM_READ_TIMEOUT。
-    /// 初めての載せ直しはHDDだと1分を超えることがあるので広く取る）。</summary>
+    /// <summary>ストリームで「次の1行」を待つ上限（初めての載せ直しはHDDだと1分を超えることがあるので広く取る）。</summary>
     public const int StreamReadTimeoutSec = 300;
 
-    /// <summary>1回のぶん投げ全体の上限（Python版 STREAM_TOTAL_TIMEOUT）。</summary>
+    /// <summary>1回のぶん投げ全体の上限。</summary>
     public const int StreamTotalTimeoutSec = 900;
 
-    // HttpClientは使い回す（Python版のrequests.Sessionと同じで、接続の張り直しが軽い）。
-    // 接続5秒（Python版 HTTP_TIMEOUT の最初の値）をハンドラで待つ。
+    // HttpClientは使い回す（接続の張り直しが軽い）。
+    // 接続5秒をハンドラで待つ。
     // テストでは internal の SetHttp で差し替える（本番はここだけ）。
     private static HttpClient Http = MakeHttp();
 
@@ -58,15 +56,14 @@ public static class OllamaClient
     /// テストの SetHttp が全HTTPに効くようにするため内部で見せる）。</summary>
     internal static HttpClient Client => Http;
 
-    /// <summary>base_url + apiの道。スキーム無しは http:// を補い、末尾の / を落とす
-    /// （Python版 _url と同じ）。</summary>
+    /// <summary>base_url + apiの道。スキーム無しは http:// を補い、末尾の / を落とす。</summary>
     public static string Url(string baseUrl, string path)
     {
         var u = ConfigStore.NormBase(baseUrl).TrimEnd('/');
         return u.Length == 0 ? path : u + path;
     }
 
-    /// <summary>名前で重さ(bytes)を引ける辞書（Python版 ollama_tag_info と同じ）。
+    /// <summary>名前で重さ(bytes)を引ける辞書。
     /// 名前が空の行は読み飛ばし、重さが読めなければ0。</summary>
     public static async Task<Dictionary<string, long>> GetTagInfoAsync(string baseUrl, CancellationToken ct = default)
     {
@@ -119,7 +116,7 @@ public static class OllamaClient
     }
 
     /// <summary>導入済みの判定。Ollamaは"gemma4"のようにtagを省いてもlatestを引ける
-    /// ので、省略名も導入扱い（Python版 model_installed と同じ）。</summary>
+    /// ので、省略名も導入扱い。</summary>
     public static bool ModelInstalled(string model, IEnumerable<string> names)
     {
         var m = (model ?? "").Trim();
@@ -140,8 +137,7 @@ public static class OllamaClient
         return (nbytes / Math.Pow(1024, 3)).ToString("F1", CultureInfo.InvariantCulture) + "GB";
     }
 
-    /// <summary>一覧の重さを1行で（自分のPCに載る大きさを見るため、Python版と同じ
-    /// 先頭6件・「なし」）。</summary>
+    /// <summary>一覧の重さを1行で（自分のPCに載る大きさを見るため、先頭6件・「なし」）。</summary>
     public static string SizesLine(Dictionary<string, long> info, IEnumerable<string> sortedNames)
     {
         var parts = new List<string>();
@@ -154,10 +150,10 @@ public static class OllamaClient
         return parts.Count == 0 ? "なし" : string.Join(", ", parts);
     }
 
-    // ---- 生成設定の手入れ（Python版 gen_setting / _keep_alive / _think） ----
+    // ---- 生成設定の手入れ ----
 
-    // (key, 下限, 上限, 整数か) — Python版 OLLAMA_FIELDS と同じ範囲。
-    // 設定ページの欄の範囲（指示書6.4）とは別で、「手編集のconfigを送る時に寄せる」範囲。
+    // (key, 下限, 上限, 整数か)
+    // 設定ページの欄の範囲とは別で、「手編集のconfigを送る時に寄せる」範囲。
     private static readonly (string Key, double Lo, double Hi, bool IsInt)[] OllamaFields =
     {
         ("ollama_num_ctx", 2048, 262144, true),
@@ -174,8 +170,7 @@ public static class OllamaClient
         ["ollama_keep_alive_min"] = 30,
     };
 
-    /// <summary>生成設定を1つ読む。手編集の不正値・範囲外は既定値・範囲の端へ寄せる
-    /// （Python版 gen_setting と同じ）。</summary>
+    /// <summary>生成設定を1つ読む。手編集の不正値・範囲外は既定値・範囲の端へ寄せる。</summary>
     public static double GenSetting(JsonObject cfg, string key)
     {
         var f = Array.Find(OllamaFields, x => x.Key == key);
@@ -198,7 +193,7 @@ public static class OllamaClient
     private static long GenSettingInt(JsonObject cfg, string key) => (long)GenSetting(cfg, key);
 
     /// <summary>keep_alive は分で持つ。負＝ずっと載せておく（Ollamaは負の数をそう読む）。
-    /// Python版 _keep_alive と同じで、負は数値 -1、そうでないなら "Nm"。</summary>
+    /// 負は数値 -1、そうでないなら "Nm"。</summary>
     public static JsonNode KeepAliveNode(JsonObject cfg)
     {
         var m = GenSettingInt(cfg, "ollama_keep_alive_min");
@@ -216,8 +211,7 @@ public static class OllamaClient
 
     // ---- vision 判定（/api/show） ----
 
-    /// <summary>capabilities に vision があるか。確認できなければ null
-    /// （Python版 model_has_vision と同じ）。</summary>
+    /// <summary>capabilities に vision があるか。確認できなければ null。</summary>
     public static async Task<bool?> ModelHasVisionAsync(JsonObject cfg, string model, CancellationToken ct = default)
     {
         try
@@ -260,7 +254,7 @@ public static class OllamaClient
     internal static string ModelOf(JsonObject cfg) =>
         cfg["model"] is { } m && m.GetValueKind() == JsonValueKind.String ? m.GetValue<string>() : "";
 
-    /// <summary>モデルをすぐ降ろす（Python版 ollama_unload_model）。空名は何もしない。</summary>
+    /// <summary>モデルをすぐ降ろす。空名は何もしない。</summary>
     public static async Task UnloadModelAsync(JsonObject cfg, string model, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(model)) return;
@@ -278,7 +272,7 @@ public static class OllamaClient
         resp.EnsureSuccessStatusCode();
     }
 
-    /// <summary>選ぶモデルを載せておく（Python版 ollama_warm_model）。モデルを変えたら
+    /// <summary>選ぶモデルを載せておく。モデルを変えたら
     /// 前のモデルは先に降ろす（失敗しても温めは続ける）。num_ctxはぶん投げる時と同じ値
     /// （違うとOllamaが毎回載せ直す）。</summary>
     public static async Task WarmModelAsync(JsonObject cfg, string model, string? prevModel = null,
@@ -324,7 +318,7 @@ public static class OllamaClient
         catch (Exception ex) { AppLog.Warning("やめるの処理で失敗: " + ex.Message); }
     }
 
-    /// <summary>ぶん投げ1回の実行記録（分析・調整用。Python版 stats と同じ形）。
+    /// <summary>ぶん投げ1回の実行記録（分析・調整用）。
     /// done 行で statsSink（呼び手の実績列）に1件足される。</summary>
     private static Dictionary<string, object?> NewStats(JsonObject cfg, JsonArray messages,
         JsonObject options, bool? think, JsonNode keepAlive)
@@ -352,9 +346,9 @@ public static class OllamaClient
     }
 
     /// <summary>
-    /// NDJSONストリームのぶん投げ（Python版 _stream_chat と同じ契約）。
+    /// NDJSONストリームのぶん投げ。
     /// onDelta / onThinking には毎回「これまでの全文」を渡す（差分ではない）。
-    /// numPredict を渡さない時も、設定の生成の上限（256〜65536）を必ず options に入れる（F17）。
+    /// numPredict を渡さない時も、設定の生成の上限（256〜65536）を必ず options に入れる。
     /// ct（または AbortActive）でやめると OllamaCancelledException。
     /// 本文は message.content、思考は message.thinking として別々に届く（返り値の本文に思考は混ぜない）。
     /// </summary>
@@ -405,7 +399,7 @@ public static class OllamaClient
             }
             catch (OperationCanceledException)
             {
-                // G11: 「やめる」以外のキャンセル（ConnectTimeout / HttpClient.Timeout 等）は時間切れの日本語案内へ
+                // 「やめる」以外のキャンセル（ConnectTimeout / HttpClient.Timeout 等）は時間切れの日本語案内へ
                 throw new OllamaException($"AIサーバーに接続できません（時間切れ: {BaseOf(cfg)}）");
             }
 
@@ -447,7 +441,7 @@ public static class OllamaClient
                     catch (OperationCanceledException)
                     {
                         // 「やめる」で応答を止めたときは接続エラーの種類はまちまちだが、
-                        // やめた合図として読み替える（Python版 _lines_or_cancel と同じ）
+                        // やめた合図として読み替える
                         if (streamCts.IsCancellationRequested) throw new OllamaCancelledException();
                         throw new OllamaException(
                             $"model の返事がありません（{StreamReadTimeoutSec}秒 待ちました）");
@@ -479,7 +473,7 @@ public static class OllamaClient
                             if (now >= nextPush)
                             {
                                 onDelta(string.Concat(parts));
-                                // 修正J113: onDelta（同期UI更新）が間隔より長くかかった時、先に nextPush を足していると
+                                // onDelta（同期UI更新）が間隔より長くかかった時、先に nextPush を足していると
                                 // 次の1トークンで即発火して間引きが壊れる（暴走生成で数分フリーズ）。呼び終わった後から間隔を空ける
                                 nextPush = Stopwatch.GetElapsedTime(t0).TotalSeconds + deltaMinIntervalSec;
                             }
@@ -523,7 +517,7 @@ public static class OllamaClient
                         if (ev > 0 && dur2 > 0)
                             stats["tokens_per_sec"] = Math.Round(ev / (dur2 / 1e9), 1);
                         statsSink?.Add(stats);
-                        // G3: done_reason != "stop"（length 等）でも例外にせず途中までの本文を返す。
+                        // done_reason != "stop"（length 等）でも例外にせず途中までの本文を返す。
                         // 打ち切り理由の案内・印付けは stats["done_reason"] を受ける呼び手側で行う。
                         break;
                     }

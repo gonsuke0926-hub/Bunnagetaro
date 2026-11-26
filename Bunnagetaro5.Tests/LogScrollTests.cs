@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND5 F23〜F24: ログの下付き・読んでいる位置の保持。J14: 台帳のログを全部出す（F25 の「古いログを表示」はやめた）</summary>
+/// <summary>ログの下付き・読んでいる位置の保持。台帳のログを全部出す</summary>
 public class LogScrollTests : IDisposable
 {
     private readonly string _temp;

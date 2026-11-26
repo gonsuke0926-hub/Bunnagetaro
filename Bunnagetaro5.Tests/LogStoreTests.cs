@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>手順4: LogStore（entries.json読み込み・pending後始末・孤児画像掃除・200件上限）</summary>
+/// <summary>LogStore（entries.json読み込み・pending後始末・孤児画像掃除・200件上限）</summary>
 public class LogStoreTests : IDisposable
 {
     private readonly string _dir = Path.Combine(
@@ -221,7 +221,7 @@ public class LogStoreTests : IDisposable
     public void ToNodeKeepsNestedListsAsArrays()
     {
         // raw_size（List<object?>）や chunks・llm_calls（List<Dictionary>）を
-        // 文字列にせず JSON の配列・物件として残す（手順13で実機に気づかれた）
+        // 文字列にせず JSON の配列・物件として残す
         var diag = new Dictionary<string, object?>
         {
             ["raw_size"] = new List<object?> { 640, 400 },

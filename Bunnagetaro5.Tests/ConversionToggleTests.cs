@@ -66,7 +66,7 @@ public sealed class ConversionToggleTests : IDisposable
         Assert.True(cfg1.Settings.ConvertOtslTable);
         Assert.True(cfg1.Settings.ConvertHtmlTable);
         Assert.True(cfg1.Settings.ConvertLatexMath);
-        Assert.False(cfg1.Settings.ShowFollowRow);   // 既定 OFF（人の判断 2026-11-14）
+        Assert.False(cfg1.Settings.ShowFollowRow);   // 既定 OFF
 
         cfg1.Settings.ConvertOtslTable = false;
         cfg1.Settings.ConvertHtmlTable = false;
@@ -110,7 +110,7 @@ public sealed class ConversionToggleTests : IDisposable
     }
 
     [Theory]
-    // 変換は OTSL → HTML → 画面の表 の順につながる（人の判断 2026-11-15）
+    // 変換は OTSL → HTML → 画面の表 の順につながる
     [InlineData(true, true, "table", "")]                 // 両方 ON: 表
     [InlineData(true, false, "<table>", "<fcel>")]        // OTSL ON・HTML OFF: HTML の文字（OTSL の印は残らない）
     [InlineData(false, true, "<fcel>", "<table>")]        // OTSL OFF: OTSL のまま（HTML の表には変えない）

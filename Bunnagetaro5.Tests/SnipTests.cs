@@ -14,7 +14,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 修正J52: 画面を少し暗くして範囲ドラッグ。マウスは動かさない（覆いの Esc／離し・フックを通らず、
+/// 画面を少し暗くして範囲ドラッグ。マウスは動かさない（覆いの Esc／離し・フックを通らず、
 /// QuickThrowController の SnipStart/SnipBegin/SnipRelease/SnipCancel を直接呼ぶ）。
 /// ぶん投げの先は届かない URL にして、本物の AI へは送らない
 /// </summary>
@@ -41,7 +41,7 @@ public class SnipTests : IDisposable
 
     private static void Pump(int ms) => TestUtil.Pump(ms);
 
-    /// <summary>修正J60b: 条件がそろうまで画面の描き直しを回す（最大 ms）。明るい所・枠は CompositionTarget.Rendering で
+    /// <summary>条件がそろうまで画面の描き直しを回す（最大 ms）。明るい所・枠は CompositionTarget.Rendering で
     /// 直るので、テストを全部流して PC が忙しい時は 100ms では回ってこないことがあった（決め打ちで待たない）</summary>
     private static void PumpUntil(Func<bool> cond, int ms = 3000)
     {
@@ -215,7 +215,7 @@ public class SnipTests : IDisposable
                 w.Quick.Poll();
                 w.Quick.Poll();
                 w.Quick.Poll();
-                Assert.True(w.Quick.Following);   // J36 の取り損ね取り消しは範囲ドラッグでは働かない
+                Assert.True(w.Quick.Following);   // 取り損ね取り消しは範囲ドラッグでは働かない
                 Assert.True(w.Quick.SnipActive);
                 w.Quick.SnipCancel("test");
                 Assert.False(w.Quick.Following);

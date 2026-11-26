@@ -2,7 +2,7 @@ using System.Windows.Media;
 
 namespace Bunnagetaro5.Services;
 
-/// <summary>キャプチャ窓の枠の今の見た目（E11。設定 capture_border_color / _alpha / _px）。
+/// <summary>キャプチャ窓の枠の今の見た目（設定 capture_border_color / _alpha / _px）。
 /// 縁を描く CaptureWindow・撮る範囲の削り幅・掴める幅・クイックのダミー枠が同じ値を見る。
 /// ぶん投げのワーカーは窓へ触れず設定も持たないので、UI 側が Update で置いた値を読む。
 /// 既定値（#0067C0・0.70・4px）は今までの見た目・撮る範囲・掴める幅と1画素も変わらない。</summary>

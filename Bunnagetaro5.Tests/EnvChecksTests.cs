@@ -20,7 +20,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// FIX_ROUND1 A4: 起動時の一覧読み・モデルの温め・設定変更時の載せ直し・前提チェック。
+/// 起動時の一覧読み・モデルの温め・設定変更時の載せ直し・前提チェック。
 /// 本物の MainWindow に、偽の Ollama（HttpClient の差し替え）を向けて確かめる。
 /// 呼ばれていないと状態欄の表示も出ないので、状態欄の実際の文字まで見る。
 /// </summary>
@@ -139,9 +139,9 @@ public class EnvChecksTests : IDisposable
         cfg.Load();
         cfg.SetStr("base_url", "http://localhost:11434");
         cfg.SetStr("model", "good:1b");
-        SetModel(cfg, "good:1b");   // モデルはいつもプリセットごと（修正J7）
+        SetModel(cfg, "good:1b");   // モデルはいつもプリセットごと
         cfg.SetBool("quick_enabled", false);
-        // 既定の「翻訳」は専用のモデル（PLaMo）と文字起こしを持つ（2026-11-14）。ここでは
+        // 既定の「翻訳」は専用のモデル（PLaMo）と文字起こしを持つ。ここでは
         // グローバルのモデル・画像そのままの前提を確かめるので、翻訳をグローバル設定に戻す
         foreach (var n in cfg.Root["prompts"]!.AsArray())
             if (n is System.Text.Json.Nodes.JsonObject p && p["name"]?.GetValue<string>() == ConfigStore.DefaultPromptName)
@@ -154,7 +154,7 @@ public class EnvChecksTests : IDisposable
         return (w, cfg);
     }
 
-    /// <summary>使っているプリセットのモデルを変える（モデルはいつもプリセットごと・修正J7）</summary>
+    /// <summary>使っているプリセットのモデルを変える（モデルはいつもプリセットごと）</summary>
     private static void SetModel(ConfigStore c, string model) => c.ActivePreset()!["model"] = model;
 
     private static object? Fld(object o, string name)
@@ -229,7 +229,7 @@ public class EnvChecksTests : IDisposable
             Assert.Equal("モデル未選択", Problem(w));
             w.Close();
 
-            // I9: 文字起こしONの時は vision非対応 を出さない
+            // 文字起こしONの時は vision非対応 を出さない
             var (w2, _) = NewWindow(c => c.SetBool("ocr_split_mode", true), envChecks: true);
             f.Vision = false;
             w2.Show();
@@ -268,7 +268,7 @@ public class EnvChecksTests : IDisposable
             Assert.Equal(true, Fld(w.Throw, "_modelsReady"));
             var cb = FindCombo(w, "ModelCombo");
             Assert.NotNull(cb);
-            Assert.Equal(3, cb!.Items.Count);   // 修正J27: モデル欄には Ollama のモデルだけ並ぶ（内蔵 OCR はぶん投げ方側）
+            Assert.Equal(3, cb!.Items.Count);   // モデル欄には Ollama のモデルだけ並ぶ（内蔵 OCR はぶん投げ方側）
             Assert.Equal("alpha:2b", cb.Items[0]);
             w.Close();
         });
@@ -384,7 +384,7 @@ public class EnvChecksTests : IDisposable
             Pump(w.Dispatcher, 200);
             var pc = FindCombo(w, "PresetCombo");
             Assert.NotNull(pc);
-            pc!.SelectedIndex = 1;              // 「翻訳」を編集（モデルはいつもプリセットごと・修正J7）
+            pc!.SelectedIndex = 1;              // 「翻訳」を編集（モデルはいつもプリセットごと）
             Pump(w.Dispatcher, 100);
             var cb = FindCombo(w, "ModelCombo");
             Assert.NotNull(cb);
@@ -460,7 +460,7 @@ public class EnvChecksTests : IDisposable
         OnSta(() =>
         {
             var f = UseFake();
-            // 修正J27: 文字起こし VLM のモデルを終了時に降ろす
+            // 文字起こし VLM のモデルを終了時に降ろす
             var (w, _) = NewWindow(c =>
             {
                 c.SetStr("throw_mode", ConfigStore.ThrowModeOcr);

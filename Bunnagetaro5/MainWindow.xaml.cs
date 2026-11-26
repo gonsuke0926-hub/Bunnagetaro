@@ -20,7 +20,7 @@ using Bunnagetaro5.Status;
 namespace Bunnagetaro5;
 
 /// <summary>
-/// メイン窓（6.1）。上の段（主ボタン・前面固定・ステータス・☰）とページ表示域。
+/// メイン窓。上の段（主ボタン・前面固定・ステータス・☰）とページ表示域。
 /// 位置・大きさ・最大化の保存/復元と、ステータス文字のtickerを持つ。
 /// </summary>
 public partial class MainWindow : Window
@@ -38,7 +38,7 @@ public partial class MainWindow : Window
     internal readonly StatusModel Status = new();
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
 
-    private TriggerWatcher? _trig;   // 自動トリガの背景巡回（手順19 / 7.8）
+    private TriggerWatcher? _trig;   // 自動トリガの背景巡回
     private readonly CancellationTokenSource _closeCts = new();
     private volatile bool _closing;
     /// <summary>巡回の撮影代わり。通常は ScreenShot.GrabFrame（検証ハーネスは合成画像へ差し替え）</summary>
@@ -51,9 +51,9 @@ public partial class MainWindow : Window
         InitializeComponent();
         Title = WindowTitle;
 
-        // ページ表示域の既定はログページ（タブは使わない: 6.1）。
+        // ページ表示域の既定はログページ（タブは使わない）。
         // entries.json の読み込み・pending後始末・孤児画像掃除はここで済む
-        Icon = AppIcon.Window();   // タスクバー・Alt+Tab のアイコン（A6）
+        Icon = AppIcon.Window();   // タスクバー・Alt+Tab のアイコン
         _store = new LogStore(paths);
         _logPage = new Pages.LogPage(_store, SetStatus, () => Services.PanelStyle.From(_cfg));
         _session = new CaptureSession(_cfg, this, Status, SetStatus, () => StatusText.Text);
@@ -64,18 +64,18 @@ public partial class MainWindow : Window
         _binds = new BindingRegistrar(_cfg, _quick.Input, SetStatus, _quick);
         _quick.Binds = _binds;
         _settingsPage = new Pages.SettingsPage(_cfg, ShowLogPage, SetStatus);
-        _settingsPage.AfterSave = _throw.AfterRunCfgChange;   // モデル・URL・載せ方が変わったら載せ直し（A4）
+        _settingsPage.AfterSave = _throw.AfterRunCfgChange;   // モデル・URL・載せ方が変わったら載せ直し
         _binds.Fields = _settingsPage;
         _session.SettingsView = _settingsPage;
         _throw.ModelList = _settingsPage;
-        _settingsPage.RegRequest = _binds.Start;     // 「登録」→ 次に押された入力を掴まえる（手順24）
+        _settingsPage.RegRequest = _binds.Start;     // 「登録」→ 次に押された入力を掴まえる
         _settingsPage.ClearRequest = _binds.Clear;   // 「解除」も消す（Applyでフックも即追従）
         _session.AutoMode = _cfg.Settings.Mode == "auto";
         PageArea.Children.Add(_logPage);
         UpdatePageMarks();
 
         // アイコンフォント（Segoe Fluent Icons / MDL2）が無い環境では
-        // アイコンを消して文字だけの項目にする（Python版 icon_family と同じ考え）
+        // アイコンを消して文字だけの項目にする
         if (!HasIconFont()) DrawerView.UseNoIconFont();
         DrawerView.ItemInvoked += DoDrawerAction;
 
@@ -90,9 +90,9 @@ public partial class MainWindow : Window
 
         Status.TriggerEnabled = TriggerEnabled;
         _statusTimer.Tick += (_, _) => TickStatus();
-        _loadedInit = () =>   // 修正J54: 窓を出す前（トレイ起動）でも同じ初期化を回せるよう、Loaded の中身はここへ置く
+        _loadedInit = () =>   // 窓を出す前（トレイ起動）でも同じ初期化を回せるよう、Loaded の中身はここへ置く
         {
-            // Python版と同じ動き出し: まず500ms後、そのあと350msごと
+            // 動き出し: まず500ms後、そのあと350msごと
             var first = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             first.Tick += (_, _) => { first.Stop(); _statusTimer.Start(); };
             first.Start();
@@ -111,43 +111,43 @@ public partial class MainWindow : Window
             }
         };
 
-        // 自動トリガの背景巡回（手順19 / 7.8）。始めても窓が無ければ1周で何もしない。
+        // 自動トリガの背景巡回。始めても窓が無ければ1周で何もしない。
         // trig_* は毎巡回 設定から読む（設定ページで変えればその場追いつく）
         _trig = new TriggerWatcher(ReadTrigParams, TriggerEnabled, () => Status.Busy,
             () => _throw.AutoRunInFlight,
             TrigRectNow, r => _trigGrab(r), TrigFire,
             v => { Status.TrigTicks++; Status.TrigDetect = v; });   // ticks は「監視中…」の点の進行
         _trig.Start();
-        _throw.AutoAllowed = TriggerEnabled;   // F11: 打ち切りの後の投げ直しも、自動トリガが有効な時だけ
+        _throw.AutoAllowed = TriggerEnabled;   // 打ち切りの後の投げ直しも、自動トリガが有効な時だけ
 
-        // クイックぶん投げ（手順23 / 7.9）。フックスレッドは常時待機で、実際に
+        // クイックぶん投げ。フックスレッドは常時待機で、実際に
         // 割り当て入力を握るのは quick_enabled/quick_button がONのあいだだけ。
         // 設定ページ側の欄はApply(fromUi:true)を直接呼ぶ（上のコンストラクタ引数）。
         // 巡回が生きているあいだの取りこぼし対策としてQuickPoll内の1秒読み直しも残す
         _quick.Start();
         _binds.SyncFields();   // 欄の表示は検証後のメモリ側値へ（rawのまま見せない）
-        // AIまわりの準備（モデルの一覧読み・温め・前提チェック。A4）。窓ができた後の 900/1100/1400ms
+        // AIまわりの準備（モデルの一覧読み・温め・前提チェック）。窓ができた後の 900/1100/1400ms
         _throw.InitRunKey();
         _loadedInit += () => _throw.ScheduleEnvChecks();
         Loaded += (_, _) => RunLoadedInit();
 
-        // 修正J50: タスクトレイのアイコン（部品が全部できてから。閉じる時に OnClosed で外す）
+        // タスクトレイのアイコン（部品が全部できてから。閉じる時に OnClosed で外す）
         _tray = new TrayIcon(this, _cfg);
-        // 修正J51: ログオフ・シャットダウンの時は、トレイへしまう設定でも本当に終わる
+        // ログオフ・シャットダウンの時は、トレイへしまう設定でも本当に終わる
         if (Application.Current is { } app && app.Dispatcher.CheckAccess()) app.SessionEnding += (_, _) => _sessionEnding = true;
     }
 
-    // ---------------- タスクトレイ（修正J50） ----------------
+    // ---------------- タスクトレイ ----------------
 
-    // 修正J54: Loaded で1回だけ回す初期化（ステータス巡回の始動・設定の読み込み注意の表示・AI の前提チェック）。
+    // Loaded で1回だけ回す初期化（ステータス巡回の始動・設定の読み込み注意の表示・AI の前提チェック）。
     // トレイ起動（窓を出さない）では Loaded が来ないので StartHidden が同じものを回す。2回目は何もしない
     private Action? _loadedInit;
     private void RunLoadedInit() { var a = _loadedInit; _loadedInit = null; a?.Invoke(); }
     internal bool StatusTimerEnabled => _statusTimer.IsEnabled;
-    /// <summary>--tray で窓を出さずに起動した（修正J55: この起動ではしまった時の吹き出しを出さない）</summary>
+    /// <summary>--tray で窓を出さずに起動した（この起動ではしまった時の吹き出しを出さない）</summary>
     internal bool StartedHidden { get; private set; }
 
-    /// <summary>修正J54: 窓を出さずに起動する（Windows の起動時のトレイ起動）。窓のハンドルを作って位置の復元（OnSourceInitialized）を済ませ、Loaded 相当の初期化を回す。窓は ShowAndActivate で出る</summary>
+    /// <summary>窓を出さずに起動する（Windows の起動時のトレイ起動）。窓のハンドルを作って位置の復元（OnSourceInitialized）を済ませ、Loaded 相当の初期化を回す。窓は ShowAndActivate で出る</summary>
     internal void StartHidden()
     {
         StartedHidden = true;
@@ -171,7 +171,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>終了の印。トレイの「終了」から。Close() で OnClosing の後始末へ進む
-    /// （修正J51: 「×でトレイへ」が ON の時の×は隠すだけ。この印が立っていれば本当に終わる）</summary>
+    /// （「×でトレイへ」が ON の時の×は隠すだけ。この印が立っていれば本当に終わる）</summary>
     internal bool Quitting { get; private set; }
 
     internal void QuitApp()
@@ -211,7 +211,7 @@ public partial class MainWindow : Window
     {
         if (_activateMsg != 0 && msg == _activateMsg)
         {
-            ShowAndActivate();   // 修正J51: トレイにしまわれている時も出す
+            ShowAndActivate();   // トレイにしまわれている時も出す
             handled = true;
         }
         return IntPtr.Zero;
@@ -222,48 +222,48 @@ public partial class MainWindow : Window
     protected override void OnClosing(CancelEventArgs e)
     {
         base.OnClosing(e);
-        // 修正J51: 「×でトレイへ」が ON で、トレイの「終了」・ログオフ/シャットダウン・アプリ終了のどれでもない時は、
+        // 「×でトレイへ」が ON で、トレイの「終了」・ログオフ/シャットダウン・アプリ終了のどれでもない時は、
         // 閉じずに窓だけ隠す（捕捉窓・バー・クイック・自動トリガは動いたまま。後始末も走らせない）
         if (!e.Cancel && _cfg.Settings.CloseToTray && !Quitting && !_sessionEnding
             && !Dispatcher.HasShutdownStarted && !_closing && _tray is { IsDisposed: false })
         {
             e.Cancel = true;
             SaveGeometry();
-            WindowMotion.HideFade(this, 1.0, WindowMotion.PanelFadeMs);   // 修正J88: 透過しない窓なので待たずにすぐ隠す（Windows の消える動きに任せる）
-            _tray.MaybeShowHiddenHint(StartedHidden);   // 修正J55: 初めての1回だけ（--tray の起動では出さない）
+            WindowMotion.HideFade(this, 1.0, WindowMotion.PanelFadeMs);   // 透過しない窓なので待たずにすぐ隠す（Windows の消える動きに任せる）
+            _tray.MaybeShowHiddenHint(StartedHidden);   // 初めての1回だけ（--tray の起動では出さない）
             return;
         }
         _closing = true;
-        _tray?.Dispose();   // 修正J50: 後始末で数秒かかっても、アイコンは先に外す
-        _closeCts.Cancel();   // G8: 巡回側の UI 待ちを即座にほどいて Join(3000) で固まらないようにする
+        _tray?.Dispose();   // 後始末で数秒かかっても、アイコンは先に外す
+        _closeCts.Cancel();   // 巡回側の UI 待ちを即座にほどいて Join(3000) で固まらないようにする
         _trig?.Stop();   // 巡回を止めてから片付ける（撮影だけ走ったまま終わらない）
         _quick.Stop();  // 巡回を止め、低レベルフックを剥がして終わる（他アプリへ割り込みを残さない）
         // 設定ページが300ms間引いている保存を、ここでもらい忘れて落とさない
         _settingsPage?.FlushPendingSave();
         SaveGeometry();
-        // 修正J80: 見えている窓を全部いっしょに薄れさせてから（約0.2秒）、後の後始末へ進む（前は即 Hide）
+        // 見えている窓を全部いっしょに薄れさせてから（約0.2秒）、後の後始末へ進む（前は即 Hide）
         FadeOutForQuit();
-        // F33: モデル降ろしの最大3秒待ちで窓が固まって見えないよう、窓を全部先に隠す
+        // モデル降ろしの最大3秒待ちで窓が固まって見えないよう、窓を全部先に隠す
         Hide();
         _session.HideAllForQuit();
-        _throw.CancelOnQuit();   // G9: ぶん投げ中ならやめるを呼んでログを「やめました」で確定
+        _throw.CancelOnQuit();   // ぶん投げ中ならやめるを呼んでログを「やめました」で確定
         _throw.UnloadOnQuit();   // 載せたモデルを降ろす（終了後に数GBが居残らない）
     }
 
-    /// <summary>修正J80: 終わる時に窓が薄れる長さ（ms）。0 なら薄れずに即隠す（テストは TestInit で 0 にする）</summary>
+    /// <summary>終わる時に窓が薄れる長さ（ms）。0 なら薄れずに即隠す（テストは TestInit で 0 にする）</summary>
     internal static int QuitFadeDefaultMs = WindowMotion.CloseMs;
     internal int QuitFadeMs = QuitFadeDefaultMs;
-    /// <summary>修正J82: ログの窓を、ほかの窓が薄れ終わる何 ms 前に隠すか（Windows の消える動きの長さ。この PC で約 90ms と測った）</summary>
+    /// <summary>ログの窓を、ほかの窓が薄れ終わる何 ms 前に隠すか（Windows の消える動きの長さ。この PC で約 90ms と測った）</summary>
     private const int MainHideLeadMs = 90;
 
-    /// <summary>修正J80: ログの窓・キャプチャ窓・バー・解答欄をいっしょに薄れさせ、薄れ終わるまでこの場で待つ
+    /// <summary>ログの窓・キャプチャ窓・バー・解答欄をいっしょに薄れさせ、薄れ終わるまでこの場で待つ
     /// （その後の Hide・モデル降ろしは今まで通り。ログオフ・シャットダウンの時は待たない）</summary>
     private void FadeOutForQuit()
     {
         int ms = QuitFadeMs;
         if (ms <= 0 || _sessionEnding || Dispatcher.HasShutdownStarted) return;
         bool any = _session.FadeAllForQuit(ms);
-        // 修正J82: ログの窓は透過しない普通の窓で、WPF が WS_EX_LAYERED を付けさせないので、窓全体の濃さでは薄れない。
+        // ログの窓は透過しない普通の窓で、WPF が WS_EX_LAYERED を付けさせないので、窓全体の濃さでは薄れない。
         // 代わりに、ほかの窓が薄れ終わる少し前に隠し、Windows 自身の消える動き（約 90ms）がほかの窓といっしょに終わるようにする
         bool main = IsVisible;
         if (!any && !main) return;
@@ -287,11 +287,11 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);
-        _tray?.Dispose();   // 修正J50: アイコンを残さない
+        _tray?.Dispose();   // アイコンを残さない
         _tray = null;
-        // F36: Owner を外した関連窓もメイン窓を閉じたら確実に全部閉じる
+        // Owner を外した関連窓もメイン窓を閉じたら確実に全部閉じる
         _session.CloseAllNow();
-        // 修正J72: 設定の購読とアクティブの見張り（TaskbarFront）を外す。前は呼んでおらず、テストで窓を作るたびに見張りが残った
+        // 設定の購読とアクティブの見張り（TaskbarFront）を外す。前は呼んでおらず、テストで窓を作るたびに見張りが残った
         _session.Dispose();
     }
 
@@ -320,13 +320,13 @@ public partial class MainWindow : Window
         _cfg.Save();
     }
 
-    // ---------------- キャプチャ窓（手順11 / 7.1） ----------------
+    // ---------------- キャプチャ窓 ----------------
 
     private void CaptureButton_Click(object sender, RoutedEventArgs e) => _session.OpenCapture();
 
     private void SnipButton_Click(object sender, RoutedEventArgs e) => StartSnip();
 
-    /// <summary>修正J52: 画面を少し暗くして範囲ドラッグ（メイン窓の「範囲ドラッグ」・トレイの左1回押し）。メイン窓は動かさない</summary>
+    /// <summary>画面を少し暗くして範囲ドラッグ（メイン窓の「範囲ドラッグ」・トレイの左1回押し）。メイン窓は動かさない</summary>
     internal void StartSnip() => _quick.SnipStart();
 
     // ---------------- 前面固定 ----------------
@@ -343,7 +343,7 @@ public partial class MainWindow : Window
 
     // ---------------- ステータス ----------------
 
-    /// <summary>状態欄へ一言出す。12秒たつと監視中/待機中へ戻る（Python版 _set_status）。バーの2行目にも同じ言葉を出す</summary>
+    /// <summary>状態欄へ一言出す。12秒たつと監視中/待機中へ戻る。バーの2行目にも同じ言葉を出す</summary>
     public void SetStatus(string msg)
     {
         Status.Set(msg);
@@ -358,7 +358,7 @@ public partial class MainWindow : Window
         _session.SetBarStatus(msg);   // 2行目は同じ言葉が並ぶ（bar_refresh_status と同じ）
     }
 
-    /// <summary>自動トリガが有効か。バーのトグル（手順14）で mode が切り替わる。巡回は手順19で稼働中</summary>
+    /// <summary>自動トリガが有効か。バーのトグルで mode が切り替わる</summary>
     private bool TriggerEnabled() => !_closing && _session.AutoMode && Status.CaptureOpen;
 
     /// <summary>trig_* を毎巡回読み直す（Python の mtime ホットリロードの代わり。
@@ -420,7 +420,7 @@ public partial class MainWindow : Window
         _logPage!.ShowAtBottom();
     }
 
-    /// <summary>設定ページへ切り替える（6.4の見出し行付き）。</summary>
+    /// <summary>設定ページへ切り替える（見出し行付き）。</summary>
     internal void ShowSettingsPage()
     {
         PageArea.Children.Clear();
@@ -431,10 +431,10 @@ public partial class MainWindow : Window
 
     private string _current = "log";
 
-    /// <summary>今いるページの項目にだけ左端のAccent縦線を出す（6.2。Drawer へ伝える）。</summary>
+    /// <summary>今いるページの項目にだけ左端のAccent縦線を出す（Drawer へ伝える）。</summary>
     private void UpdatePageMarks() => DrawerView.SetCurrentPage(_current);
 
-    // ---------------- ☰メニュー（6.2。本体は Views/Drawer） ----------------
+    // ---------------- ☰メニュー（本体は Views/Drawer） ----------------
 
     private void MenuButton_Click(object sender, RoutedEventArgs e) => DrawerView.Toggle();
 
@@ -484,8 +484,7 @@ public partial class MainWindow : Window
 
     private void ShowAbout()
     {
-        // Python版は APP_TITLE と "v4.5 α版" を改行で並べて出していた。
-        // 版は csproj の <Version>（αの印は付けない）。アイコンを出すため MessageBox ではなく専用の窓（A6）
+        // 版は csproj の <Version>（αの印は付けない）。アイコンを出すため MessageBox ではなく専用の窓
         new Pages.AboutWindow { Owner = this }.ShowDialog();
     }
 

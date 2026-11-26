@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND2 C3: 原寸窓は 画像1px=画面1物理px・上限は作業領域の8割（縦横比保持）</summary>
+/// <summary>原寸窓は 画像1px=画面1物理px・上限は作業領域の8割（縦横比保持）</summary>
 public class ScreenshotPopupTests
 {
     [Theory]
@@ -41,7 +41,7 @@ public class ScreenshotPopupTests
 
     private static void Pump(int ms) => TestUtil.Pump(ms);
 
-    /// <summary>D3: 初回は原寸（SizeToContent）→ Manual へ移り、広げ縮めできて、原寸へ戻せる</summary>
+    /// <summary>初回は原寸（SizeToContent）→ Manual へ移り、広げ縮めできて、原寸へ戻せる</summary>
     [Fact]
     public void 原寸窓は広げ縮めでき_原寸へ戻せる()
     {
@@ -249,7 +249,7 @@ public class ScreenshotPopupTests
                 var menu1 = w1.ContextMenu!;
                 Assert.NotNull(menu1);
                 var items1 = menu1.Items.OfType<MenuItem>().ToList();
-                Assert.Single(items1);   // H4b: スクショをコピーだけ
+                Assert.Single(items1);   // スクショをコピーだけ
                 Assert.Equal("スクショをコピー", items1[0].Header);
                 Assert.True(items1[0].IsEnabled);
 

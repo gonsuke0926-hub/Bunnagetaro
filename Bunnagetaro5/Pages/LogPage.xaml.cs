@@ -58,11 +58,11 @@ public sealed class LogCardVm : INotifyPropertyChanged
     public bool HasImageFile { get; set; }
     public string? ImageFile { get; set; }
 
-    /// <summary>J16: たたんでいる時の本文の高さ（10行分。LogPage が設定から決める）。サムネイルの高さの上限も同じ</summary>
+    /// <summary>たたんでいる時の本文の高さ（10行分。LogPage が設定から決める）。サムネイルの高さの上限も同じ</summary>
     public double BodyHeight { get; set; } = 160;
 
     private bool _isExpanded;
-    /// <summary>J16: 「▼ 続きを表示」で開いているか（カードが使い回されても、その答えの開き具合を覚えておく）</summary>
+    /// <summary>「▼ 続きを表示」で開いているか（カードが使い回されても、その答えの開き具合を覚えておく）</summary>
     public bool IsExpanded { get => _isExpanded; set { if (_isExpanded == value) return; _isExpanded = value; Raise(nameof(IsExpanded)); } }
 
     public void SetThumb(ImageSource? src, string text)
@@ -71,7 +71,7 @@ public sealed class LogCardVm : INotifyPropertyChanged
         ThumbText = text;
     }
 
-    /// <summary>ぶん投げ確定後（手順10・13）に同じカードへ訳文を流し込む。</summary>
+    /// <summary>ぶん投げ確定後に同じカードへ訳文を流し込む。</summary>
     public void RefreshAfterFinish()
     {
         Raise(nameof(Header)); Raise(nameof(IsPending)); Raise(nameof(IsFailed));
@@ -84,8 +84,7 @@ public sealed class LogCardVm : INotifyPropertyChanged
 
 public partial class LogPage : UserControl
 {
-    // J14: 台帳（LogStore.MaxEntries 件まで）を全部カードにする。仮想化で描くのは見えている分だけなので、
-    // Python版の「起動時60件・⬆古いログを表示で60件ずつ・最大120件」の区切りはやめた。
+    // 台帳（LogStore.MaxEntries 件まで）を全部カードにする（仮想化で描くのは見えている分だけ）。
     // 起動中に新しいカードが足されて台帳の上限を超えたら、いちばん古いカードから外す。
     private const int LogRenderCap = LogStore.MaxEntries;
     private const int ThumbW = 180;
@@ -114,12 +113,12 @@ public partial class LogPage : UserControl
         }
     }
 
-    // J15: スクロールバーのつまみを引いている間は、中身をつまみの動きごとに動かさない（ScrollViewer の
+    // スクロールバーのつまみを引いている間は、中身をつまみの動きごとに動かさない（ScrollViewer の
     // 後回しスクロール）。カードを並べ直すのが1回 数十ms かかるので、動きごとに動かすと入力が溜まり、
     // 中身がつまみから遅れてついてきていた。
-    // J15b: 代わりに、つまみが動いたら「溜まった入力を片付けた後に1回だけ」中身をつまみの所へ動かす
-    // （Background の順位で1つだけ積む）。60ms ごとの追いつき（J15）では中身がつまみとずれて見えた。
-    // ホイールは今まで通り（後回しになるのはつまみを引いている間だけ）。
+    // 代わりに、つまみが動いたら「溜まった入力を片付けた後に1回だけ」中身をつまみの所へ動かす
+    // （Background の順位で1つだけ積む）。60ms ごとの追いつきでは中身がつまみとずれて見えるため。
+    // ホイールは通常通り（後回しになるのはつまみを引いている間だけ）。
     private System.Windows.Controls.Primitives.ScrollBar? _vbar;
     private bool _catchUpQueued;
 
@@ -157,7 +156,7 @@ public partial class LogPage : UserControl
         if (Math.Abs(_vbar.Value - _sc.VerticalOffset) > 0.5) _sc.ScrollToVerticalOffset(_vbar.Value);
     }
 
-    // F23: 一番下に居る時に新しいカードが来たら、配置（サムネイル・本文の高さ）が決まっていく間も下へ寄せ続ける
+    // 一番下に居る時に新しいカードが来たら、配置（サムネイル・本文の高さ）が決まっていく間も下へ寄せ続ける
     private const int StickMs = 1500;
     private long _stickUntil;
 
@@ -168,7 +167,7 @@ public partial class LogPage : UserControl
         if (e.ExtentHeightChange != 0 || e.ViewportHeightChange != 0) _sc?.ScrollToEnd();
     }
 
-    /// <summary>「読んでいる位置」の目印: 見えている先頭のカードと、その上端の窓内の位置（F24・F25）</summary>
+    /// <summary>「読んでいる位置」の目印: 見えている先頭のカードと、その上端の窓内の位置</summary>
     internal readonly record struct Anchor(object Item, double Top);
 
     internal Anchor? CaptureAnchor()
@@ -232,7 +231,7 @@ public partial class LogPage : UserControl
 
     private readonly Func<PanelStyle>? _styleSource;
 
-    /// <summary>ログの本文の見た目（H4a）を今の設定へ合わせる。変わっていたら true（カードを作り直す必要がある）</summary>
+    /// <summary>ログの本文の見た目を今の設定へ合わせる。変わっていたら true（カードを作り直す必要がある）</summary>
     private bool RefreshStyle()
     {
         if (_styleSource is null) return false;
@@ -277,10 +276,10 @@ public partial class LogPage : UserControl
         EmptyText.Visibility = _displayedIds.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    /// <summary>J16: カードの本文をたたんだ時の行数</summary>
+    /// <summary>カードの本文をたたんだ時の行数</summary>
     internal const int BodyLines = 10;
 
-    /// <summary>J16: たたんだ本文の高さ（px）= 10行分。行間の指定が無い時は、ログの本文の字（UiFont）の行の高さ</summary>
+    /// <summary>たたんだ本文の高さ（px）= 10行分。行間の指定が無い時は、ログの本文の字（UiFont）の行の高さ</summary>
     internal static double BodyHeightFor(PanelStyle? st)
     {
         double size = st?.FontSize ?? PanelStyle.DefaultSize;
@@ -305,13 +304,13 @@ public partial class LogPage : UserControl
         if (startThumb) StartThumbLoad(vm, file);
     }
 
-    /// <summary>worker（バックグラウンド）から呼ぶ想定の手順10以降用の入口。
+    /// <summary>worker（バックグラウンド）から呼ぶ想定の入口。
     /// 新しいカードは末尾（下）へ。利用者が上へスクロールして読んでいる間は引き戻さない。</summary>
     public void AppendLiveCard(JsonObject entry)
     {
         var sc = Sc;
         bool atBottom = sc is null || sc.ScrollableHeight - sc.VerticalOffset <= 48;
-        Anchor? anchor = atBottom ? null : CaptureAnchor();   // F24: 上を読んでいる時は、見ているカードの位置を保つ
+        Anchor? anchor = atBottom ? null : CaptureAnchor();   // 上を読んでいる時は、見ているカードの位置を保つ
         AddCardVm(entry, startThumb: true);
         TrimView();
         EmptyText.Visibility = _displayedIds.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -376,7 +375,7 @@ public partial class LogPage : UserControl
 
     // ---- カード上の操作 ----
 
-    /// <summary>J16: 「▼ 続きを表示」（下の薄くなった所）を押すと、そのカードだけ開く</summary>
+    /// <summary>「▼ 続きを表示」（下の薄くなった所）を押すと、そのカードだけ開く</summary>
     private void Expand_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not LogCardVm vm) return;
@@ -385,7 +384,7 @@ public partial class LogPage : UserControl
         e.Handled = true;
     }
 
-    /// <summary>J16: 「▲ たたむ」</summary>
+    /// <summary>「▲ たたむ」</summary>
     private void Collapse_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is not LogCardVm vm) return;
@@ -429,7 +428,7 @@ public partial class LogPage : UserControl
         }
     }
 
-    /// <summary>スクショ用クリップボード内容（F14: E12 と同じ PNG + Bitmap の2形式。スクショは透明が無いので Bitmap 版はそのまま）。</summary>
+    /// <summary>スクショ用クリップボード内容（PNG + Bitmap の2形式。スクショは透明が無いので Bitmap 版はそのまま）。</summary>
     internal static DataObject BuildShotData(BitmapSource bmp)
     {
         var data = new DataObject();

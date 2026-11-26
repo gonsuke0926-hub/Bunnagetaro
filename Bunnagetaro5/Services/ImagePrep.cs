@@ -4,10 +4,10 @@ using System.Windows.Media.Imaging;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 送信画像の加工（WPF_PORT_SPEC 6章「画像の加工」/ Python版 tw_image.py）。
-/// 送る前の加工（send_prep）：長辺2000pxを超えたら縮小、短辺640px未満なら拡大。
+/// 送信画像の加工。
+/// 送る前の加工：長辺2000pxを超えたら縮小、短辺640px未満なら拡大。
 /// 真っ黒な画像（保護された動画など）は送らず「真っ黒でした」と出す。
-/// 差分検知（_fingerprint / change_ratio / obs_delta）は ChangeDetector 側で移植する。
+/// 差分検知は ChangeDetector 側で行う。
 /// </summary>
 public static class ImagePrep
 {
@@ -45,13 +45,13 @@ public static class ImagePrep
         }
         catch (Exception)
         {
-            // Python版も例外なら False（弾かない）
+            // 例外時は false（弾かない）
             return false;
         }
     }
 
-    /// <summary>送信用に長辺2000pxへ縮小／極小は拡大（Python版 send_prep と同じ式）。
-    /// 変えないときは同じ参照を返す（Python版も同じ img を返す）。</summary>
+    /// <summary>送信用に長辺2000pxへ縮小／極小は拡大。
+    /// 変えないときは同じ参照を返す。</summary>
     public static BitmapSource SendPrep(BitmapSource img)
     {
         int w = img.PixelWidth, h = img.PixelHeight;

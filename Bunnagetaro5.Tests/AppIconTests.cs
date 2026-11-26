@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND1 A6: アプリのアイコン（窓の Icon・バージョン情報の絵・素材が元のまま）。</summary>
+/// <summary>アプリのアイコン（窓の Icon・バージョン情報の絵・素材が元のまま）。</summary>
 public class AppIconTests : IDisposable
 {
     private readonly string _temp;

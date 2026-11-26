@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND2 C4: WM_WINDOWPOSCHANGING の「これから行く矩形」の取り出し</summary>
+/// <summary>WM_WINDOWPOSCHANGING の「これから行く矩形」の取り出し</summary>
 public class WindowPosChangingTests
 {
     private static readonly Native.RECT Cur = new() { Left = 100, Top = 200, Right = 500, Bottom = 400 };

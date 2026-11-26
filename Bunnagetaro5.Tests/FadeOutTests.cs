@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J80: 撮影の直前ではない所で、窓が即消えずに薄れて消える</summary>
+/// <summary>撮影の直前ではない所で、窓が即消えずに薄れて消える</summary>
 public class FadeOutTests : IDisposable
 {
     private readonly string _temp;
@@ -148,7 +148,7 @@ public class FadeOutTests : IDisposable
                 WindowMotion.Cancel(key);
                 double f2 = -1;
                 WindowMotion.RunFrom(key, 200, t => t, p => { if (f2 < 0) f2 = p; }, null, start: 2000);
-                Assert.Equal(0.0, f2, 3);                    // 先の時刻なら始まりの値（修正J86: その時刻まで止まる）
+                Assert.Equal(0.0, f2, 3);                    // 先の時刻なら始まりの値（その時刻まで止まる）
                 WindowMotion.Cancel(key);
             }
             finally { WindowMotion.Clock = null!; }
@@ -411,7 +411,7 @@ public class FadeOutTests : IDisposable
                 var h = Native.GetAncestor(new System.Windows.Interop.WindowInteropHelper(strip).Handle, Native.GA_ROOT);
                 long ex = Native.GetWindowLongPtrW(h, Native.GWL_EXSTYLE).ToInt64();
                 Assert.True((ex & Native.WS_EX_LAYERED) != 0, "WS_EX_LAYERED が付いていない（窓全体の濃さが効かない）");
-                // 下地の色（HwndTarget.BackgroundColor）が不透明だと、濃さを下げても下地が残る（J77 の作り）
+                // 下地の色（HwndTarget.BackgroundColor）が不透明だと、濃さを下げても下地が残る
                 var src = System.Windows.Interop.HwndSource.FromHwnd(h);
                 Assert.True(src!.CompositionTarget!.BackgroundColor.A < 255, "下地が不透明");
             }
@@ -449,10 +449,10 @@ public class FadeOutTests : IDisposable
             peek.Stop();
             sw.Stop();
             Assert.True(fadingAtClose, "終わる時に窓が薄れていない");
-            Assert.True(minStripOpacity < 0.95, $"外の解答欄の濃さが下がっていない（{minStripOpacity:0.00}）");   // 修正J82
+            Assert.True(minStripOpacity < 0.95, $"外の解答欄の濃さが下がっていない（{minStripOpacity:0.00}）");
             Assert.True(sw.ElapsedMilliseconds >= WindowMotion.CloseMs - 20, $"薄れを待たずに閉じた（{sw.ElapsedMilliseconds}ms）");
             Assert.False(cap.IsVisible);
-            Assert.False(strip.IsVisible);   // 修正J82: 薄れた後に見回りが出し直さない
+            Assert.False(strip.IsVisible);   // 薄れた後に見回りが出し直さない
             Assert.False(w.IsVisible);
         });
     }

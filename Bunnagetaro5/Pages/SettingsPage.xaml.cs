@@ -18,9 +18,9 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Pages;
 
 /// <summary>
-/// 設定ページ（指示書6.4）。見出し行は「← 設定」（ログへ戻る）。
+/// 設定ページ。見出し行は「← 設定」（ログへ戻る）。
 /// 節: AI接続・プリセット/生成・答えの表示・自動トリガ・クイックぶん投げ・ホットキー・バーの使い方・記録。
-/// 値は変えたらその場でsettingsへ書き、保存は300ms間引く（6.4）。
+/// 値は変えたらその場でsettingsへ書き、保存は300ms間引く。
 /// </summary>
 public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields, Bunnagetaro5.Session.IModelListView, Bunnagetaro5.Session.IBarSettingsView
 {
@@ -57,7 +57,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     private SettingRow _sizeRow = null!;
     private Border _previewBg = null!;
     private TextBlock _previewText = null!;
-    // 修正J101: 外窓（枠の外に出す解答欄）の色・不透明度・見本
+    // 外窓（枠の外に出す解答欄）の色・不透明度・見本
     private TextBox _stripBgBox = null!, _stripFgBox = null!;
     private Border _stripBgSwatch = null!, _stripFgSwatch = null!;
     private SettingRow _stripBgRow = null!, _stripFgRow = null!;
@@ -73,7 +73,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     private bool _suppressLineSpacing;
 
     // ---- プリセット・生成 ----
-    /// <summary>使うプリセットではなく、共通の設定を編集するための入口（tw_uicfg.GLOBAL_ENTRY）。
+    /// <summary>使うプリセットではなく、共通の設定を編集するための入口。
     /// 括弧つきなので普通に付けた名前とはぶつからない。</summary>
     public const string GlobalEntry = "［グローバル設定］";
 
@@ -87,7 +87,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     private bool _suppressBarRefresh;           // バー側で拒否された時は RefreshFromBar を止める
 
     /// <summary>設定を保存した後（300ms間引き・窓を閉じる/ページを離れる時）に呼ぶ。
-    /// モデル・URL・載せ方が変わっていれば載せ直す（A4。_after_run_cfg_change）</summary>
+    /// モデル・URL・載せ方が変わっていれば載せ直す</summary>
     public Action? AfterSave;
 
     private ComboBox _presetCb = null!;
@@ -102,7 +102,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     private StackPanel _ocrSubBox = null!, _ocrEnginePanel = null!, _builtinSizePanel = null!, _ocrVlmPanel = null!;
     private RadioButton _ocrEngBuiltin = null!, _ocrEngVlm = null!;
     private ComboBox _builtinSizeCb = null!;
-    /// <summary>修正J96: 内蔵 OCR の時「読み取った位置に並べる」（プリセットごと builtin_ocr_layout）</summary>
+    /// <summary>内蔵 OCR の時「読み取った位置に並べる」（プリセットごと builtin_ocr_layout）</summary>
     private CheckBox _layoutChk = null!;
     private ComboBox _ocrVlmModelCb = null!;
     private TextBox _ocrVlmPromptBox = null!;
@@ -130,7 +130,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         _showLog = showLog;
         _setStatus = setStatus;
         InitializeComponent();
-        // アイコンフォントが無い環境では「←」の文字に戻す（Python版のfallbackと同じ）
+        // アイコンフォントが無い環境では「←」の文字に戻す
         if (!HasIconFont())
             BackButton.Content = "←";
         BuildBody();
@@ -227,18 +227,18 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     {
         BuildAiSection();
         BuildPresetSection();     // プリセット＋生成（1組の欄でスコープを切り替える）
-        BuildCaptureBorderSection();   // キャプチャ窓の枠（E11）
+        BuildCaptureBorderSection();   // キャプチャ窓の枠
         BuildAnswerSection();
-        BuildLayoutParamsSection();   // 位置の反映（内蔵OCR）の細かい値（修正J100。上級者モードだけ）
+        BuildLayoutParamsSection();   // 位置の反映（内蔵OCR）の細かい値（上級者モードだけ）
         BuildTrigSection();
         BuildQuickSection();
         BuildHotkeySection();
         BuildBarHelpSection();    // バーの使い方（注釈図。☰メニューの「バーの使い方」がここへ飛ぶ）
         BuildRecordSection();
-        BuildStartupSection();    // 起動と終了（修正J54。いちばん下）
+        BuildStartupSection();    // 起動と終了（いちばん下）
     }
 
-    // ---------------- バーの使い方（tw_uicfg の bar_help 節） ----------------
+    // ---------------- バーの使い方 ----------------
 
     private TextBlock _barHelpHeading = null!;
     private Image _barHelpImage = null!;
@@ -267,7 +267,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
                 Name = "BarHelpImage",
             };
             RenderOptions.SetBitmapScalingMode(_barHelpImage, BitmapScalingMode.HighQuality);
-            col.Children.Add(_barHelpImage);   // 図だけで分かるので下の説明文は置かない（人の判断 2026-11-15）
+            col.Children.Add(_barHelpImage);   // 図だけで分かるので下の説明文は置かない
         }
         catch (Exception ex)
         {
@@ -278,8 +278,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         BodyPanel.Children.Add(MakeGroupCard(col));
     }
 
-    /// <summary>☰メニューの「バーの使い方」: 設定ページのこの節の頭までスクロールする
-    /// （tw_uicfg の cfg_barhelp_frame へ yview_moveto）</summary>
+    /// <summary>☰メニューの「バーの使い方」: 設定ページのこの節の頭までスクロールする</summary>
     internal void ScrollToBarHelp()
     {
         BodyScroll.UpdateLayout();
@@ -287,7 +286,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         BodyScroll.ScrollToVerticalOffset(Math.Max(0, p.Y - 8));
     }
 
-    // ================= グループカード・上級者モード（I12） =================
+    // ================= グループカード・上級者モード =================
 
     private readonly List<Border> _expertWraps = new();
     private bool _syncingExpert;
@@ -416,7 +415,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
             if (!isExpert && needDividerBeforeNext)
                 stack.Children.Add(MakeDivider());
             stack.Children.Add(item);
-            // 修正J101: 欄の中の小見出しの直後には区切り線を入れない
+            // 欄の中の小見出しの直後には区切り線を入れない
             if (!isExpert) needDividerBeforeNext = !(item is Border hb && Equals(hb.Tag, GroupHeadingTag));
         }
         card.Child = stack;
@@ -589,7 +588,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         return n;
     }
 
-    // ================= 入力まわりの即反映（A1） =================
+    // ================= 入力まわりの即反映 =================
     // クイックぶん投げのON/OFF・起動ボタン・最小四角の変更は AppSettings.PropertyChanged 経由で
     // QuickThrowController.Apply(fromUi: true) へ伝わる。ここでは登録まわりの通知文だけ消す。
     private void NotifyInputChanged() => SetBindNotice("", "");

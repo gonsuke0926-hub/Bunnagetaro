@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 文字の処理（Python版 tw_text.py と同じ動作）。未訳行の判定と、途中訳の合成。
+/// 文字の処理。未訳行の判定と、途中訳の合成。
 /// </summary>
 public static class TextUtil
 {
@@ -46,7 +46,7 @@ public static class TextUtil
         "[「『\u201C\"(（【\\[][^「」『』\u201C\u201D\"()（）【】\\[\\]]*[」』\u201D\")）】\\]]",
         RegexOptions.Compiled);
 
-    // [ ], [ ] の間には半角空白とタブだけ（Python版のリテラルに合わせる）
+    // [ ], [ ] の間には半角空白とタブだけ
     private static readonly Regex EnglishRunRe =
         new("[A-Za-z][A-Za-z'\u2019]*(?:[ \t]+[A-Za-z][A-Za-z'\u2019]*)*", RegexOptions.Compiled);
 
@@ -107,7 +107,7 @@ public static class TextUtil
     /// <summary>途中訳(accum)で初回テキスト(first)を上から上書き合成する。
     /// 完了行は新しい訳行で置換、生成中の行は先頭から新しい文字で上書きして
     /// 残り末尾だけ旧行を残し、未到達の行は旧行をそのまま残す。
-    /// ratio（修正J9）は「新しい1文字で旧の何文字を消すか」。英文→和訳なら 2 前後で、
+    /// ratio は「新しい1文字で旧の何文字を消すか」。英文→和訳なら 2 前後で、
     /// 1 のままだと訳が旧行を押し出し、書き終わりに残りがまとめて消える。
     /// 呼び手が過去の訳の長さから覚えた値を渡す（TranslatePipeline.LearnedLengthRatio）。</summary>
     public static string MergeRetryStream(string firstText, string accum, double ratio = 1.0)
@@ -133,8 +133,8 @@ public static class TextUtil
         return string.Join("\n", merged);
     }
 
-    /// <summary>書き起こし文を文の切れ目で区切る（分割しなくなったv4.5でも、
-    /// 割らざるを得ない状況が来た時のためにPython版と同じ形で残す）。</summary>
+    /// <summary>書き起こし文を文の切れ目で区切る（通常は分割しないが、
+    /// 割らざるを得ない状況が来た時のために残している）。</summary>
     public const int TextChunkChars = 600;
 
     public static List<string> SentenceChunks(string text, int maxChars = TextChunkChars)

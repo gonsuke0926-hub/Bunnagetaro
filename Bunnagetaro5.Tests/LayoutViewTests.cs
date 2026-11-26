@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J97: 内蔵 OCR の位置の反映（答えの n 行目を n 番目の段落の位置へ並べる）</summary>
+/// <summary>内蔵 OCR の位置の反映（答えの n 行目を n 番目の段落の位置へ並べる）</summary>
 public sealed class LayoutViewTests : IDisposable
 {
     private readonly string _temp;
@@ -236,10 +236,10 @@ public sealed class LayoutViewTests : IDisposable
             v.ApplyBody("関係者以外立入禁止\n夜明けまで営業");
             Layout(v, 400, 300);
             Assert.True(v.LayoutShown);
-            Assert.Equal(1, AlphaOf(RootBg(v)));   // 修正J104: 見えないがクリックは受ける（アルファ 0 だと後ろの窓へ抜ける）
-            Assert.All(v.LayoutMasks, m => Assert.Equal(166, AlphaOf(m.Background)));   // 修正J107: 背景は区画のマスク
+            Assert.Equal(1, AlphaOf(RootBg(v)));   // 見えないがクリックは受ける（アルファ 0 だと後ろの窓へ抜ける）
+            Assert.All(v.LayoutMasks, m => Assert.Equal(166, AlphaOf(m.Background)));   // 背景は区画のマスク
             // 地は文字の幅だけ（矩形の幅いっぱいにしない）
-            Assert.All(v.LayoutBlocks, t => Assert.Null(t.Background));   // 修正J104: 四角い地は付けず、行ごとに文字の後ろだけ（Run の地）
+            Assert.All(v.LayoutBlocks, t => Assert.Null(t.Background));   // 四角い地は付けず、行ごとに文字の後ろだけ（Run の地）
             // 位置の反映をやめたら全体の地に戻る
             v.ResetRun();
             Assert.Equal(166, AlphaOf(RootBg(v)));
@@ -262,7 +262,7 @@ public sealed class LayoutViewTests : IDisposable
             // 入に切り替えるとその場で文字の所だけに
             v.ApplyStyle(new PanelStyle("#ffffff", "#202020", 0.65, "", 12), 166, 83);
             Assert.Equal(1, AlphaOf(RootBg(v)));
-            Assert.All(v.LayoutMasks, m => Assert.Equal(166, AlphaOf(m.Background)));   // 修正J107: 背景は区画のマスク
+            Assert.All(v.LayoutMasks, m => Assert.Equal(166, AlphaOf(m.Background)));   // 背景は区画のマスク
         });
     }
 

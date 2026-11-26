@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J101: 外窓（枠の外に出す解答欄）の色と不透明度は枠の中と別</summary>
+/// <summary>外窓（枠の外に出す解答欄）の色と不透明度は枠の中と別</summary>
 public sealed class StripStyleTests : IDisposable
 {
     private readonly string _dir;

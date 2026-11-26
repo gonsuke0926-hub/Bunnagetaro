@@ -6,14 +6,12 @@ namespace Bunnagetaro5.Services;
 
 /// <summary>
 /// ホットキー・クイックぶん投げの割り当て文字列（"ctrl+shift+f12" / "f8" / "xbutton1" 等）。
-/// Python版 tw_input.py の normalize_binding / parse_binding / validate_binding /
-/// format_binding / binding_label / binding_is_key / QUICK_BUTTONS をそのまま移したもの。
 /// キー名は物理キーの VK 名で持つ（IMEやJIS/US配列の影響を受けず、実機で押したものが
 /// そのまま登録・発火する）。VKにないキー（メディアキー等）は使えない。
 /// </summary>
 public static class Binding
 {
-    // 修飾キーのビット（Python版と同じ値。設定文字列と入力フックの両方で使う共通語）
+    // 修飾キーのビット（設定文字列と入力フックの両方で使う共通語）
     public const int ModCtrl = 1;
     public const int ModShift = 2;
     public const int ModAlt = 4;
@@ -72,7 +70,7 @@ public static class Binding
 
     private static readonly Dictionary<string, int> Vk = BuildVk();
 
-    // VK → 名前（正規形に戻す向き）。Python版と同じく最初に注册した名前が勝つ
+    // VK → 名前（正規形に戻す向き）。最初に注册した名前が勝つ
     private static readonly Dictionary<int, string> Name = BuildName(Vk);
 
     private static readonly Dictionary<string, string> Pretty = new()

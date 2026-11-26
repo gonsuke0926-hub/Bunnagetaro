@@ -26,7 +26,7 @@ public partial class SettingsPage
     private CheckBox _latexChk = null!;
     private CheckBox _followChk = null!;
     private DispatcherTimer? _instrTimer;
-    /// <summary>修正J22: プリセットのモデルが内蔵の OCR の時に使わない項目（薄くして触れなくする）</summary>
+    /// <summary>プリセットのモデルが内蔵の OCR の時に使わない項目（薄くして触れなくする）</summary>
     private readonly List<FrameworkElement> _builtinUnused = new();
     // ================= プリセット＋生成 =================
 
@@ -112,7 +112,7 @@ public partial class SettingsPage
         _modelRow.AsGrouped();
         _modelRow.Padding = new Thickness(0, 0, 0, 10);
 
-        // 修正J28b: 名前・モデル・指示（プロンプト）を仕切り線なしの1ブロックにまとめる（上が名前、次がモデル、下が指示）
+        // 名前・モデル・指示（プロンプト）を仕切り線なしの1ブロックにまとめる（上が名前、次がモデル、下が指示）
         var detailBox = new StackPanel();
         detailBox.Children.Add(_modelRow);
         detailBox.Children.Add(instrHost);
@@ -130,7 +130,7 @@ public partial class SettingsPage
         ocrPanel.Children.Add(_ocrBuiltinOnly);
         var ocrRow = new SettingRow("ぶん投げ方", "文字起こし後にAIへ渡す／画像をそのまま渡す／AI無しで内蔵OCRのみ", ocrPanel);
 
-        // 修正J27: 「文字起こし」「内蔵OCRのみ」の下に出るサブ設定（内蔵OCR small/medium または VLM モデル＋プロンプト）
+        // 「文字起こし」「内蔵OCRのみ」の下に出るサブ設定（内蔵OCR small/medium または VLM モデル＋プロンプト）
         _ocrSubBox = new StackPanel { Margin = new Thickness(0, 6, 0, 0) };
 
         _ocrEngBuiltin = new RadioButton { Content = "内蔵OCR", GroupName = "ocreng", IsChecked = true, Margin = new Thickness(0, 0, 10, 0), Name = "OcrEngBuiltin", VerticalAlignment = VerticalAlignment.Center };
@@ -153,7 +153,7 @@ public partial class SettingsPage
         _builtinSizePanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
         _builtinSizePanel.Children.Add(new TextBlock { Text = "内蔵OCRモデル:", Foreground = SettingRow.SubtleBrush(), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), FontSize = 12 });
         _builtinSizePanel.Children.Add(_builtinSizeCb);
-        // 修正J96・J110: 「読み取った位置に並べる」（既定 OFF）。J110 から、ぶん投げ方によらずいつも出す（VLM でも区画ごとに頼んで並べる）
+        // 「読み取った位置に並べる」（既定 OFF）。ぶん投げ方によらずいつも出す（VLM でも区画ごとに頼んで並べる）
         _layoutChk = MakePresetBoolChk("BuiltinLayoutChk", "読み取った位置に並べる（PP-DocLayoutV3）", "builtin_ocr_layout");
         _layoutChk.Margin = new Thickness(0, 6, 0, 2);
         _layoutChk.ToolTip = "PP-DocLayoutV3 で区画（段落・見出しなど）を見つけて、読んだ文・答えを元の画面での位置に並べます（区画ごとに頼むので遅くなります）";
@@ -195,7 +195,7 @@ public partial class SettingsPage
         _ocrSubBox.Children.Add(_builtinSizePanel);
         _ocrSubBox.Children.Add(_ocrVlmPanel);
         var ocrBottom = new StackPanel();
-        ocrBottom.Children.Add(_layoutChk);   // 修正J110・J116: 区画が一番最初のレイヤーなので「ぶん投げ方」内の一番上に出す
+        ocrBottom.Children.Add(_layoutChk);   // 区画が一番最初のレイヤーなので「ぶん投げ方」内の一番上に出す
         ocrBottom.Children.Add(_ocrSubBox);
         ocrRow.SetBottom(ocrBottom);
 
@@ -221,8 +221,8 @@ public partial class SettingsPage
         _clipChk.Unchecked += (_, _) => { if (!_filling) CommitGenBool("clip_answer", false); };
         var clipRow = new SettingRow("答えを自動でコピー", "", _clipChk);
 
-        // I11: 変換・表示トグル（案B: プリセットごとの上級者項目）
-        // 変換は OTSL → HTML → 画面の表 の順につながる（人の判断 2026-11-15）。
+        // 変換・表示トグル（プリセットごとの上級者項目）
+        // 変換は OTSL → HTML → 画面の表 の順につながる。
         // OTSL ON・HTML OFF なら OTSL を HTML の文字にして出す
         _otslChk = MakePresetBoolChk("ConvertOtslChk", "OTSL を HTML に変換する", "convert_otsl_table");
         _htmlChk = MakePresetBoolChk("ConvertHtmlChk", "HTML の表（<table>）を表として表示する", "convert_html_table");
@@ -238,11 +238,10 @@ public partial class SettingsPage
         _thinkCb.SelectionChanged += (_, _) => CommitThink();
         var thinkRow = new SettingRow("思考", "対応モデルのみ有効", _thinkCb);
 
-        // 範囲は指示書6.4（Python版のクランプ範囲より狭い。指示書優先）
         _genNums.Clear();
         var gCtx = AddNum(null, "コンテキスト長", "ollama_num_ctx", 512, 131072, true, 8192, GenScope, PresetAfter, "CtxBox");
         var gPred = AddNum(null, "生成の上限", "ollama_num_predict", 256, 65536, true, 4096, GenScope, PresetAfter, "PredictBox");
-        gPred.Clamp = true;   // 範囲外は入れた時点で寄せる（送る時の範囲と揃える。F17）
+        gPred.Clamp = true;   // 範囲外は入れた時点で寄せる（送る時の範囲と揃える）
         var gTemp = AddNum(null, "温度", "ollama_temperature", 0.0, 2.0, false, 0.0, GenScope, PresetAfter, "TempBox");
         var gKeep = AddNum(null, "モデルを置いておく時間（分）", "ollama_keep_alive_min", 0, 1440, true, 30, GenScope, PresetAfter, "KeepBox");
         _genNums.AddRange([gCtx, gPred, gTemp, gKeep]);
@@ -274,8 +273,8 @@ public partial class SettingsPage
         _genBox.Children.Add(placeRow.AsGrouped());
         _genBox.Children.Add(MakeExpertWrap(genExp, withTopDivider: true));
 
-        // モデルはいつもプリセットごと（修正J7）なので、名前・指示の並びに置き、「グローバル設定を使う」はその下の生成の欄だけに効く
-        // 修正J22・J27: 「内蔵OCRのみ」の時は AI のモデル・指示・思考・生成の数字を使わず、追加の問いもできない。
+        // モデルはいつもプリセットごとなので、名前・指示の並びに置き、「グローバル設定を使う」はその下の生成の欄だけに効く
+        // 「内蔵OCRのみ」の時は AI のモデル・指示・思考・生成の数字を使わず、追加の問いもできない。
         // ぶん投げ方（モード切替・small/medium）・表示する場所・自動でコピー・表や式の変換は使う
         _builtinUnused.Clear();
         _builtinUnused.AddRange(new FrameworkElement[]
@@ -287,7 +286,7 @@ public partial class SettingsPage
         ShowPrompt();
     }
 
-    /// <summary>修正J22・J27: 「内蔵OCRのみ」の時は AI 用の項目を薄くして触れなくし、ぶん投げ方のサブ欄の表示も整える</summary>
+    /// <summary>「内蔵OCRのみ」の時は AI 用の項目を薄くして触れなくし、ぶん投げ方のサブ欄の表示も整える</summary>
     private void UpdateBuiltinDim()
     {
         bool builtin = !_editingGlobal && _ocrBuiltinOnly.IsChecked == true;

@@ -6,8 +6,8 @@ using Bunnagetaro5.Services;
 
 namespace Bunnagetaro5.Pages;
 
-/// <summary>設定ページの「位置の反映（内蔵OCR）」（SettingsPage の partial class。修正J100）。
-/// プリセットの「読み取った位置に並べる」を ON にした時に使う細かい値。全体で1つ・上級者モードの時だけ出す（人の判断 2026-11-25）</summary>
+/// <summary>設定ページの「位置の反映（内蔵OCR）」（SettingsPage の partial class）。
+/// プリセットの「読み取った位置に並べる」を ON にした時に使う細かい値。全体で1つ・上級者モードの時だけ出す</summary>
 public partial class SettingsPage
 {
     private readonly List<NumCtl> _layoutNums = new();
@@ -21,7 +21,7 @@ public partial class SettingsPage
 
         _layoutNums.Clear();
         var stack = new StackPanel();
-        // 修正J103・J104・J107: 区画（段落）の所だけに背景＝マスク（既定 ON。切ると今まで通り解答欄全体に背景）
+        // 区画（段落）の所だけに背景＝マスク（既定 ON。切ると今まで通り解答欄全体に背景）
         _layoutTextBgChk = new CheckBox { Content = "区画の所だけに背景を付ける", VerticalAlignment = VerticalAlignment.Center, Name = "LayoutTextBgChk" };
         _layoutTextBgChk.IsChecked = _cfg.Settings.LayoutTextBg;
         _layoutTextBgChk.Checked += (_, _) => { _cfg.Settings.LayoutTextBg = true; SaveSoon(); };
@@ -60,7 +60,7 @@ public partial class SettingsPage
             n.Box.BorderBrush = SettingRow.NormalBorderBrush();
             n.Invalid = false;
         }
-        _layoutTextBgChk.IsChecked = true;   // 修正J103
+        _layoutTextBgChk.IsChecked = true;
         SaveSoon();
     }
 }

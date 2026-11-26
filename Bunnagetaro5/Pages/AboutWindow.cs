@@ -9,7 +9,7 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Pages;
 
 /// <summary>
-/// バージョン情報の窓（A6）。アイコン（app_256.png を幅64）と、題名・バージョン・ライセンス表示リンクを出す。
+/// バージョン情報の窓。アイコン（app_256.png を幅64）と、題名・バージョン・ライセンス表示リンクを出す。
 /// これまでは MessageBox だった（画像を出せないため専用の窓にした）。
 /// </summary>
 public sealed class AboutWindow : Window
@@ -85,7 +85,7 @@ public sealed class AboutWindow : Window
             HorizontalAlignment = HorizontalAlignment.Right,
             MinWidth = 72,
         };
-        ok.Click += (_, _) => WindowMotion.CloseFade(this, 1.0, WindowMotion.CloseMs, 1.0);   // 修正J88: 透過しない窓なので待たずにすぐ閉じる（Windows の消える動きに任せる）
+        ok.Click += (_, _) => WindowMotion.CloseFade(this, 1.0, WindowMotion.CloseMs, 1.0);   // 透過しない窓なので待たずにすぐ閉じる（Windows の消える動きに任せる）
 
         var footer = new DockPanel { Margin = new Thickness(0, 16, 0, 0) };
         DockPanel.SetDock(ok, Dock.Right);
@@ -102,7 +102,7 @@ public sealed class AboutWindow : Window
     }
 }
 
-/// <summary>同梱しているサードパーティライブラリのライセンス表示窓（G14）。</summary>
+/// <summary>同梱しているサードパーティライブラリのライセンス表示窓。</summary>
 internal sealed class ThirdPartyNoticesWindow : Window
 {
     public ThirdPartyNoticesWindow()
@@ -140,7 +140,7 @@ internal sealed class ThirdPartyNoticesWindow : Window
             Margin = new Thickness(0, 12, 0, 0),
             MinWidth = 80,
         };
-        close.Click += (_, _) => WindowMotion.CloseFade(this, 1.0, WindowMotion.CloseMs, 1.0);   // 修正J88: 透過しない窓なので待たずにすぐ閉じる（Windows の消える動きに任せる）
+        close.Click += (_, _) => WindowMotion.CloseFade(this, 1.0, WindowMotion.CloseMs, 1.0);   // 透過しない窓なので待たずにすぐ閉じる（Windows の消える動きに任せる）
 
         var grid = new Grid { Margin = new Thickness(16) };
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });

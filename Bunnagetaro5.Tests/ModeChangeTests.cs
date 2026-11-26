@@ -11,8 +11,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 点検B4 → F12c: 自動トリガを切り替えても、出ている答え（解答欄・外の解答欄）は消さない
-/// （Python版 tw_mode._mode_changed は消していたが、人の判断で意図して変える）。
+/// 自動トリガを切り替えても、出ている答え（解答欄・外の解答欄）は消さない。
 /// </summary>
 public class ModeChangeTests : IDisposable
 {
@@ -58,7 +57,7 @@ public class ModeChangeTests : IDisposable
                 Pump(100);
                 Assert.True(panel.IsVisible);
                 w.Session.BarAutoTrig(true);
-                Pump(600);   // 以前は薄れ(150ms)が終わって隠れていた（B4）。F12c: 消さない
+                Pump(600);   // 薄れ(150ms)が終わる時間まで待っても消さない
                 Assert.True(panel.IsVisible);
                 Assert.False(WindowMotion.IsFadingOut(panel));
                 Assert.Equal("前の答え", panel.ModelText.Trim());
@@ -78,7 +77,7 @@ public class ModeChangeTests : IDisposable
         });
     }
 
-    /// <summary>E3: 薄れている最中でも、撮影前の隠し(HideForCapture)は即消え、出す要求は薄れを取り消して戻す</summary>
+    /// <summary>薄れている最中でも、撮影前の隠し(HideForCapture)は即消え、出す要求は薄れを取り消して戻す</summary>
     [Fact]
     public void 薄れの最中でも撮影前の隠しは即時_出す要求は戻す()
     {
@@ -115,7 +114,7 @@ public class ModeChangeTests : IDisposable
         });
     }
 
-    /// <summary>E4: 最初の案内は動き無しで残り、2回目以降の案内は薄れて消える（隠れてから本文が空になる）</summary>
+    /// <summary>最初の案内は動き無しで残り、2回目以降の案内は薄れて消える（隠れてから本文が空になる）</summary>
     [Fact]
     public void 案内は最初は残り_2回目以降は薄れて消える()
     {
@@ -155,7 +154,7 @@ public class ModeChangeTests : IDisposable
         });
     }
 
-    /// <summary>E5: クイック開始で窓は吸い込まれて隠れる。吸い込み中にドラッグが始まれば即打ち切って元の見え方で追従</summary>
+    /// <summary>クイック開始で窓は吸い込まれて隠れる。吸い込み中にドラッグが始まれば即打ち切って元の見え方で追従</summary>
     [Fact]
     public void クイック開始の吸い込みはドラッグ開始で即打ち切られる()
     {
@@ -204,7 +203,7 @@ public class ModeChangeTests : IDisposable
                 Bunnagetaro5.Services.Native.GetWindowRect(hwnd, out var r2);
                 Assert.Equal((400, 300, 720, 540), (r2.Left, r2.Top, r2.Right, r2.Bottom));
 
-                // 3) E5: 四角が前回と同じなら QuickPlace は SetWindowPos を呼ばない
+                // 3) 四角が前回と同じなら QuickPlace は SetWindowPos を呼ばない
                 int movingCount = 0;
                 cap.Moving += _ => movingCount++;
                 typeof(Bunnagetaro5.Session.CaptureSession).GetMethod("QuickPlace", F)!.Invoke(w.Session, new object[] { 400, 300, 320, 240, false });

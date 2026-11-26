@@ -15,12 +15,12 @@ namespace Bunnagetaro5.Services;
 /// <summary>KaTeX で描いた式の画像。W/H/Base は DIP（Base は上端から文字の基準線まで）。Scale は撮った倍率（1 DIP あたりの画素数。下げて撮った時は頼んだ倍率より小さい）</summary>
 public sealed record MathImage(BitmapSource Bmp, double W, double H, double Base, double Scale = 0);
 
-/// <summary>F19 の計測用: 直近の1式を撮った時の数字（診断。画面には出ない）</summary>
+/// <summary>計測用: 直近の1式を撮った時の数字（診断。画面には出ない）</summary>
 internal sealed record MathDiag(double X, double Y, double W, double H, double WinW, double WinH,
     double InnerW, double InnerH, int FramePxW, int FramePxH, int CropW, int CropH, int WantW, int WantH, double Rs);
 
 /// <summary>
-/// 数式の描画（整理8.6 / REFACTOR_ROUND1 1.3）。見えない WebView2 を1つだけ持ち、
+/// 数式の描画。見えない WebView2 を1つだけ持ち、
 /// KaTeX 0.16.11（trust:false・ネットからは読まない）で式を描いて、式の範囲だけ切り出した画像にする。
 /// WebView2 ランタイムが無い／立ち上がらない時は Active=false になり、解答欄は WpfMath を使う。
 /// 同じ式・色・大きさ・倍率の画像はキャッシュする。UI スレッドから使う（await は UI を待たせない）。
@@ -36,13 +36,13 @@ public static class MathRenderer
     private static Window? _win;
     private static WebView2? _wv;
     /// <summary>1式ずつ描く順番札。Shutdown で新しくする（描きかけの式はブラウザが無くなると終わらず、古い札を返さないまま
-    /// 放り出されるため。作り直さないと、次に立ち上げた後の式が順番待ちのまま止まる。2026-11-16 KatexTests が2分待って落ちた原因）</summary>
+    /// 放り出されるため。作り直さないと、次に立ち上げた後の式が順番待ちのまま止まる）</summary>
     private static SemaphoreSlim Gate = new(1, 1);
 
     private static readonly Dictionary<string, MathImage?> Cache = new();
     private static readonly Queue<string> CacheOrder = new();
     private static readonly Dictionary<string, Task<MathImage?>> Inflight = new();
-    /// <summary>H4a: 描く順番待ちの式に興味を持っている呼び出しの取り消し札。全員が取り消したら、順番が来ても描かない</summary>
+    /// <summary>描く順番待ちの式に興味を持っている呼び出しの取り消し札。全員が取り消したら、順番が来ても描かない</summary>
     private static readonly Dictionary<string, List<CancellationToken>> Interest = new();
     /// <summary>テスト用: 取り消されて描かずに飛ばした式の数</summary>
     internal static int SkippedCancelled { get; private set; }
@@ -63,7 +63,7 @@ public static class MathRenderer
     /// <summary>直近の1式の「JS 描画＋画像化」時間（ms）。診断用</summary>
     public static double LastRenderMs { get; private set; }
 
-    /// <summary>直近の1式の計測値（F19 の診断・テスト用）</summary>
+    /// <summary>直近の1式の計測値（診断・テスト用）</summary>
     internal static MathDiag? LastDiag { get; private set; }
 
     public static bool RuntimeAvailable()
@@ -88,7 +88,7 @@ public static class MathRenderer
     }
 
     /// <summary>終了時（本番）: WebView2 と見えない窓を UI スレッドで解放する。
-    /// これを呼ばないと見えない窓が「最後の窓」として残りプロセスが終わらない（FIX_ROUND5 F0）</summary>
+    /// これを呼ばないと見えない窓が「最後の窓」として残りプロセスが終わらない</summary>
     public static void Shutdown() => Shutdown(1000);
 
     /// <summary>waitMs: Dispose の後にブラウザのプロセスが終わるのを待つ最長（ms。0 で待たない）。
@@ -121,8 +121,8 @@ public static class MathRenderer
     internal static IntPtr WindowHandle { get { try { return _win is null ? IntPtr.Zero : new WindowInteropHelper(_win).Handle; } catch { return IntPtr.Zero; } } }
 
     /// <summary>テスト用: 窓ごと捨てて最初からやり直せるようにする。
-    /// 前の窓を作ったスレッドが終わっていると Dispose が効かず、PC が忙しい時はブラウザのプロセスが5秒たっても残る
-    /// （2026-11-16 に確かめた）。その時はブラウザを止めてから戻る</summary>
+    /// 前の窓を作ったスレッドが終わっていると Dispose が効かず、PC が忙しい時はブラウザのプロセスが5秒たっても残る。
+    /// その時はブラウザを止めてから戻る</summary>
     internal static void ResetForTests()
     {
         int pid = 0;
@@ -193,7 +193,7 @@ public static class MathRenderer
             string navErr = "";
             core.NavigationCompleted += (_, e) =>
             {
-                // 修正J67: 失敗の理由をログに残す（前は「失敗」だけで原因が分からなかった）
+                // 失敗の理由をログに残す
                 if (!e.IsSuccess) navErr = $"WebErrorStatus={e.WebErrorStatus} HttpStatusCode={e.HttpStatusCode}";
                 tcs.TrySetResult(e.IsSuccess);
             };
@@ -254,7 +254,7 @@ public static class MathRenderer
     /// scale は 1 DIP あたりの画素数（表示は画面の倍率×2、画像でコピーは 3）。
     /// minScale が scale より小さい時は、見えない窓に収まらない式を minScale まで倍率を下げて撮り直す
     /// （画像の <see cref="MathImage.Scale"/> が実際に使った倍率）。0 や scale 以上なら下げない。
-    /// 欠けた結果はキャッシュに入れない（入れると同じ式が欠けたまま・原文字のままに固定される。F19）</summary>
+    /// 欠けた結果はキャッシュに入れない（入れると同じ式が欠けたまま・原文字のままに固定される）</summary>
     public static Task<MathImage?> RenderAsync(string tex, bool display, Color fg, Color? bg, double fontDip, double scale, double minScale = 0, CancellationToken ct = default)
     {
         string key = Key(tex, display, fg, bg, fontDip, scale);
@@ -416,7 +416,7 @@ public static class MathRenderer
         double maxCss = MaxWinPx / dpr;
         double needW = Math.Min(maxCss, Math.Ceiling(x + w) + 4), needH = Math.Min(maxCss, Math.Ceiling(y + h) + 4);   // CSS px
         var r = new Rect4(x, y, w, h, 0, 0);
-        // 修正J42: renderOne が返した窓の中の大きさ（古い render.js なら無い）
+        // renderOne が返した窓の中の大きさ（古い render.js なら無い）
         double iw0 = root.TryGetProperty("iw", out var jiw) ? jiw.GetDouble() : -1;
         double ih0 = root.TryGetProperty("ih", out var jih) ? jih.GetDouble() : -1;
         for (int attempt = 0; attempt < 2; attempt++)
@@ -425,7 +425,7 @@ public static class MathRenderer
             if (needW * cssToDip > win.Width) { win.Width = needW * cssToDip; grew = true; }
             if (needH * cssToDip > win.Height) { win.Height = needH * cssToDip; grew = true; }
             // 広げた大きさが WebView2 の中（innerWidth/innerHeight）に届くまで待つ（最大1秒）。
-            // 修正J42: 1回目で窓を広げず、中の大きさもう足りていれば待たない（待っても1回目の読みで抜けるので同じ）
+            // 1回目で窓を広げず、中の大きさもう足りていれば待たない（待っても1回目の読みで抜けるので同じ）
             double iw, ih;
             if (attempt == 0 && !grew && iw0 >= needW - 0.5 && ih0 >= needH - 0.5) (iw, ih) = (iw0, ih0);
             else (iw, ih) = await WaitViewportAsync(core, needW, needH, 1000);
@@ -488,7 +488,7 @@ public static class MathRenderer
     internal static int MaxTrackOverridePx { get; set; }
 
     /// <summary>Windows は枠なし窓の大きさをモニタ前後で頭打ちにする（ptMaxTrackSize）。式の大きさがそれを超えると欠けるので、
-    /// この窓だけ上限を広げる（F19）</summary>
+    /// この窓だけ上限を広げる</summary>
     private static IntPtr MinMaxHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == 0x0024)   // WM_GETMINMAXINFO

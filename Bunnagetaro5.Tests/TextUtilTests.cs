@@ -5,9 +5,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// TextUtil（手順9・Python版 tw_text.py と同じ入力で同じ結果）。
-/// 期待値は Python版の関数（_line_is_untranslated / _merge_retry_stream /
-/// _sentence_chunks / _chunk_chars_for_model）をそのまま走らせて採ったもの。
+/// TextUtil の単体テスト（未翻訳行の判定・再試行ストリームの結合・文チャンク分割・モデル別チャンク文字数上限）。
 /// </summary>
 public class TextUtilTests
 {
@@ -82,7 +80,7 @@ public class TextUtilTests
         Assert.Equal(
             new[] { "no punctuation here at all and it goes on and on" },
             TextUtil.SentenceChunks("no punctuation here at all and it goes on and on", 20));
-        // 既定の上限は600（Python版 _TEXT_CHUNK_CHARS）
+        // 既定の上限は600
         Assert.Equal(600, TextUtil.TextChunkChars);
     }
 

@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d">
-    <!-- 6.4 設定ページの見出し行: ←（ログへ戻る）＋「設定」。中身は手順6以降 -->
+    <!-- 設定ページの見出し行: ←（ログへ戻る）＋「設定」 -->
     <DockPanel>
         <Border DockPanel.Dock="Top" Padding="0,4,0,8">
             <DockPanel LastChildFill="False">

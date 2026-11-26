@@ -7,7 +7,7 @@ namespace Bunnagetaro5.Services;
 
 /// <summary>
 /// 設定欄の #rrggbb と色（Brush・Win32のCOLORREF）の間に立ち。
-/// 判定はPython版 save_settings と同じ正規表現（# + 16進6桁）。
+/// 判定は正規表現（# + 16進6桁）。
 /// </summary>
 public static class ColorUtil
 {
@@ -37,7 +37,7 @@ public static class ColorUtil
         return (uint)((b << 16) | (g << 8) | r);
     }
 
-    /// <summary>COLORREF → #rrggbb（小文字。tkinterの色選択と同じ形）。</summary>
+    /// <summary>COLORREF → #rrggbb（小文字）。</summary>
     public static string FromColorRef(uint cref)
     {
         int r = (int)(cref & 0xFF), g = (int)((cref >> 8) & 0xFF), b = (int)((cref >> 16) & 0xFF);

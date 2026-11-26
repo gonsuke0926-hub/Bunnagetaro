@@ -6,7 +6,7 @@ using Bunnagetaro5.Services;
 
 namespace Bunnagetaro5.Pages;
 
-/// <summary>設定ページのキャプチャ窓の枠（SettingsPage の partial class。E11）。
+/// <summary>設定ページのキャプチャ窓の枠（SettingsPage の partial class）。
 /// 色・不透明度・太さ。変えるとその場でキャプチャ窓の縁（と撮る範囲の削り幅・掴める幅・クイックのダミー枠）へ効く。</summary>
 public partial class SettingsPage
 {

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>Geom: Python版 tw_input の norm_rect / clamp_to_virtual との同値確認</summary>
+/// <summary>Geom: NormRect / ClampToVirtual の動作確認</summary>
 public class GeomTests
 {
     [Fact]

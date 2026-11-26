@@ -7,8 +7,8 @@ namespace Bunnagetaro5.Tests;
 internal static class CfgTestUtil
 {
     /// <summary>
-    /// 答えの表示場所を変える。I12補足（案B）で表示場所はプリセットごとになり、既定の「翻訳」は
-    /// 専用の設定を持つ（2026-11-14）ので、グローバルだけ変えても効かない。各プリセットの専用の設定へ
+    /// 答えの表示場所を変える。表示場所はプリセットごとになり、既定の「翻訳」は
+    /// 専用の設定を持つので、グローバルだけ変えても効かない。各プリセットの専用の設定へ
     /// 先に書き、最後にグローバルへ書く（グローバルの書き込みで変更の知らせが出て、解答欄が追従する）
     /// </summary>
     public static void SetPlace(ConfigStore cfg, string place)

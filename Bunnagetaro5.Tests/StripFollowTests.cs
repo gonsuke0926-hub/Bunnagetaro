@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND3 D1: 窓の矩形 → バーの予測矩形 → 帯の矩形（巡回経由と同じ値になる）</summary>
+/// <summary>窓の矩形 → バーの予測矩形 → 帯の矩形（巡回経由と同じ値になる）</summary>
 public class StripFollowTests
 {
     private static Native.RECT R(int l, int t, int r, int b) => new() { Left = l, Top = t, Right = r, Bottom = b };
@@ -36,7 +36,7 @@ public class StripFollowTests
     [Fact]
     public void 画面下端でもバーは窓の下に置き帯はバーの下に置く()
     {
-        // F38: 窓の下端 1050（下端まで 30px >= 24px）→ バーの上辺 = 窓の下辺（1050）、帯の上辺 = バーの下辺 + 4（1094）
+        // 窓の下端 1050（下端まで 30px >= 24px）→ バーの上辺 = 窓の下辺（1050）、帯の上辺 = バーの下辺 + 4（1094）
         var (bar, strip) = Chain(R(200, 700, 800, 1050));
         Eq(bar, 200, 1050, 800, 1090);
         Eq(strip, 200, 1094, 720, 1234);

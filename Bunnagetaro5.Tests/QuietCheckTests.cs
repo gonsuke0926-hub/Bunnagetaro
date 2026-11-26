@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND4 E7: 解答欄の「画像も」は「たずねる」と同じ色・チェックで青く塗らない</summary>
+/// <summary>解答欄の「画像も」は「たずねる」と同じ色・チェックで青く塗らない</summary>
 public class QuietCheckTests : IDisposable
 {
     private readonly string _temp;

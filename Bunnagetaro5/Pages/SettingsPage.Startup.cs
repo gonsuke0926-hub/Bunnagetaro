@@ -5,7 +5,7 @@ using Bunnagetaro5.Services;
 
 namespace Bunnagetaro5.Pages;
 
-/// <summary>設定ページの起動と終了（SettingsPage の partial class。修正J54）。</summary>
+/// <summary>設定ページの起動と終了（SettingsPage の partial class）。</summary>
 public partial class SettingsPage
 {
     internal CheckBox CloseToTrayCheck { get; private set; } = null!;
@@ -16,7 +16,7 @@ public partial class SettingsPage
     {
         BodyPanel.Children.Add(Section("起動と終了"));
 
-        // 修正J51: ×で閉じた時にトレイへしまうか（既定 OFF。修正J54 で「答えの表示」からここへ移した）
+        // ×で閉じた時にトレイへしまうか（既定 OFF）
         CloseToTrayCheck = new CheckBox
         {
             Content = "×で閉じた時はタスクトレイにしまう",
@@ -30,7 +30,7 @@ public partial class SettingsPage
             "終了はトレイの右クリック「終了」から",
             CloseToTrayCheck);
 
-        // 修正J54: Windows の起動時にトレイで起動するか（既定 OFF）。ON の間、現ユーザーの Run に「exe --tray」を入れる
+        // Windows の起動時にトレイで起動するか（既定 OFF）。ON の間、現ユーザーの Run に「exe --tray」を入れる
         StartWithWindowsCheck = new CheckBox
         {
             Content = "Windows の起動時にトレイで起動する",

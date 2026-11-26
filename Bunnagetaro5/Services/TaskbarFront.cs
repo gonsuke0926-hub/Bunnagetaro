@@ -4,16 +4,16 @@ using System.Runtime.InteropServices;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 修正J72: Windows のタスクバーは、アクティブな窓が変わると自分を最前面の一番手前へ出し直す。
+/// Windows のタスクバーは、アクティブな窓が変わると自分を最前面の一番手前へ出し直す。
 /// そのため、窓を動かし終わった時（キャプチャ窓・解答欄がアクティブになる）などに、手前へ出し直した
 /// バー・解答欄が約 100ms 後にまたタスクバーの裏へ回っていた。
 /// このアプリの窓がアクティブになった時だけ、しばらく（WatchMs）の間タスクバーより手前を保つ。
-/// 人がタスクバーを押した時はタスクバーがアクティブになるので何もしない（裏に回ったままでよい。人の判断 2026-11-22）。
-/// 修正J73: 決まった時間（150ms・450ms）に出し直すと、その間「裏→手前」を行き来してちらついた。
+/// 人がタスクバーを押した時はタスクバーがアクティブになるので何もしない（裏に回ったままでよい）。
+/// 決まった時間（150ms・450ms）に出し直すと、その間「裏→手前」を行き来してちらついた。
 /// 見張る間は専用スレッドが画面の1フレームごと（DwmFlush）に重なり順を見て、タスクバーが手前に来たらその場で戻す。
 /// 見張りの開始は UI スレッドで作った SetWinEventHook（WINEVENT_OUTOFCONTEXT）から。
-/// 修正J74: 見張りの途中でも、アクティブな窓がこのアプリでなくなったら（タスクバーを押した等）すぐやめる。
-/// 前は 800ms の間はタスクバーを押しても手前へ戻していた（人の操作を外から記録して分かった）。
+/// 見張りの途中でも、アクティブな窓がこのアプリでなくなったら（タスクバーを押した等）すぐやめる。
+/// 以前は 800ms の間はタスクバーを押しても手前へ戻していた。
 /// </summary>
 internal sealed class TaskbarFront : IDisposable
 {
@@ -33,7 +33,7 @@ internal sealed class TaskbarFront : IDisposable
     private Thread? _thread;
     private volatile bool _disposed;
 
-    /// <summary>修正J74: アクティブな窓がこのアプリの窓か。テストでは差し替える（テストの間はほかのアプリがアクティブなことがある）</summary>
+    /// <summary>アクティブな窓がこのアプリの窓か。テストでは差し替える（テストの間はほかのアプリがアクティブなことがある）</summary>
     internal volatile Func<bool> AppIsForeground;
 
     private bool RealAppIsForeground()
@@ -71,7 +71,7 @@ internal sealed class TaskbarFront : IDisposable
         GetWindowThreadProcessId(hwnd, out uint pid);
         if (pid != _pid)
         {
-            // 修正J74: タスクバーやほかのアプリがアクティブになったら、見張りの途中でもやめる（タスクバーを押したら裏に回る）
+            // タスクバーやほかのアプリがアクティブになったら、見張りの途中でもやめる（タスクバーを押したら裏に回る）
             lock (_lk) _until = 0;
             return;
         }
@@ -102,7 +102,7 @@ internal sealed class TaskbarFront : IDisposable
                     if (Stopwatch.GetTimestamp() >= _until) return;
                     targets = _targets;
                 }
-                // 修正J74: アクティブな窓がこのアプリでなくなったらやめる（フックの知らせより先に気づけるよう毎フレーム見る）
+                // アクティブな窓がこのアプリでなくなったらやめる（フックの知らせより先に気づけるよう毎フレーム見る）
                 if (!AppIsForeground()) { lock (_lk) _until = 0; return; }
                 var trays = Trays();
                 var toRaise = new List<IntPtr>(targets.Length);
@@ -120,7 +120,7 @@ internal sealed class TaskbarFront : IDisposable
                 }
                 if (trayAboveAny)
                 {
-                    // 修正J90: 下→上（キャプチャ窓 → 窓の中の解答欄 → バー → 外の解答欄）の順で手前へ出し、
+                    // 下→上（キャプチャ窓 → 窓の中の解答欄 → バー → 外の解答欄）の順で手前へ出し、
                     // 下側の窓を持ち上げた時に上側の可視窓（解答欄・バー）より手前に来てクリックを奪わないようにする
                     foreach (var h in toRaise)
                     {

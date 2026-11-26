@@ -14,7 +14,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順24: 設定ページの「登録」「解除」と、ぶん投げホットキー発火の配線。
+/// 設定ページの「登録」「解除」と、ぶん投げホットキー発火の配線。
 /// 実際の押下はフックが掴む（それは QuickInputWatcherTests と e2e が確かめる）ので、
 /// ここでは「掴まれた想定で BindDone を呼んだとき」の設定・欄・状態欄の動きを見る。
 /// </summary>
@@ -396,7 +396,7 @@ public class BindTests : IDisposable
             BindStart(w, "kquick");
             BindDone(w, "ctrl+f8");
             Assert.Equal("ctrl+f8", cfg.GetStr("quick_key"));
-            // 「登録」は保存ボタンを待たずディスクへ書く（Python版 _persist_cfg）
+            // 「登録」は保存ボタンを待たずディスクへ書く
             var disk = new ConfigStore(_paths);
             disk.Load();
             Assert.Equal("ctrl+f8", disk.GetStr("quick_key"));
@@ -455,7 +455,7 @@ public class BindTests : IDisposable
         });
     }
 
-    // ---- 修正J58: 範囲ドラッグのキー ----
+    // ---- 範囲ドラッグのキー ----
 
     [Fact]
     public void J58_範囲ドラッグのキーは既定が未設定で_登録すると保存されフックに載る()

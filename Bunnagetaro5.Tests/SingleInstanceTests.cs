@@ -22,7 +22,7 @@ public sealed class SingleInstanceTests
         Assert.NotNull(first);
 
         // 別スレッド（2つ目の起動相当）からは取得できない。
-        // 修正J60b: Task.Run だと await で空いた同じスレッドで走ることがあり、Mutex は同じスレッドなら取り直せるので
+        // Task.Run だと await で空いた同じスレッドで走ることがあり、Mutex は同じスレッドなら取り直せるので
         // 時々落ちた（テストを全部流した時）。必ず新しいスレッドで試す
         static bool TryOnNewThread(string n)
         {

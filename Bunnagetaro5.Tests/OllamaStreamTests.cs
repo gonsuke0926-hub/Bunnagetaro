@@ -14,9 +14,9 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// OllamaClientの通信部分（手順8）。本物には繋がず、自分で用意した
-/// HttpMessageHandlerで「 NDJSONが細切れで届く」様子と「やめる」を再現する。
-/// 指示書9章のテスト見本（分割受信の組み立て・中断の例外）を含む。
+/// OllamaClientの通信部分。本物には繋がず、自分で用意した
+/// HttpMessageHandlerで「 NDJSONが細切れで届く」様子と「やめる」を再現し、
+/// 分割受信の組み立てと中断の例外を確認する。
 /// </summary>
 public class OllamaStreamTests : IDisposable
 {

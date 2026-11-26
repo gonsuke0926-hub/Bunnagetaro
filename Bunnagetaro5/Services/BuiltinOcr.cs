@@ -11,7 +11,7 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace Bunnagetaro5.Services;
 
-/// <summary>修正J95: 内蔵 OCR で読んだ段落1つ。X・Y・W・H は画像の幅・高さに対する割合（0〜1）</summary>
+/// <summary>内蔵 OCR で読んだ段落1つ。X・Y・W・H は画像の幅・高さに対する割合（0〜1）</summary>
 public sealed record OcrBlock(string Text, double X, double Y, double W, double H)
 {
     /// <summary>画素の矩形 r（画像 w×h の中）から割合を作る。画像の外へはみ出した分は切る</summary>
@@ -25,18 +25,18 @@ public sealed record OcrBlock(string Text, double X, double Y, double W, double 
 }
 
 /// <summary>
-/// 内蔵の OCR（PP-OCRv6 medium / small を ONNX Runtime で動かす。修正J17・J26）。
+/// 内蔵の OCR（PP-OCRv6 medium / small を ONNX Runtime で動かす）。
 /// プリセットの「モデル」に <see cref="ModelName"/> または <see cref="SmallModelName"/> を選ぶと、Ollama を使わずにここで文字を読む。
 /// モデルは exe の横の Models\ppocrv6 と Models\ppocrv6-small（ビルドの時に落として同梱する）。初めて使う時に読み込み、
 /// 終わるまで置いておく（約0.5GB）。読むのは1度に1枚ずつ（CPU を取り合わない）。
-/// 読むのは GPU（DirectML。修正J108。前は OpenVINO＝修正J21）で、使えない PC では ONNX Runtime の CPU の作りへ戻す。
+/// 読むのは GPU（DirectML）で、使えない PC では ONNX Runtime の CPU の作りへ戻す。
 /// </summary>
 public static class BuiltinOcr
 {
     /// <summary>プリセットのモデル欄に出す名前（config.json にもこの名前で残る）。
     /// Ollama のモデル名は空白・全角かっこを含まないので重ならない。</summary>
     public const string ModelName = "PP-OCRv6（内蔵）";
-    /// <summary>軽量・高速版の内蔵 OCR（修正J26）</summary>
+    /// <summary>軽量・高速版の内蔵 OCR</summary>
     public const string SmallModelName = "PP-OCRv6 small（内蔵）";
     public static readonly string[] ModelNames = { ModelName, SmallModelName };
     public const string SizeSmall = "small", SizeMedium = "medium";
@@ -93,7 +93,7 @@ public static class BuiltinOcr
     }
 
     /// <summary>裏で読み込んでおく（起動時・プリセットを切り替えた時。失敗は app.log だけ）。
-    /// GPU の時はよく使う幅の段も 1 段ずつ空回ししておき、初回から遅くならないようにする（修正J25）</summary>
+    /// GPU の時はよく使う幅の段も 1 段ずつ空回ししておき、初回から遅くならないようにする</summary>
     public static Task WarmAsync(string? model = null) => Task.Run(async () =>
     {
         try
@@ -125,7 +125,7 @@ public static class BuiltinOcr
     public static bool Loaded { get { lock (Gate) return _engine is not null; } }
 
     /// <summary>読み込んだモデルを外す（アプリの終了時）。
-    /// 修正J35: 読んでいる最中（ReadAsync・WarmAsync が RunLock を持っている間）に外すと推論中の物を壊すので、
+    /// 読んでいる最中（ReadAsync・WarmAsync が RunLock を持っている間）に外すと推論中の物を壊すので、
     /// RunLock を待ってから外す。待っても空かない時は外さない（安全な方。終了ならプロセスごと片づく）</summary>
     public static bool Unload(int timeoutMs = 5000)
     {
@@ -148,7 +148,7 @@ public static class BuiltinOcr
     }
 
     /// <summary>PNG（base64）の文字を読み、行ごとに改行でつないで返す。やめる時は OllamaCancelledException。
-    /// paragraphs: 画面の折り返しで切れた行を段落の1行につなぐ（訳す前の書き起こし用。修正J23）</summary>
+    /// paragraphs: 画面の折り返しで切れた行を段落の1行につなぐ（訳す前の書き起こし用）</summary>
     public static Task<string> ReadAsync(string imageB64, CancellationToken ct = default,
         Dictionary<string, object?>? diag = null, bool paragraphs = false, string? model = null) =>
         RunAsync(imageB64, ct, diag, model, (r, _, _) =>
@@ -158,11 +158,11 @@ public static class BuiltinOcr
             return string.Join("\n", lines);
         });
 
-    /// <summary>修正J95・J109: 段落ごとの文と位置。位置は画像の幅・高さに対する割合（0〜1）。
-    /// 修正J109（OCR_LAYOUT_ROUND2 手順3）: 段落（区画）はレイアウトのモデル（PP-DocLayoutV3）が決める。
+    /// <summary>段落ごとの文と位置。位置は画像の幅・高さに対する割合（0〜1）。
+    /// 段落（区画）はレイアウトのモデル（PP-DocLayoutV3）が決める。
     /// まず区画を見つけて onRegions に渡し（文はまだ空。解答欄はその所をマスクする＝今そこを処理していると分かる）、
     /// 次に内蔵 OCR で行を読み、行を「いちばん重なる区画」に入れて区画ごとにつなぐ（AssignToRegions）。
-    /// モデルが無い・動かない時は今までの段落のつなぎ（修正J23）。
+    /// モデルが無い・動かない時は従来の段落のつなぎを使う。
     /// 送る前の画像の加工（ImagePrep.SendPrep）は縦横を同じ割合で変えるだけなので、割合なら撮った枠の中の位置と同じになる。
     /// やめる時は OllamaCancelledException</summary>
     public static Task<List<OcrBlock>> ReadBlocksAsync(string imageB64, CancellationToken ct = default,
@@ -197,7 +197,7 @@ public static class BuiltinOcr
             diag["builtin_ocr_det_ms"] = Math.Round(r.DetMs, 1);
             diag["builtin_ocr_rec_ms"] = Math.Round(r.RecMs, 1);
             diag["builtin_ocr_boxes"] = r.Boxes;
-            diag["builtin_ocr_backend"] = eng.Backend;   // 修正J21
+            diag["builtin_ocr_backend"] = eng.Backend;
         }
         return r;
     }
@@ -223,7 +223,7 @@ public static class BuiltinOcr
         }, CancellationToken.None).ConfigureAwait(false);
     }
 
-    // ---- 修正J109: レイアウトのモデル（初めて使う時に読み込む。無い・読めない時は null のまま、今までのつなぎ方） ----
+    // ---- レイアウトのモデル（初めて使う時に読み込む。無い・読めない時は null のまま、従来のつなぎ方） ----
     private static LayoutModel? _layoutModel;
     private static bool _layoutTried;
     internal static string LayoutModelPath = LayoutModel.DefaultPath;
@@ -271,7 +271,7 @@ public static class BuiltinOcr
         }
     }
 
-    /// <summary>修正J110: VLM で位置の反映をする時に使う。区画を見つけ、区画ごとに切り抜いた画像（PNG の base64）を返す。
+    /// <summary>VLM で位置の反映をする時に使う。区画を見つけ、区画ごとに切り抜いた画像（PNG の base64）を返す。
     /// 区画が無い・モデルが使えない時は空。内蔵 OCR は使わない（読み込まない）</summary>
     public static Task<(List<OcrBlock> Blocks, List<string> Crops)> DetectRegionCropsAsync(string imageB64,
         CancellationToken ct = default, Dictionary<string, object?>? diag = null,
@@ -357,20 +357,20 @@ public sealed class PpOcrEngine : IDisposable
     internal const double UnclipRatio = 1.4;
     internal const int RecH = 48, RecMinW = 320, RecMaxW = 3200;
 
-    /// <summary>rec（行の読み取り）に使っている仕組み（"DirectML" か "CPU"。修正J21・J108）。det はいつも CPU（修正J24）</summary>
+    /// <summary>rec（行の読み取り）に使っている仕組み（"DirectML" か "CPU"）。det はいつも CPU</summary>
     public string Backend { get; }
 
     public const string BackendGpu = "DirectML", BackendCpu = "CPU";
 
-    /// <summary>rec を GPU で動かしている間は、入れる幅を決まった段に切り上げる（修正J24）</summary>
+    /// <summary>rec を GPU で動かしている間は、入れる幅を決まった段に切り上げる</summary>
     private readonly bool _bucketRec;
 
-    /// <summary>修正J24: OpenVINO（J108 で DirectML に替えた。GPU も大きさごとに作り直すので段は残す）は入れる大きさが変わるたびに、その大きさ用に作った物（1つ 35〜100MB）を覚えて離さない。
-    /// 行の幅はばらばらなので、そのままでは使うほどメモリが増えた（60枚で 約9GB）。
-    /// rec の幅をこの段に切り上げれば、覚えるのは最大でこの数だけになる（右の余りは今まで通り 0 で埋める）</summary>
+    /// <summary>GPU 推論（DirectML）は入力サイズが変わるたびに、そのサイズ用に作った内部リソース（1つ 35〜100MB）を保持し続ける。
+    /// 行の幅はばらばらなので、そのままでは使うほどメモリが増える（60枚で 約9GB）。
+    /// rec の幅をこの段に切り上げれば、保持するのは最大でこの数だけになる（右の余りは 0 で埋める）</summary>
     internal static readonly int[] RecWidthSteps = { 320, 640, 960, 1280, 1920, 2560, 3200 };
 
-    /// <summary>起動時の裏温めで先に通しておくよく使う幅の段（修正J25）</summary>
+    /// <summary>起動時の裏温めで先に通しておくよく使う幅の段</summary>
     internal static readonly int[] WarmWidthSteps = { 320, 640, 960, 1280, 1920 };
 
     private static readonly float[] DetLut0 = MakeLut(0.485f, 0.229f);
@@ -385,7 +385,7 @@ public sealed class PpOcrEngine : IDisposable
         return t;
     }
 
-    /// <summary>テスト用: rec に入れた幅（修正J24。GPU なら段の数より増えない）</summary>
+    /// <summary>テスト用: rec に入れた幅（GPU なら段の数より増えない）</summary>
     private readonly HashSet<int> _recWidths = new();
     internal int[] RecWidthsSeen() { lock (_recWidths) return _recWidths.Where(w => w > 64).OrderBy(w => w).ToArray(); }
 
@@ -396,7 +396,7 @@ public sealed class PpOcrEngine : IDisposable
         return RecWidthSteps[^1];
     }
 
-    /// <summary>指定した幅の段を GPU 用に 1 回だけ空回ししてコンパイルしておく（修正J25）</summary>
+    /// <summary>指定した幅の段を GPU 用に 1 回だけ空回ししてコンパイルしておく</summary>
     internal void WarmWidth(int w)
     {
         if (!_bucketRec) return;
@@ -409,19 +409,19 @@ public sealed class PpOcrEngine : IDisposable
 
     public PpOcrEngine(string detPath, string recPath, string dictYml) : this(detPath, recPath, dictYml, failGpuForTest: false) { }
 
-    /// <summary>failGpuForTest: テスト用。GPU（DirectML）の用意がうまくいかなかったことにして、CPU へ戻る道を通す（修正J21）</summary>
+    /// <summary>failGpuForTest: テスト用。GPU（DirectML）の用意がうまくいかなかったことにして、CPU へ戻る道を通す</summary>
     internal PpOcrEngine(string detPath, string recPath, string dictYml, bool failGpuForTest)
     {
         Dict = PpOcrPost.ParseDict(File.ReadLines(dictYml));
-        // 修正J24: det（文字の場所を探す）はいつも前の CPU の作り。det に入れる大きさは窓の大きさで毎回変わり、
+        // det（文字の場所を探す）はいつも CPU 実行。det に入れる大きさは窓の大きさで毎回変わり、
         // GPU だと大きさごとに約100MBずつ増え続ける（切り上げても組み合わせが多すぎる）
         using (var detSo = CpuOptions()) _det = new InferenceSession(detPath, detSo);
-        // 修正J35: ここから後で失敗した時（rec のモデルが壊れているなど）に、先に作った det を残さない
+        // ここから後で失敗した時（rec のモデルが壊れているなど）に、先に作った det を残さない
         try
         {
             _detIn = _det.InputMetadata.Keys.First();
-            // 修正J21: rec（行を読む。時間の大半）は、まず GPU（DirectML。修正J108）で読む。幅は RecWidthSteps に切り上げる（修正J24）。
-            // 用意か試しの1回がうまくいかなければ（古い CPU・足りない DLL など）、前の CPU の作りへ黙って戻す
+            // rec（行を読む。時間の大半）は、まず GPU（DirectML）で読む。幅は RecWidthSteps に切り上げる。
+            // 用意か試しの1回がうまくいかなければ（古い CPU・足りない DLL など）、CPU 実行へ黙って戻す
             InferenceSession? rec = null;
             try
             {
@@ -450,11 +450,11 @@ public sealed class PpOcrEngine : IDisposable
         }
     }
 
-    /// <summary>修正J34: OCR の推論・前処理に使うスレッドの数。全コアを使い切ると、クイックぶん投げのマウス・キーの
+    /// <summary>OCR の推論・前処理に使うスレッドの数。全コアを使い切ると、クイックぶん投げのマウス・キーの
     /// フック（QuickInputWatcher）の応答が遅れ、OS にフックを黙って外されることがあるので、1コアは空けておく</summary>
     internal static int WorkerThreads { get; } = Math.Max(1, Environment.ProcessorCount - 1);
 
-    // 計測（2026-11-18）: 1行ずつ・アリーナ無しが速さと使うメモリの釣り合いが良かった
+    // 1行ずつ・アリーナ無しが速さと使うメモリの釣り合いが良い
     internal static SessionOptions CpuOptions() => new()
     {
         GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
@@ -463,7 +463,7 @@ public sealed class PpOcrEngine : IDisposable
         EnableMemoryPattern = false,
     };
 
-    /// <summary>修正J108: GPU（DirectML。Windows の DirectX 12 が使える GPU なら NVIDIA・AMD・Intel のどれでも）。
+    /// <summary>GPU（DirectML。Windows の DirectX 12 が使える GPU なら NVIDIA・AMD・Intel のどれでも）。
     /// DirectML は「メモリの使い方の先読み」と「並べて動かす」に対応しないので切る（ONNX Runtime の決まり）</summary>
     internal static SessionOptions GpuOptions()
     {
@@ -491,8 +491,8 @@ public sealed class PpOcrEngine : IDisposable
         _rec.Dispose();
     }
 
-    /// <summary>Items は行の箱と文（段落につなぐ時に使う。修正J23）</summary>
-    /// WordBoxes・WordTexts は行にまとめる前の箱と文（位置の反映で行を分け直す時に使う。修正J99）
+    /// <summary>Items は行の箱と文（段落につなぐ時に使う）</summary>
+    /// WordBoxes・WordTexts は行にまとめる前の箱と文（位置の反映で行を分け直す時に使う）
     public sealed record Result(List<string> Lines, double DetMs, double RecMs, int Boxes, List<(Rectangle R, string S)> Items,
         List<Rectangle>? WordBoxes = null, List<string>? WordTexts = null);
 
@@ -503,7 +503,7 @@ public sealed class PpOcrEngine : IDisposable
         double detMs = sw.Elapsed.TotalMilliseconds;
         ct.ThrowIfCancellationRequested();
         sw.Restart();
-        // 修正J40: 全行ぶんの rec の入力（1行 184KB〜1.8MB。どれも大きな物の置き場 LOH）を先に一度に作らず、
+        // 全行ぶんの rec の入力（1行 184KB〜1.8MB。どれも大きな物の置き場 LOH）を先に一度に作らず、
         // WorkerThreads 行ずつ並べて作っては読む。入れ物は ArrayPool から借りて使い回す（Gen2 の GC を減らす）
         var texts = new List<string>(boxes.Count);
         int chunk = Math.Max(1, WorkerThreads);
@@ -549,7 +549,7 @@ public sealed class PpOcrEngine : IDisposable
             p2[i] = DetLut2[rs[j + 2]];
         }
         using var res = _det.Run(new[] { NamedOnnxValue.CreateFromTensor(_detIn, input) });
-        // 修正J40: 出力を配列へ写さず、そのまま読む（res を片づける前に箱を取り終える）
+        // 出力を配列へ写さず、そのまま読む（res を片づける前に箱を取り終える）
         var prob = ((DenseTensor<float>)res.First().AsTensor<float>()).Buffer.Span;
         return PpOcrPost.Boxes(prob, rw, rh, w, h);
     }
@@ -560,7 +560,7 @@ public sealed class PpOcrEngine : IDisposable
         return RunRec(input.Tensor);
     }
 
-    /// <summary>修正J40: rec の入力1行分。中身は ArrayPool から借りた配列で、Dispose で返す</summary>
+    /// <summary>rec の入力1行分。中身は ArrayPool から借りた配列で、Dispose で返す</summary>
     internal sealed class RecInput : IDisposable
     {
         private float[]? _arr;
@@ -589,7 +589,7 @@ public sealed class PpOcrEngine : IDisposable
         if (chh >= cw * 1.5) (crop, cw, chh) = PpOcrPost.Rotate90Ccw(crop, cw, chh); // 縦長は横にして読む（PaddleOCR と同じ）
         int tw = Math.Clamp((int)Math.Ceiling(RecH * (double)cw / chh), 1, RecMaxW);
         int W = Math.Max(RecMinW, tw);
-        if (_bucketRec) W = BucketRecWidth(W);   // 修正J24: GPU の覚える大きさを決まった数にする
+        if (_bucketRec) W = BucketRecWidth(W);   // GPU の覚える大きさを決まった数にする
         lock (_recWidths) _recWidths.Add(W);
         var rs = PpOcrPost.ResizeBilinear(crop, cw, chh, tw, RecH);
         var rec = new RecInput(W);   // 右の余りは 0（PaddleOCR と同じ）
@@ -618,7 +618,7 @@ public sealed class PpOcrEngine : IDisposable
     {
         using var res = _rec.Run(new[] { NamedOnnxValue.CreateFromTensor(_recIn, input) });
         var o = (DenseTensor<float>)res.First().AsTensor<float>();
-        // 辞書とモデルの文字の数がずれると、番号がずれた所から先の字が抜ける（修正J17b）。黙って読み違えない
+        // 辞書とモデルの文字の数がずれると、番号がずれた所から先の字が抜ける。黙って読み違えない
         if (o.Dimensions[2] != Dict.Length)
             throw new OllamaException($"内蔵の OCR の辞書（{Dict.Length}字）とモデル（{o.Dimensions[2]}字）が合いません");
         return PpOcrPost.CtcDecode(o.Buffer.Span, o.Dimensions[1], o.Dimensions[2], Dict);
@@ -631,7 +631,7 @@ internal static class PpOcrPost
 {
     /// <summary>rec.yml の character_dict を読む。[0] は CTC の空き（blank）、末尾に空白を足す（PaddleOCR の use_space_char）。
     /// 比べ方は必ず Ordinal（言語の規則で比べると、半角の濁点「ﾞ」などの行を「  - 」で始まらないと見て
-    /// 一覧をそこで打ち切り、後ろの約900字と空白が抜けた。修正J17b）</summary>
+    /// 一覧をそこで打ち切り、後ろの約900字と空白が抜ける）</summary>
     internal static string[] ParseDict(IEnumerable<string> ymlLines)
     {
         var chars = new List<string> { "" };
@@ -767,7 +767,7 @@ internal static class PpOcrPost
     internal static List<string> GroupLines(List<Rectangle> boxes, List<string> texts) =>
         GroupLineItems(boxes, texts).Select(l => l.S).ToList();
 
-    /// <summary>GroupLines と同じまとめ方で、行の文と、行の箱を全部囲む矩形を返す（修正J23）</summary>
+    /// <summary>GroupLines と同じまとめ方で、行の文と、行の箱を全部囲む矩形を返す</summary>
     internal static List<(Rectangle R, string S)> GroupLineItems(List<Rectangle> boxes, List<string> texts)
     {
         var items = boxes.Zip(texts).Where(p => p.Second.Length > 0)
@@ -789,9 +789,9 @@ internal static class PpOcrPost
             string.Join(" ", l.OrderBy(x => x.R.X).Select(x => x.S)))).ToList();
     }
 
-    /// <summary>修正J109: 検出した文字の四角を、レイアウトのモデルの区画に入れて段落にする（位置の反映の時だけ）。
-    /// 決まりはこれだけ: 四角は「いちばん重なる区画」に入れる（四角の半分以上が重なる時。どこにも入らない四角は、今までの段落のつなぎ＝修正J23 で後ろに足す）。
-    /// 区画の中は今まで通り同じ高さの四角を1行にし（GroupLineItems）、上から順につなぐ（英字どうしは空白、ほかは何も挟まない）。
+    /// <summary>検出した文字の四角を、レイアウトのモデルの区画に入れて段落にする（位置の反映の時だけ）。
+    /// 決まりはこれだけ: 四角は「いちばん重なる区画」に入れる（四角の半分以上が重なる時。どこにも入らない四角は、従来の段落のつなぎで後ろに足す）。
+    /// 区画の中は同じ高さの四角を1行にし（GroupLineItems）、上から順につなぐ（英字どうしは空白、ほかは何も挟まない）。
     /// 表・図などの区画（LayoutRegion.KeepLines）は行をつながず、1行ずつ別のまとまりにする（表の行・列を1つの文にしない）。
     /// 文の無い区画（絵だけなど）は使わない。並びは区画の読む順番（モデルが出す）</summary>
     internal static List<(Rectangle R, string S)> AssignToRegions(List<Rectangle> boxes, List<string> texts, IReadOnlyList<LayoutRegion> regions)
@@ -856,7 +856,7 @@ internal static class PpOcrPost
     private static readonly Regex Latin = new(@"[A-Za-z0-9À-ɏ,'""’”-]", RegexOptions.Compiled);
 
     /// <summary>
-    /// 画面の折り返しで切れた行を、段落の1行につなぐ（修正J23。訳す前の書き起こしだけに使う）。
+    /// 画面の折り返しで切れた行を、段落の1行につなぐ（訳す前の書き起こしだけに使う）。
     /// 内蔵の OCR は画面の見た目の1行を1行で返すので、1つの文が何行にも分かれ、訳（ふつう段落で1行）で上書きすると
     /// 原文の行が下に残っていた。つなぐのは、次の行がすぐ下・同じくらいの高さと左端で、前の行が右端まで届き、
     /// 文の終わりの印で終わらず、次の行が箇条書きで始まらず、つなぎ目の両側が同じ文字の種類（英字どうし・日本語どうし）の時だけ。
@@ -865,7 +865,7 @@ internal static class PpOcrPost
     internal static List<string> JoinParagraphs(List<(Rectangle R, string S)> lines) =>
         JoinParagraphItems(lines).Select(p => p.S).ToList();
 
-    /// <summary>修正J95: JoinParagraphs と同じつなぎ方で、段落の文と、段落の行を全部囲む矩形を返す</summary>
+    /// <summary>JoinParagraphs と同じつなぎ方で、段落の文と、段落の行を全部囲む矩形を返す</summary>
     internal static List<(Rectangle R, string S)> JoinParagraphItems(List<(Rectangle R, string S)> lines)
     {
         var outLines = new List<(Rectangle R, string S)>();

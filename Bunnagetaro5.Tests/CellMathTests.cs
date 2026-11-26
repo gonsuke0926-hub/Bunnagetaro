@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J94: 表のセルの中の数式（\(^{a}\) などの脚注の印・セルの中の式）の区切りとコピーの形</summary>
+/// <summary>表のセルの中の数式（\(^{a}\) などの脚注の印・セルの中の式）の区切りとコピーの形</summary>
 public class CellMathTests
 {
     [Fact]

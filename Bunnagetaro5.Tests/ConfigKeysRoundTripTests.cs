@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>手順30の総点検: 既定の全47キーが「保存・復元」されることを一括で証明する。
+/// <summary>既定の全47キーが「保存・復元」されることを一括で証明する。
 /// 各キーを既定から非既定の値に変えて Save → 新しい ConfigStore で Load し、
 /// 1キー残らず保存したままの JSON で戻ってくることを比べる。
 /// （即反映は使う側の実装保証: trig_* は毎巡回読み直し MainWindow.ReadTrigParams、
@@ -48,9 +48,9 @@ public sealed class ConfigKeysRoundTripTests : IDisposable
         var mutated = new Dictionary<string, string>();
         foreach (var key in keys)
         {
-            // 派生値の2つは単独変更しない（prompt_active は実在のプリセット名に正規化 L374-377、
-            // prompt は選中の1文から常に作り直す L378。いずれも Python版 tw_config と同じ）。
-            if (key == "prompt" || key == "prompt_active" || key == "presets_v5") continue;   // presets_v5: false に戻すと読み直しで引っ越しが再走する（I2）
+            // 派生値の2つは単独変更しない（prompt_active は実在のプリセット名に正規化、
+            // prompt は選中の1文から常に作り直す）。
+            if (key == "prompt" || key == "prompt_active" || key == "presets_v5") continue;   // presets_v5: false に戻すと読み直しで引っ越しが再走する
             store.Root[key] = Mutate(key, store.GetRaw(key));
             mutated[key] = store.GetRaw(key)!.ToJsonString();
         }
@@ -61,7 +61,7 @@ public sealed class ConfigKeysRoundTripTests : IDisposable
         store2.Load();
         foreach (var key in keys)
         {
-            if (key == "prompt" || key == "prompt_active" || key == "presets_v5") continue;   // presets_v5: false に戻すと読み直しで引っ越しが再走する（I2）
+            if (key == "prompt" || key == "prompt_active" || key == "presets_v5") continue;   // presets_v5: false に戻すと読み直しで引っ越しが再走する
             Assert.Equal(mutated[key], store2.GetRaw(key)?.ToJsonString());
         }
 
@@ -86,7 +86,7 @@ public sealed class ConfigKeysRoundTripTests : IDisposable
             string key = kv.Key;
             var expected = kv.Value is null ? "null" : kv.Value.ToJsonString();
             var actual = store.GetRaw(key) is null ? "null" : store.GetRaw(key)!.ToJsonString();
-            // プリセット設定の補完（手順2）で prompts だけ中身が足されることがあるので等値はスキップ
+            // プリセット設定の補完で prompts だけ中身が足されることがあるので等値はスキップ
             if (key == "prompts") continue;
             Assert.Equal(expected, actual);
         }
@@ -101,7 +101,7 @@ public sealed class ConfigKeysRoundTripTests : IDisposable
         if (key == "prompts")
         {
             var na = (JsonArray)v!.DeepClone();
-            // 修正J7: プリセットはいつも自分の "model" を持つ（無いと読み込みでグローバルの model を写す）
+            // プリセットはいつも自分の "model" を持つ（無いと読み込みでグローバルの model を写す）
             na.Add(new JsonObject { ["name"] = "追加", ["text"] = "てきすと", ["use_global"] = true, ["model"] = "added:1b" });
             return na;
         }

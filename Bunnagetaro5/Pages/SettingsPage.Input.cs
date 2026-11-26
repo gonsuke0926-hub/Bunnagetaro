@@ -64,7 +64,7 @@ public partial class SettingsPage
         kqRow.SetBottom(_quickKeyNotice);
 
         _quickNums.Clear();
-        // 最小幅・最小高さもQuickApplyで読み直す値なので、変わった場で本体へ知らせる（A1）
+        // 最小幅・最小高さもQuickApplyで読み直す値なので、変わった場で本体へ知らせる
         var qW = AddNum(null, "四角の最小幅（px）", "quick_min_w", 30, 4000, true, 30,
             () => _cfg.Root, () => NotifyInputChanged(), "QuickWBox");
         var qH = AddNum(null, "四角の最小高さ（px）", "quick_min_h", 30, 4000, true, 30,
@@ -107,7 +107,7 @@ public partial class SettingsPage
         var hkRow = new SettingRow("ぶん投げホットキー", "開いている枠をその場でぶん投げ", hkPanel);
         _hotkeyNotice = MakeBindNotice("HotkeyNotice");
         hkRow.SetBottom(_hotkeyNotice);
-        // 修正J58: 範囲ドラッグのキー（ぶん投げホットキーのすぐ下。同じ「登録」「解除」・同じ表示）
+        // 範囲ドラッグのキー（ぶん投げホットキーのすぐ下。同じ「登録」「解除」・同じ表示）
         _snipKeyBox = new TextBox { Width = 150, IsReadOnly = true, Text = Binding.Label(_cfg.Settings.SnipHotkey), Name = "SnipKeyBox" };
         var skReg = new Button { Content = "登録", Margin = new Thickness(6, 0, 0, 0), Name = "SnipKeyReg" };
         skReg.Click += (_, _) => RegRequest?.Invoke("snip");
@@ -125,12 +125,12 @@ public partial class SettingsPage
             "設定したキー・ボタンはこのアプリが使うので、他のアプリには渡りません\nよく打つキーを単独で当てると打鍵を取ってしまいます"));
     }
 
-    // ================= 入力の「登録」（手順24 / 6.4） =================
+    // ================= 入力の「登録」 =================
     //
     // 欄は読み取り専用で、ページ自体はボタン押下を本体へそのまま流す。実際に
     // 入力を掴むのはMainWindow（低レベルフックで掴まないと他のアプリへ漏れる）。
     // 欄の待ち受け文言や反映後の表示は MainWindow 側が SetBindField/SyncBindFields
-    // で書いてくる（Python版の _bind_field/_sync_bind_fields 相当）。
+    // で書いてくる。
 
     /// <summary>「登録」の押下（"kquick" / "hot" / "snip"）→ MainWindow.BindStart</summary>
     internal Action<string>? RegRequest;

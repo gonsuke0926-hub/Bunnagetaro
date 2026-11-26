@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J112: 区画（マスク）が渡された時点で、文字を待たずに解答欄の窓を出す</summary>
+/// <summary>区画（マスク）が渡された時点で、文字を待たずに解答欄の窓を出す</summary>
 public class LayoutRevealTests : IDisposable
 {
     private readonly string _temp;

@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>異常時の記録（crash.log）と起動時の環境情報（env_info）。手順27＝指示書7.10。</summary>
+/// <summary>異常時の記録（crash.log）と起動時の環境情報（env_info）。</summary>
 public sealed class CrashGuardTests : IDisposable
 {
     private readonly string _dir;

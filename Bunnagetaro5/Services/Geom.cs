@@ -1,15 +1,13 @@
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// クイックぶん投げが使う幾何の小さな道具立て。Python版 tw_input.py の
-/// norm_rect / clamp_to_virtual / cursor_pos の移植（物理px・仮想デスクトップ基準）。
+/// クイックぶん投げが使う幾何の小さな道具立て（物理px・仮想デスクトップ基準）。
 /// 数字だけの話はここで単体に晒し、Win32を呼ぶ所は薄く保つ。
 /// </summary>
 public static class Geom
 {
     /// <summary>
-    /// 2点から (left, top, w, h) 物理px矩形へ。逆方向ドラッグ・零点も吸収
-    /// （Python版 norm_rect と同じ式）
+    /// 2点から (left, top, w, h) 物理px矩形へ。逆方向ドラッグ・零点も吸収する。
     /// </summary>
     public static (int L, int T, int W, int H) NormRect(int x0, int y0, int x1, int y1)
     {
@@ -23,7 +21,7 @@ public static class Geom
     /// <summary>
     /// 仮想デスクトップ（複数モニタ全体）に収まるよう矩形を寄せる。
     /// 幅・高さは仮想画面を越えない。収める場所が無い場合（metricsが0を返す
-    /// 異常環境）はそのまま返して暴走を防ぐ（Python版 clamp_to_virtual と同じ）
+    /// 異常環境）はそのまま返して暴走を防ぐ。
     /// </summary>
     public static (int X, int Y, int W, int H) ClampToVirtual(int x, int y, int w, int h)
         => ClampToVirtual(x, y, w, h,
@@ -45,10 +43,10 @@ public static class Geom
         return (x, y, w, h);
     }
 
-    /// <summary>F31 見た目のための最小の大きさ（枠の太さ×2＋2px）。これより小さいと枠が見えなくなる</summary>
+    /// <summary>見た目のための最小の大きさ（枠の太さ×2＋2px）。これより小さいと枠が見えなくなる</summary>
     public static int QuickMarkerVisualMin(int border) => 2 * Math.Max(1, border) + 2;
 
-    /// <summary>F31 クイックで四角を描いている間のダミー枠の矩形（物理px）。押した点と今のカーソルを対角にした
+    /// <summary>クイックで四角を描いている間のダミー枠の矩形（物理px）。押した点と今のカーソルを対角にした
     /// 四角そのまま（設定の最小幅・高さでは広げない。仮想画面には収める）。小さすぎて見えなくならないよう
     /// 枠の太さ×2＋2px だけは確保する（見た目だけ。判定には使わない）。belowMin は「このまま離すと
     /// 小さすぎて取り消し」（四角の元の大きさが minW/minH 未満）。離した時の判定は QuickThrowController.Release が

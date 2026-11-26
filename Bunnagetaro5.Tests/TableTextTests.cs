@@ -3,10 +3,10 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>表の見つけ方・OTSL と HTML の表の読み（修正I3a）</summary>
+/// <summary>表の見つけ方・OTSL と HTML の表の読み</summary>
 public sealed class TableTextTests
 {
-    // 実物（2026-11-14 この PC の Ollama で取った答え。表の画像は PIL で作った:
+    // 実物（Ollama で取った答え。表の画像は PIL で作った:
     // t1=単純 / t2=左上が空欄＋列結合 / t3=日本語 / t4=行結合）。GLM-OCR は t3 を表にせず文字で返した
     internal const string PaddleT1 = "<fcel>Name<fcel>Qty<fcel>Price<nl><fcel>Apple<fcel>3<fcel>120<nl><fcel>Banana<fcel>12<fcel>80<nl><fcel>Cherry<ecel><fcel>450<nl>";
     internal const string PaddleT2 = "<ecel><fcel>2024<lcel><fcel>2025<nl><ecel><fcel>Q1<fcel>Q2<fcel>Q1<nl><fcel>Sales<fcel>10<fcel>20<fcel>30<nl><fcel>Cost<fcel>5<fcel>6<fcel>7<nl>";

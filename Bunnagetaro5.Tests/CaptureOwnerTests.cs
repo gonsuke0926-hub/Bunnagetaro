@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>F36: メイン窓を最小化してもキャプチャ窓・バー・解答欄が隠れない（Owner を持たない）。</summary>
+/// <summary>メイン窓を最小化してもキャプチャ窓・バー・解答欄が隠れない（Owner を持たない）。</summary>
 public class CaptureOwnerTests : IDisposable
 {
     private readonly string _temp;

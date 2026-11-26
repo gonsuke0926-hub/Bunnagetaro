@@ -8,12 +8,11 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順12: 撮影の下支え（7.3）。画面そのものを見る検査は _check\shot9 で実施
-/// （PROGRESS参照）。ここでは変換・PNG・最小サイズの純粋部分を検証する。
+/// 撮影の下支え。ここでは変換・PNG・最小サイズの純粋部分を検証する。
 /// </summary>
 public class ScreenShotTests
 {
-    /// <summary>BitmapSourceの画素を (B,G,R,A) の並びで読む（手順10確立の BackBuffer 直読し）</summary>
+    /// <summary>BitmapSourceの画素を (B,G,R,A) の並びで読む（BackBuffer 直読し）</summary>
     private static byte[] ReadBgra(BitmapSource src)
     {
         var wb = new WriteableBitmap(src);
@@ -93,6 +92,6 @@ public class ScreenShotTests
     {
         // 待ちの長さは环境（合成の間隔）しだい。例外を上げず制御が戻ることだけ
         Native.WaitScreenSettled(2);
-        Native.WaitScreenSettled(0);   // frames<1 は1回扱い（Python版 max(1,frames)）
+        Native.WaitScreenSettled(0);   // frames<1 は1回扱い
     }
 }

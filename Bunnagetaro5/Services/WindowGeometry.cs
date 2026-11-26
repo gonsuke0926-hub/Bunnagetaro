@@ -3,9 +3,9 @@ using System.Text.RegularExpressions;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// メイン窓の位置・大きさ（6.1）。Python版と同じ "WxH+X+Y"（物理ピクセル）の
-/// 文字列として config の main_geometry に保存する。
-/// Python版 tw_win32.rect_on_monitor 相当の「見えるモニタの上か」判定も含む。
+/// メイン窓の位置・大きさ。"WxH+X+Y"（物理ピクセル）の文字列として
+/// config の main_geometry に保存する。
+/// 「見えるモニタの上か」の判定も含む。
 /// </summary>
 public static class WindowGeometry
 {
@@ -18,7 +18,7 @@ public static class WindowGeometry
     public const int MinW = 640;
     public const int MinH = 480;
 
-    /// <summary>読み取りと最小サイズの下限カットまで。Python版 _restore_main_geometry と同じ</summary>
+    /// <summary>読み取りと最小サイズの下限カットまで</summary>
     public static bool TryParse(string? geo, out Geo g)
     {
         g = default;
@@ -37,7 +37,7 @@ public static class WindowGeometry
     /// <summary>
     /// 窓位置の復元用: 窓全体ではなく「上端の帯の真ん中あたり」がどれかのモニタに
     /// 掛かっているか（物理px）。端が少し掛かるだけだと、掴めず動かせない窓になる。
-    /// 判定できなければ false＝位置はOS任せ（Python版 rect_on_monitor と同じ）
+    /// 判定できなければ false＝位置はOS任せ
     /// </summary>
     public static bool OnMonitor(int x, int y, int w, int h, int grip = 40)
     {

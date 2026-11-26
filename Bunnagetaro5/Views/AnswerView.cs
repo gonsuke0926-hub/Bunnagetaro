@@ -13,11 +13,11 @@ using WpfMath.Controls;
 namespace Bunnagetaro5.Views;
 
 /// <summary>
-/// 解答欄の中身（REFACTOR_ROUND1 1.2）。解答欄(中)の AnswerPanel と帯(外)の AnswerStrip が
+/// 解答欄の中身。解答欄(中)の AnswerPanel と帯(外)の AnswerStrip が
 /// 同じ部品を載せる。本文（式込み）・思考欄・追加の問いの欄・ストリーミングの反映・コピー・見た目の適用。
 /// 窓としての仕事（位置合わせ・リサイズ・透過・影・出し入れ）は持たない。
 /// 本文は読み取り専用の RichTextBox: 選択・Ctrl+C・右クリック「選択部分をコピー」「全文をコピー」。
-/// 本文には LaTeX 式を混ぜられる（手順25）: $...$ は文中、$$..$$・\[..\] は独立行で中央。
+/// 本文には LaTeX 式を混ぜられる: $...$ は文中、$$..$$・\[..\] は独立行で中央。
 /// ストリーミング中は文字で出し、閉じ記号で式に差し替え。表示できない式は元の文字のまま。
 /// 思考欄は本文の下。思考が無い間は畳み、有る間だけ出る。
 /// </summary>
@@ -31,42 +31,42 @@ public partial class AnswerView : UserControl
     private readonly TextBlock _think = new();
     private readonly RichTextBox _body = new();
 
-    // 追加の問いの1行欄（7.6 / tw_panel._make_follow_row）。枠の子なので窓の出し入れ・透明度・色へついてくる
+    // 追加の問いの1行欄。枠の子なので窓の出し入れ・透明度・色へついてくる
     private readonly TextBlock _followLbl = new() { Text = "たずねる" };
     private readonly CheckBox _followChk = new() { Content = "画像も", IsChecked = false };
     private readonly TextBox _followEnt = new();
     private readonly DockPanel _followRow = new();
 
-    /// <summary>今表示している本文の全文（tw_panelのTextの中身相当。差分追加の判定に使う）</summary>
+    /// <summary>今表示している本文の全文（差分追加の判定に使う）</summary>
     private string _model = "";
 
-    /// <summary>J10d: 答えの文（コピー・追加の問いの対手）。画面の _model は、吸い込み中の
+    /// <summary>答えの文（コピー・追加の問いの対手）。画面の _model は、吸い込み中の
     /// 書き起こし文の残りを付けた分だけ長いことがある</summary>
     private string _target = "";
     private readonly List<SuckText.Ghost> _ghosts = new();
     private readonly SuckText.RateMeter _rate = new();
     private bool _tablesAfterSuck;
 
-    /// <summary>今の文書に載っている式込みの区切れ目（手順25。末尾だけの伸びなら
+    /// <summary>今の文書に載っている式込みの区切れ目（末尾だけの伸びなら
     /// 組み直さずAppendTextで速くする）と、式が1つでも載っているかの印</summary>
     private List<MathSeg> _segs = new();
     private bool _docMath;
 
-    // 段落間・行間（F35）とストリーミング追記時の末尾改行状態
+    // 段落間・行間とストリーミング追記時の末尾改行状態
     private const string DisplayMathTag = "dp";
     private double _paraSpacingPx = PanelStyle.DefaultSize * PanelStyle.DefaultParaSpacing;
     private double _displayMathMarginPx = PanelStyle.DefaultSize * PanelStyle.DisplayMathParaSpacing;
     private bool _needNewPara;
     private bool _tailSingleNewline;
 
-    /// <summary>修正I3: 出し終わった答えの表を WPF の表に組み替えた文書か（流している間・組み直しの後は false）</summary>
+    /// <summary>出し終わった答えの表を WPF の表に組み替えた文書か（流している間・組み直しの後は false）</summary>
     private bool _tablesShown;
     private List<AnswerPart>? _tableParts;
 
-    /// <summary>思考欄の自動追従。上へスクロールで止まる（tw_panel._think_follow）</summary>
+    /// <summary>思考欄の自動追従。上へスクロールで止まる</summary>
     private bool _thinkFollow = true;
 
-    /// <summary>解答欄に触れた最後の時刻（手順19の巡回が「自分の表示」と見なす材料）</summary>
+    /// <summary>解答欄に触れた最後の時刻（巡回が「自分の表示」と見なす材料）</summary>
     public DateTime LastInteractUtc { get; private set; } = DateTime.MinValue;
 
     /// <summary>「たずねる」欄の右の余白。窓内パネルの右端には細バーが重なるので広め（18）、帯は6</summary>
@@ -75,7 +75,7 @@ public partial class AnswerView : UserControl
     /// <summary>本文（窓側が余白ドラッグなどの入力を足すため）</summary>
     internal RichTextBox Body => _body;
 
-    /// <summary>テスト用: 「たずねる」欄の書きかけ（H9: 隠しても消えないことの確認）</summary>
+    /// <summary>テスト用: 「たずねる」欄の書きかけ（隠しても消えないことの確認）</summary>
     internal string AskDraftForTest() => _followEnt.Text;
     internal void SetAskDraftForTest(string t) => _followEnt.Text = t;
 
@@ -94,7 +94,7 @@ public partial class AnswerView : UserControl
         _thinkSv.MaxHeight = thinkMaxHeight;
     }
 
-    // ---------------- ログ用（H4a） ----------------
+    // ---------------- ログ用 ----------------
 
     /// <summary>ログのカードの本文に使う時の入口（XAML から作る）。思考欄・たずねる欄は無く、
     /// 色はログの画面に合わせ、高さは中身に伸びる（スクロールバーは出さない）</summary>
@@ -167,7 +167,7 @@ public partial class AnswerView : UserControl
         }
     }
 
-    /// <summary>ログ用の本文の右クリック（H4b）。選んだ所があれば「コピー」（選んだ所だけ）と「答えをすべてコピー」。
+    /// <summary>ログ用の本文の右クリック。選んだ所があれば「コピー」（選んだ所だけ）と「答えをすべてコピー」。
     /// 式の上は式の画像に付けた「LaTeXでコピー」「画像でコピー」が出る</summary>
     private void BuildLogCopyMenu()
     {
@@ -207,16 +207,16 @@ public partial class AnswerView : UserControl
         _model = text;
         _target = text;
         ReplaceDoc(text);   // 前のカードの式・順番待ちはここで外れる（NewDocGen）
-        ApplyTables();      // ログは最初から出来上がった答え（H4a）なので最初から表で出す（I3）
+        ApplyTables();      // ログは最初から出来上がった答えなので最初から表で出す
     }
 
-    /// <summary>本文を組み直すたびに新しい世代にする。前の世代の式の順番待ちは取り消す（H4a。
-    /// 使い回されたカード・画面から外れたカードの式を描く順番待ちに残さない）</summary>
+    /// <summary>本文を組み直すたびに新しい世代にする。前の世代の式の順番待ちは取り消す
+    /// （使い回されたカード・画面から外れたカードの式を描く順番待ちに残さない）</summary>
     private CancellationTokenSource _docCts = new();
 
     private void NewDocGen()
     {
-        _tailMark = null;   // 修正J39: 組み直したら前の文書の印は使えない
+        _tailMark = null;   // 組み直したら前の文書の印は使えない
         _mathImgs.Clear();
         var old = _docCts;
         _docCts = new CancellationTokenSource();
@@ -224,7 +224,7 @@ public partial class AnswerView : UserControl
         old.Dispose();
     }
 
-    /// <summary>細スクロールバー（7.5）。Track地は背景と同化、棒は文字色から作る。
+    /// <summary>細スクロールバー。Track地は背景と同化、棒は文字色から作る。
     /// 既定の17px幅のバーの代わりにこのテンプレを解答欄の中のバー全部へ適用する</summary>
     internal const string SlimSbXaml =
         "<Style TargetType='ScrollBar' " +
@@ -235,7 +235,7 @@ public partial class AnswerView : UserControl
         // 既定テーマの ScrollBar は MinWidth/MinHeight=17 を持つので、8 にするには 0 へ戻す必要がある
         "<Setter Property='MinWidth' Value='0'/>" +
         "<Setter Property='MinHeight' Value='0'/>" +
-        // 縦は幅だけ・横は高さだけ8（両方固定すると縦バーが8px四方になって右端の中央に潰れて出る。D6）
+        // 縦は幅だけ・横は高さだけ8（両方固定すると縦バーが8px四方になって右端の中央に潰れて出る）
         "<Setter Property='Template'>" +
         "<Setter.Value>" +
         "<ControlTemplate TargetType='ScrollBar'>" +
@@ -310,8 +310,7 @@ public partial class AnswerView : UserControl
         _body.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         _body.IsTabStop = false;
         _body.PreviewMouseLeftButtonDown += (_, _) => LastInteractUtc = DateTime.UtcNow;   // 触れた印（余白ドラッグは窓側が足す）
-        // Ctrl+ホイールで富文が拡大縮小する既定は止める（Python版にzoom操作は無い。
-        // ホイールはスクロールに使う）
+        // Ctrl+ホイールで富文が拡大縮小する既定は止める（ホイールはスクロールに使う）
         _body.PreviewMouseWheel += (_, e) =>
         {
             if (Keyboard.Modifiers == ModifierKeys.Control) e.Handled = true;
@@ -326,16 +325,16 @@ public partial class AnswerView : UserControl
                 CopyAnswer(SelectedCopy());
             }
         };
-        // H2: 欄の ActualWidth は縦スクロールバーが出ても変わらず、SizeChanged の時点では見える幅がまだ古い。
+        // 欄の ActualWidth は縦スクロールバーが出ても変わらず、SizeChanged の時点では見える幅がまだ古い。
         // ScrollViewer の見える幅の変化で付け直す
         _body.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(OnBodyScrollChanged));
         BuildCopyMenu();
         Grid.SetRow(_body, 0);
         grid.Children.Add(_body);
-        BuildLayoutCanvas(grid);   // 修正J97: 位置の反映の描き板（本文の上に重ねる）
+        BuildLayoutCanvas(grid);   // 位置の反映の描き板（本文の上に重ねる）
 
         // 思考欄: 本文の下。無い間は畳む。それ自身の内でスクロールし、
-        // 上へスクロールすると自動追従が止まる（tw_panel._think_scroll_wheel系）
+        // 上へスクロールすると自動追従が止まる
         _thinkSep.Height = 1;
         _thinkSep.Margin = new Thickness(8, 0, 8, 0);
         _thinkSep.Visibility = Visibility.Collapsed;
@@ -360,8 +359,8 @@ public partial class AnswerView : UserControl
         Grid.SetRow(_thinkSv, 2);
         grid.Children.Add(_thinkSv);
 
-        // 追加の問い（7.6）: 枠の中の一番下。Enterで送り、Escで欄を空にする。
-        // 窓内パネルの右端には細バーが重なるので右の余白は広めに取る（tw_panelと同じ）
+        // 追加の問い: 枠の中の一番下。Enterで送り、Escで欄を空にする。
+        // 窓内パネルの右端には細バーが重なるので右の余白は広めに取る
         BuildFollowRow();
         Grid.SetRow(_followRow, 3);
         grid.Children.Add(_followRow);
@@ -371,7 +370,7 @@ public partial class AnswerView : UserControl
     }
 
 
-    /// <summary>追加の問いの1行欄を組み立てる（tw_panel._make_follow_row）。
+    /// <summary>追加の問いの1行欄を組み立てる。
     /// 左に「たずねる」、右に □「画像も」（既定OFF＝前の答えの文字だけでたずねる）、
     /// 真ん中の欄に書いた文をそのままAIへ送る。決まり文句は付かない。</summary>
     private void BuildFollowRow()
@@ -392,7 +391,7 @@ public partial class AnswerView : UserControl
         // 欄の操作は解答欄に触れたこととして数える（自動トリガの自己発火防止の手がかり）
         _followEnt.PreviewKeyDown += Follow_Ent_KeyDown;
         // 日本語入力の未確定文字は WPF の TextBox が標準で欄の中へ出す
-        // （tw_panelの comp 張替え.polling は要らない。色と字の大きさは ApplyStyle で揃える）
+        // （色と字の大きさは ApplyStyle で揃える）
     }
 
     private void Follow_Ent_KeyDown(object sender, KeyEventArgs e)
@@ -412,7 +411,7 @@ public partial class AnswerView : UserControl
         }
     }
 
-    /// <summary>右クリックメニュー（tw_panel._popup_copy_menu）。選択無しは上だけ出ない</summary>
+    /// <summary>右クリックメニュー。選択無しは上だけ出ない</summary>
     private void BuildCopyMenu()
     {
         var miSel = new MenuItem { Header = "選択部分をコピー (Ctrl+C)" };
@@ -426,7 +425,7 @@ public partial class AnswerView : UserControl
         _body.ContextMenu = menu;
     }
 
-    /// <summary>設定（色・透明度・フォント）を反映（tw_panel._apply_panel_style）。
+    /// <summary>設定（色・透明度・フォント）を反映。
     /// alpha は枠と「たずねる」欄の地色の不透明度、sbAlpha は細バーの走（Track）の地色。
     /// 解答欄(中)は透けた地色（alpha=overlay_alpha、sbAlpha=その半分）、帯(外)は不透明（どちらも255）。
     /// 適用も自分の表示変化（genを足す）</summary>
@@ -448,7 +447,7 @@ public partial class AnswerView : UserControl
 
         _rootBg = _layoutItemMode ? Brushes.Transparent : Frozen(Color.FromArgb(alpha, bgc.R, bgc.G, bgc.B));
         _layoutTextBg = st.LayoutTextBg;
-        ApplyRootBg();   // 修正J103: 位置の反映で「文字の所だけ地」の時は全体の地を透明に
+        ApplyRootBg();   // 位置の反映で「文字の所だけ地」の時は全体の地を透明に
         _body.Foreground = Frozen(fgc);
         _think.Foreground = Frozen(thc);
         // 枠の区切り: 文字色を薄めた1pxの線（TkのRIDGE枠の代わり）
@@ -473,9 +472,9 @@ public partial class AnswerView : UserControl
         _think.LineStackingStrategy = LineStackingStrategy.MaxHeight;
         _think.LineHeight = lh;
         ApplyParagraphMargins();
-        ApplyLayoutItemsStyle();   // 修正J115: 区画ごとの RichTextBox へも色・字体・変換設定を反映
-        PlaceLayout();   // 修正J97: 字体・大きさ・色が変わったら位置の反映も置き直す
-        // 追加の問い（tw_panel._style_follow_row）: 本文よりひとまわり小さく、
+        ApplyLayoutItemsStyle();   // 区画ごとの RichTextBox へも色・字体・変換設定を反映
+        PlaceLayout();   // 字体・大きさ・色が変わったら位置の反映も置き直す
+        // 追加の問い: 本文よりひとまわり小さく、
         // ラベルと□は思考欄と同じ薄色、打つ文字は本文と同じ色・地色は枠と同じ
         double small = Math.Max(8, st.FontSize - 2);
         _followLbl.FontFamily = ff;
@@ -485,14 +484,14 @@ public partial class AnswerView : UserControl
         _followChk.FontSize = small;
         _followEnt.FontSize = small;
         _followLbl.Foreground = Frozen(thc);
-        // 「画像も」(E7): 「たずねる」と同じ薄色。枠・チェックは QuietCheckBox が Foreground で描く
+        // 「画像も」: 「たずねる」と同じ薄色。枠・チェックは QuietCheckBox が Foreground で描く
         _followChk.Foreground = Frozen(thc);
         _followEnt.Background = Frozen(Color.FromArgb(alpha, bgc.R, bgc.G, bgc.B));
         _followEnt.Foreground = Frozen(fgc);
         _followEnt.CaretBrush = Frozen(fgc);
         _followEnt.BorderBrush = Frozen(thc);
-        // 文字色・大きさ・変換設定が変わったら式/表を再構築（手順25・I11）。
-        // 修正J24b: 見た目に効く値が前と同じなら組み直さない。プリセットの切り替えなどで、何も変わらないのに
+        // 文字色・大きさ・変換設定が変わったら式/表を再構築。
+        // 見た目に効く値が前と同じなら組み直さない。プリセットの切り替えなどで、何も変わらないのに
         // 解答欄・外の解答欄とも何度も呼ばれ、式の多い答えを毎回組み直して画面のスレッドが10秒ほど塞がっていた
         string key = string.Join("|", ff.Source, st.FontSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
             fgc.ToString(), bgc.ToString(), alpha.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -514,10 +513,10 @@ public partial class AnswerView : UserControl
         _host.TouchPanelGen();
     }
 
-    /// <summary>修正J24b: 前に式・表を組み直した時の見た目の値（同じなら組み直さない）</summary>
+    /// <summary>前に式・表を組み直した時の見た目の値（同じなら組み直さない）</summary>
     private string? _lastStyleKey;
 
-    /// <summary>テスト用: ApplyStyle で式・表を組み直した回数（修正J24b）</summary>
+    /// <summary>テスト用: ApplyStyle で式・表を組み直した回数</summary>
     internal int StyleRebuilds { get; private set; }
 
     internal static Color ColorOf(string hex, byte r, byte g, byte b) =>
@@ -530,7 +529,7 @@ public partial class AnswerView : UserControl
         return br;
     }
 
-    /// <summary>新しいぶん投げの開始。本文・思考を空にして上から（tw_panelのcard開始 yview 0）</summary>
+    /// <summary>新しいぶん投げの開始。本文・思考を空にして上から</summary>
     public void ResetRun()
     {
         StopSuck();
@@ -538,7 +537,7 @@ public partial class AnswerView : UserControl
         _rate.Reset();
         _model = "";
         ReplaceDoc("");
-        SetLayout(null);   // 修正J97: 新しいぶん投げは位置の反映なしから
+        SetLayout(null);   // 新しいぶん投げは位置の反映なしから
         _think.Text = "";
         _thinkSv.Visibility = Visibility.Collapsed;
         _thinkSep.Visibility = Visibility.Collapsed;
@@ -547,7 +546,7 @@ public partial class AnswerView : UserControl
     }
 
     /// <summary>本文のdelta（これまでの全文）。前回の続きなら末尾だけ足す、
-    /// 食い違ったら見ている位置を保ったまま全文置き換（tw_panel.replace_text_keep_view）</summary>
+    /// 食い違ったら見ている位置を保ったまま全文置き換</summary>
     public void ApplyBody(string partial)
     {
         if (partial.Length == 0 || partial == _target) return;
@@ -555,14 +554,14 @@ public partial class AnswerView : UserControl
         _host.TouchPanelGen();
     }
 
-    /// <summary>J10d: 答えの文を今の文にする。行の後ろの英文が外れた所は、画面では吸い込ませながら消す</summary>
+    /// <summary>答えの文を今の文にする。行の後ろの英文が外れた所は、画面では吸い込ませながら消す</summary>
     private void SetTarget(string next)
     {
         long now = WindowMotion.Clock();
         if (!_logMode && !_layoutItemMode && IsVisible)
         {
             _rate.Observe(_target, next, now);
-            // 修正J39: 前の文の続き（末尾に足しただけ）なら外れた行は無いので、全文を行に分けて比べない
+            // 前の文の続き（末尾に足しただけ）なら外れた行は無いので、全文を行に分けて比べない
             var removed = StreamText.IsContinuation(_target, next)
                 ? new List<(int Line, string Base, string Suffix)>() : SuckText.Removed(_target, next);
             foreach (var (line, bas, suffix) in removed)
@@ -593,16 +592,16 @@ public partial class AnswerView : UserControl
         else WindowMotion.Cancel(_ghosts);
     }
 
-    /// <summary>修正J113: 位置の反映表示中に、見えない _body（RichTextBox）の更新を省いた印。
+    /// <summary>位置の反映表示中に、見えない _body（RichTextBox）の更新を省いた印。
     /// 位置の反映を外す時に _model から同期する</summary>
     private bool _bodyDirty;
 
-    /// <summary>J10d: 今の文＋吸い込み中の残りを画面に出す（見えている文字 _model だけが変わる）</summary>
+    /// <summary>今の文＋吸い込み中の残りを画面に出す（見えている文字 _model だけが変わる）</summary>
     private void RenderShown(long now)
     {
         string shown = SuckText.Compose(_target, _ghosts, now);
         if (shown == _model) return;
-        // 修正J113: 位置の反映で表示できる間は、見えない _body の全文組み直し（ReplaceDoc）を省く
+        // 位置の反映で表示できる間は、見えない _body の全文組み直し（ReplaceDoc）を省く
         if (CanShowLayoutFor(shown))
         {
             _model = shown;
@@ -626,7 +625,7 @@ public partial class AnswerView : UserControl
             _body.ScrollToVerticalOffset(keep);   // 途中→同じ行
         }
         if (wasBottom) _body.ScrollToEnd();        // 一番下→一番下追従
-        RefreshLayout();                           // 修正J97
+        RefreshLayout();
     }
 
     private void OnSuckDone()
@@ -636,13 +635,13 @@ public partial class AnswerView : UserControl
         if (_tablesAfterSuck)
         {
             _tablesAfterSuck = false;
-            if (LayoutShown) ShowFinalLayoutItems();   // 修正J117: 吸い込み完了後に各区画の表変換等を適用
+            if (LayoutShown) ShowFinalLayoutItems();   // 吸い込み完了後に各区画の表変換等を適用
             else ApplyTables();
         }
         _host.TouchPanelGen();
     }
 
-    /// <summary>J10d: 吸い込みを打ち切って、今の文だけにする</summary>
+    /// <summary>吸い込みを打ち切って、今の文だけにする</summary>
     private void StopSuck()
     {
         WindowMotion.Cancel(_ghosts);
@@ -658,7 +657,7 @@ public partial class AnswerView : UserControl
     internal string ShownText => _model;
 
     /// <summary>思考のdelta（最後の4000字だけ出す）。空なら欄を畳む。
-    /// 表示そのものは本文deltaが出すので、ここは窓を出さない（tw_panelと同じ）</summary>
+    /// 表示そのものは本文deltaが出すので、ここは窓を出さない</summary>
     public void ApplyThink(string think)
     {
         string tail = StreamText.ThinkTail(think);
@@ -678,30 +677,30 @@ public partial class AnswerView : UserControl
 
     /// <summary>完成の仕上げ（done ok・keep_view=True）。ストリーの続きなら末尾だけ、
     /// 違う文なら見ていた位置を保って置き換。思考欄は畳む。
-    /// 書き起こし文の残りが外れる時は吸い込ませ、表の組み替えは吸い込みの後（J10d）</summary>
+    /// 書き起こし文の残りが外れる時は吸い込ませ、表の組み替えは吸い込みの後</summary>
     public void ShowFinal(string text)
     {
         if (text.Length > 0 && text != _target) SetTarget(text);
         if (_ghosts.Count > 0) _tablesAfterSuck = true;
-        else if (LayoutShown) ShowFinalLayoutItems();   // 修正J115・J117: 吸い込み中なら完了後、終わっていればすぐ各区画へ適用
-        else ApplyTables();    // 出し終わった今だけ、答えの中の表を表に組み替える（I3）
+        else if (LayoutShown) ShowFinalLayoutItems();   // 吸い込み中なら完了後、終わっていればすぐ各区画へ適用
+        else ApplyTables();    // 出し終わった今だけ、答えの中の表を表に組み替える
         ApplyThink("");   // doneには思考が無いので欄を畳む
         _host.TouchPanelGen();
     }
 
-    /// <summary>ぶん投げ完了後の本文（テスト・診断用）。吸い込み中でも答えの文（J10d）</summary>
+    /// <summary>ぶん投げ完了後の本文（テスト・診断用）。吸い込み中でも答えの文</summary>
     public string ModelText => _target;
 
     /// <summary>思考欄の今の文字（空なら畳まれている）</summary>
     public string ThinkText => _think.Text;
 
     /// <summary>別の解答欄（窓に重ねる⇔外の解答欄の切替前の側）に出ていた答えをそのまま写す。
-    /// 本文・思考・追加の問いの入力（F6）</summary>
+    /// 本文・思考・追加の問いの入力</summary>
     internal void AdoptFrom(AnswerView o)
     {
-        SetLayout(o._layout);   // 修正J97: 位置の反映も写す
+        SetLayout(o._layout);   // 位置の反映も写す
         if (o.ModelText.Length > 0 && o.ModelText != _target) ApplyBody(o.ModelText);
-        if (o._tablesShown || o._otslHtmlShown) ApplyTables();   // 出し終わっていた答えは表（か HTML の文字）のまま写す（I3）
+        if (o._tablesShown || o._otslHtmlShown) ApplyTables();   // 出し終わっていた答えは表（か HTML の文字）のまま写す
         ApplyThink(o.ThinkText);
         _followEnt.Text = o._followEnt.Text;
         _followChk.IsChecked = o._followChk.IsChecked;
@@ -717,7 +716,7 @@ public partial class AnswerView : UserControl
         _model = "";
         _bodyDirty = false;
         ReplaceDoc("");
-        SetLayout(null);   // 修正J97
+        SetLayout(null);
     }
 
     private bool AtBottom() =>
@@ -736,7 +735,7 @@ public partial class AnswerView : UserControl
         _segs = SplitMath(text);
         _docMath = _segs.Exists(x => x.Kind != MathSegKind.Text);
         // 式が載った文書だけ、埋め込みUI（FormulaControl）への入力を生かす。
-        // 式の右クリックメニュー（手順26）に必要。無い間は従来通り完全に文字扱い
+        // 式の右クリックメニューに必要。無い間は従来通り完全に文字扱い
         _body.IsDocumentEnabled = _docMath;
         if (!_docMath)
         {
@@ -747,7 +746,7 @@ public partial class AnswerView : UserControl
         BuildMathDoc();
     }
 
-    /// <summary>ストリーの末尾足し（手順25）。閉じ記号待ちの文字列が続くだけ
+    /// <summary>ストリーの末尾足し。閉じ記号待ちの文字列が続くだけ
     /// （区切れ目の末尾Textが伸びただけ）なら文書を組み直さず追記。
     /// 閉じ記号が来て式に差し替わる段だけ一度組み直す</summary>
     private void AppendBody(string add)
@@ -765,7 +764,7 @@ public partial class AnswerView : UserControl
             _segs = ns;
             return;
         }
-        // 修正J39: 閉じ記号が来て区切れ目が変わっても、前の方が同じなら末尾だけ組み直す
+        // 閉じ記号が来て区切れ目が変わっても、前の方が同じなら末尾だけ組み直す
         if (_docMath && TryRebuildFromMark(ns)) return;
         NewDocGen();
         _body.Document.Blocks.Clear();
@@ -773,7 +772,7 @@ public partial class AnswerView : UserControl
         _tailSingleNewline = false;
         _segs = ns;
         _docMath = ns.Exists(x => x.Kind != MathSegKind.Text);
-        _body.IsDocumentEnabled = _docMath;   // 式の右クリック入力（手順26）
+        _body.IsDocumentEnabled = _docMath;   // 式の右クリック入力
         if (!_docMath)
         {
             AppendPlainText(_model);
@@ -788,7 +787,7 @@ public partial class AnswerView : UserControl
         AppendTextSegment(text, ref curPara, ref _needNewPara, ref _tailSingleNewline);
     }
 
-    /// <summary>改行1つ（\n）は同じ段落内の LineBreak、空行（\n\n 以上）だけを段落の切れ目にする（F35）。
+    /// <summary>改行1つ（\n）は同じ段落内の LineBreak、空行（\n\n 以上）だけを段落の切れ目にする。
     /// 空の段落は作らない。ストリーミング中の書き足しでも同じ規則になる</summary>
     private void AppendTextSegment(string text, ref Paragraph? curPara, ref bool needNewPara, ref bool tailSingleNewline)
     {
@@ -867,7 +866,7 @@ public partial class AnswerView : UserControl
 
     /// <summary>式込みの本文を組み直す。文中の式は本文の行の中へ InlineUIContainer、
     /// 独立行の式（$$..$$・\[..\]）は行を分けて中央寄せ。色・字の大きさは
-    /// 解答欄に合わせる（指示書25手順）。表示できない式はRunで原文字のまま</summary>
+    /// 解答欄に合わせる。表示できない式はRunで原文字のまま</summary>
     private void BuildMathDoc()
     {
         Paragraph? curPara = null;
@@ -877,7 +876,7 @@ public partial class AnswerView : UserControl
         ApplyParagraphMargins();
     }
 
-    /// <summary>修正J39: 区切れ目の列の「最後の Text の手前」（最後が式なら末尾）の文書の状態。
+    /// <summary>区切れ目の列の「最後の Text の手前」（最後が式なら末尾）の文書の状態。
     /// ストリーミングで閉じ記号が来て区切れ目が変わっても、そこまでの区切れ目が同じなら、
     /// 文書を全部組み直さず、ここまで戻して残りだけ組み足す（式・文が多い長い答えで1回ごとに全部作り直していた）</summary>
     private sealed class TailMark
@@ -908,7 +907,7 @@ public partial class AnswerView : UserControl
         };
     }
 
-    /// <summary>修正J39: 印の所まで文書を戻し、ns の残りだけ組み足す。使えない時は false（呼び手が全部組み直す。
+    /// <summary>印の所まで文書を戻し、ns の残りだけ組み足す。使えない時は false（呼び手が全部組み直す。
     /// 途中まで戻した後に false でも、呼び手が Blocks.Clear() から作り直すので見た目は壊れない）</summary>
     private bool TryRebuildFromMark(List<MathSeg> ns)
     {
@@ -939,7 +938,7 @@ public partial class AnswerView : UserControl
         return true;
     }
 
-    /// <summary>markBase: 0 以上なら、最後の Text の手前（最後が式なら末尾）に修正J39 の印を付ける（segs[0] の番号）</summary>
+    /// <summary>markBase: 0 以上なら、最後の Text の手前（最後が式なら末尾）に印を付ける（segs[0] の番号）</summary>
     private void AddSegs(List<MathSeg> segs, ref Paragraph? curPara, int markBase = -1)
     {
         var doc = _body.Document;
@@ -997,7 +996,7 @@ public partial class AnswerView : UserControl
                 curPara.Inlines.Add(item);
                 if (MathRenderer.Active)
                 {
-                    // 修正J48: 文中の式の直後に、行の下を広げるつっかえ棒（描き終わる前は高さ0。差し替え時に合わせる）
+                    // 文中の式の直後に、行の下を広げるつっかえ棒（描き終わる前は高さ0。差し替え時に合わせる）
                     curPara.Inlines.Add(MakeMathSpacer());
                     if (item is InlineUIContainer { Child: SnapImage sim } && _natSizes.TryGetValue(sim, out var n)) ApplyFit(sim, n);
                 }

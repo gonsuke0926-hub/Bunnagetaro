@@ -10,7 +10,7 @@ using System.Windows.Media.Imaging;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 分析・model調整用のアーカイブ（WPF_PORT_SPEC 6章「記録」/ Python版 tw_shots.py）。
+/// 分析・model調整用のアーカイブ。
 /// 翻訳1件ごとに、撮ったままの画像（-raw.png）、実際にmodelへ送ったサイズ（-send.png）、
 /// その1件のメタ情報（.json）を shots フォルダへ自動で書き出す。
 /// entries.json 側の掃除とは別物で、ここでは**削除しない**。
@@ -18,7 +18,7 @@ namespace Bunnagetaro5.Services;
 /// </summary>
 public static class ShotArchive
 {
-    /// <summary>本体が起動時に代入する（Python版 APP_VERSION と同じ口）。</summary>
+    /// <summary>本体が起動時に代入する。</summary>
     public static string AppVersion = "";
 
     private static readonly object MiLock = new();
@@ -39,7 +39,7 @@ public static class ShotArchive
             raw = Environment.ExpandEnvironmentVariables(raw); // expandvars（~ は Windows に無い）
         string baseDir = raw.Length > 0 ? raw : paths.DefaultShotsDir;
         try { Directory.CreateDirectory(baseDir); }
-        catch (Exception) { /* 作れなくても呼び手が握る（Python版も pass） */ }
+        catch (Exception) { /* 作れなくても呼び手が握る */ }
         return baseDir;
     }
 
@@ -107,8 +107,8 @@ public static class ShotArchive
     }
 
     /// <summary>Ollama側が持つmodelの事実（quant・パラメータ数・family・対応context）。
-    /// modelごとに一度だけ引いて cache する（Python版 model_info）。
-    /// workerから同期で呼ぶ前提（翻訳を止えないため失敗は model_info_error に入れる）。</summary>
+    /// modelごとに一度だけ引いて cache する。
+    /// workerから同期で呼ぶ前提（翻訳を止めないため失敗は model_info_error に入れる）。</summary>
     public static Dictionary<string, object?> ModelInfo(JsonObject? cfg)
         => ModelInfoAsync(cfg).GetAwaiter().GetResult();
 
@@ -121,7 +121,7 @@ public static class ShotArchive
         if (mn is not null && mn.GetValueKind() == JsonValueKind.String)
             model = (mn.GetValue<string>() ?? "").Trim();
         if (model.Length == 0) return new Dictionary<string, object?>();
-        // 修正J17: 内蔵の OCR は Ollama に問い合わせない
+        // 内蔵の OCR は Ollama に問い合わせない
         if (BuiltinOcr.IsBuiltin(model)) return new Dictionary<string, object?> { ["model"] = model, ["builtin"] = true };
         lock (MiLock)
         {
@@ -223,8 +223,7 @@ public static class ShotArchive
         }
     }
 
-    /// <summary>このアプリとPCの状勢。modelの比較は環境が変わると読めない所以要因。
-    /// python/pillow/requests の行は .NET 版では dotnet 一行に置き換え（DECISIONS.md）。</summary>
+    /// <summary>このアプリとPCの環境情報。modelの比較は環境が変わると条件が読めなくなるため記録する（ランタイムは dotnet として記録）。</summary>
     public static Dictionary<string, object?> EnvInfo()
     {
         if (_envCache is not null) return new Dictionary<string, object?>(_envCache);

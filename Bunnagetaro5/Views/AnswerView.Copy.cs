@@ -12,12 +12,12 @@ using WpfMath.Controls;
 
 namespace Bunnagetaro5.Views;
 
-/// <summary>解答欄のコピー（文・表・式の選択コピーと全文コピー）（AnswerView を分けたもの。修正J43）</summary>
+/// <summary>解答欄のコピー（文・表・式の選択コピーと全文コピー）（AnswerView を分けたもの）</summary>
 public partial class AnswerView
 {
     // ---------------- コピー ----------------
 
-    /// <summary>LaTeX のコピーの形（F13。設定 latex_copy。ApplyStyle で更新）</summary>
+    /// <summary>LaTeX のコピーの形（設定 latex_copy。ApplyStyle で更新）</summary>
     private LatexCopyForm _copyForm = LatexCopyForm.Plain;
     private bool _convertOtslTable = true;
     private bool _convertHtmlTable = true;
@@ -25,7 +25,7 @@ public partial class AnswerView
     private bool _otslHtmlShown;
     private bool _convertLatexMath = true;
 
-    /// <summary>本文を文字と式へ。描く用の式（Tex）の式番号 \tag は式の右に離す（修正J93。Raw はコピー用にそのまま）</summary>
+    /// <summary>本文を文字と式へ。描く用の式（Tex）の式番号 \tag は式の右に離す（Raw はコピー用にそのまま）</summary>
     private List<MathSeg> SplitMath(string text) =>
         _convertLatexMath ? MathText.WithDisplayTags(MathText.Split(text)) : [new MathSeg(MathSegKind.Text, text, "")];
 
@@ -38,7 +38,7 @@ public partial class AnswerView
     private string SelectedText() => SelectedCopy().Text;
 
     /// <summary>選んだ所のコピーの中身（文字と、表が含まれていれば HTML）。
-    /// 表を一部だけ選んだ時は、選んだ範囲にかかるセルを含む行・列の長方形だけを表として入れる（I3）</summary>
+    /// 表を一部だけ選んだ時は、選んだ範囲にかかるセルを含む行・列の長方形だけを表として入れる</summary>
     private (string Text, string? Html) SelectedCopy()
     {
         if (_body.Selection.IsEmpty) return ("", null);
@@ -76,7 +76,7 @@ public partial class AnswerView
             }
         }
         Flush();
-        var (text, html) = TableText.ToClipboard(parts, ApplyCopyFormIfEnabled, _convertLatexMath);   // 修正J94: セルの中の式も
+        var (text, html) = TableText.ToClipboard(parts, ApplyCopyFormIfEnabled, _convertLatexMath);   // セルの中の式も
         return (text, html);
     }
 
@@ -115,7 +115,7 @@ public partial class AnswerView
         return new TablePart(g.Slice(r0, r1, c0, c1), "");
     }
 
-    /// <summary>式付き文書の選択範囲を LaTeX 文字列として拾う（手順26）。
+    /// <summary>式付き文書の選択範囲を LaTeX 文字列として拾う。
     /// 通常の Text は InlineUIContainer の中を空文字にするので、式は
     /// $ 付きの原文字（Tag）へ置き換える。段落の区切りは通常の Text と
     /// 同じ \r\n。式は丸ごと選択（範囲が少し触れていれば原文字が入る）</summary>
@@ -161,7 +161,7 @@ public partial class AnswerView
     private string FullText() => FullCopy().Text;
 
     /// <summary>「答えをすべてコピー」の中身。答えに表（OTSL・HTML の table）があれば、文字（タブ区切り）と
-    /// HTML の両方を返す。表が無ければ今まで通り文字だけ（I3）</summary>
+    /// HTML の両方を返す。表が無ければ今まで通り文字だけ</summary>
     private (string Text, string? Html) FullCopy()
     {
         string all = _target.Trim();
@@ -172,7 +172,7 @@ public partial class AnswerView
         {
             var parts = TableText.Parse(all, null, _convertOtslTable, _convertHtmlTable);
             if (TableText.HasTable(parts))
-                return TableText.ToClipboard(parts, ApplyCopyFormIfEnabled, _convertLatexMath);   // 修正J94
+                return TableText.ToClipboard(parts, ApplyCopyFormIfEnabled, _convertLatexMath);
         }
         return (FullTextPlain(), null);
     }
@@ -180,8 +180,8 @@ public partial class AnswerView
     private string FullTextPlain()
     {
         // 式は文書のTextにlatexの文字として出てこない（InlineUIContainerの中は
-        // 空扱い）。全文コピーは $ 付きの元の文そのもの（手順26の「普通に
-        // コピー=LaTeXの文字列」の約束もこれで満たす）
+        // 空扱い）。全文コピーは $ 付きの元の文そのもの（「普通に
+        // コピー=LaTeXの文字列」の仕様もこれで満たす）
         return ApplyCopyFormIfEnabled(_target.Trim());
     }
 

@@ -224,8 +224,7 @@ public partial class SettingsPage
 
     private bool _committingUrl;
 
-    /// <summary>URL欄の確定。Python版 _commit_settings の base_url 節と同じ段取り
-    /// （空→既定、localhost以外への変える前に確認、壊れたURLは保存しない）。</summary>
+    /// <summary>URL欄の確定（空→既定、localhost以外へ変える前に確認、壊れたURLは保存しない）。</summary>
     private void CommitUrl()
     {
         if (_committingUrl) return;
@@ -298,7 +297,7 @@ public partial class SettingsPage
             var names = new List<string>(info.Keys);
             var eff = _cfg.EffectiveConfig();
             var model = eff.TryGetPropertyValue("model", out var mn) ? ConfigStore.NodeToStr(mn) : "";
-            // vision対応の看破は手順8（モデル情報を見る）で入れる
+            // vision対応の判定（モデル情報を見る）
             if (!OllamaClient.ModelInstalled(model, names))
             {
                 var heads = string.Join(", ",
@@ -342,7 +341,7 @@ public partial class SettingsPage
             if (cts.IsCancellationRequested) return;
             var names = info.Keys.ToList();
             names.Sort(StringComparer.Ordinal);
-            // 導入済み一覧をsettingsへ控える（生成のモデル欄は手順7。同じ並びなら書かない）
+            // 導入済み一覧をsettingsへ控える（同じ並びなら書かない）
             RememberModelList(names);
             ReloadModelList();
             SaveSoon();
@@ -368,7 +367,7 @@ public partial class SettingsPage
     }
 
     /// <summary>モデル欄の候補: 導入済み Ollama モデル一覧（model_list）。
-    /// 修正J27: 内蔵の OCR は「ぶん投げ方」へ移したため AI モデル一覧には混ぜない</summary>
+    /// 内蔵の OCR は「ぶん投げ方」へ移したため AI モデル一覧には混ぜない</summary>
     private List<string> ModelChoices() =>
         (_cfg.Settings.ModelList as JsonArray)?
             .Select(x => S(x)).Where(x => x.Trim() != "" && !BuiltinOcr.IsBuiltin(S(x))).ToList() ?? new List<string>();

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>手順21: 割り当て文字列（tw_input.py の binding 関数群）</summary>
+/// <summary>割り当て文字列</summary>
 public class BindingTests
 {
     [Fact]

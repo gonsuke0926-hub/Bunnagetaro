@@ -7,7 +7,7 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
-        <!-- 履歴カード（6.3） -->
+        <!-- 履歴カード -->
         <DataTemplate DataType="{x:Type pages:LogCardVm}">
             <Border Style="{StaticResource Card}" Margin="6,4">
                 <Border.ContextMenu>
@@ -34,7 +34,7 @@
                                    Visibility="{Binding IsPending, Converter={StaticResource BoolToVis}}"/>
                     </StackPanel>
 
-                    <!-- 2行目: 左サムネイル / 右本文（F14: コピーボタンは無くし、右クリックでコピー） -->
+                    <!-- 2行目: 左サムネイル / 右本文（コピーボタンは無くし、右クリックでコピー） -->
                     <Grid Grid.Row="1" Margin="0,8,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -62,9 +62,9 @@
                             </Grid>
                         </Border>
 
-                        <!-- H4a: 本文は解答欄と同じ AnswerView（式は画像・段落の間・行間）。色はログの画面に合わせ、
-                             高さは中身に伸びる。選択してコピーできる（右クリックは H4b） -->
-                        <!-- J16: たたんでいる間は 10 行分の高さにそろえる（はみ出しは切って下を薄く、押すと開く） -->
+                        <!-- 本文は解答欄と同じ AnswerView（式は画像・段落の間・行間）。色はログの画面に合わせ、
+                             高さは中身に伸びる。選択してコピーできる -->
+                        <!-- たたんでいる間は 10 行分の高さにそろえる（はみ出しは切って下を薄く、押すと開く） -->
                         <Grid Grid.Column="1" VerticalAlignment="Top">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -101,7 +101,7 @@
     </UserControl.Resources>
 
     <Grid>
-        <!-- 6.3 の VirtualizingStackPanel + ScrollUnit=Pixel。仮想化を効かせるには
+        <!-- VirtualizingStackPanel + ScrollUnit=Pixel。仮想化を効かせるには
              CanContentScroll=True が必須（False だと仮想化が無効になり全カードが常に実体化される）。
              ピクセル単位のスクロールは VirtualizingPanel.ScrollUnit="Pixel" で得る -->
         <ListBox x:Name="Lst" ItemsSource="{Binding}"

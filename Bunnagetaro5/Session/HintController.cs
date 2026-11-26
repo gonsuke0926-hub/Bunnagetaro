@@ -4,13 +4,12 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Session;
 
 /// <summary>
-/// 窓を開いた直後の案内（A3・tw_overlay._show_hint / _hide_hint）を担当する。
-/// CaptureSession から分割（段階4・整理）。
+/// 窓を開いた直後の案内を担当する。
 /// </summary>
 internal sealed class HintController
 {
-    /// <summary>案内の文言（translator_window.HINT_TEXT を WPF の操作に合わせた）。
-    /// クイックぶん投げは既定 OFF（G2）なので、既定ではボタンだけを案内する</summary>
+    /// <summary>案内の文言。
+    /// クイックぶん投げは既定 OFF なので、既定ではボタンだけを案内する</summary>
     public const string HintText =
         "ぶん投げたい場所へ窓を重ねてください" + "\n" +
         "窓の中を掴むと動かせます" + "\n" +
@@ -96,7 +95,7 @@ internal sealed class HintController
         _hintTok++;
         if (_getPanel() is { IsVisible: true } p)
         {
-            // E4: 2回目以降の案内は薄れて消える（200ms）。隠れた時にまだ案内のままなら本文を空へ
+            // 2回目以降の案内は薄れて消える（200ms）。隠れた時にまだ案内のままなら本文を空へ
             if (IsHint(p.ModelText))
                 p.HideFade(WindowMotion.HintFadeMs, () => { if (IsHint(p.ModelText)) p.ResetRun(); });
             return;
@@ -106,14 +105,14 @@ internal sealed class HintController
     }
 
     /// <summary>ぶん投げの開始時。案内の自動消しを止める。
-    /// 修正J81: 外の解答欄の案内は消さずに残し、最初の思考・答えが届いた時に入れ替える（<see cref="DropStripHintForAnswer"/>。
-    /// 人の判断 2026-11-22: 外の時は案内を消さなくてよい。消すと、クイックで「出る→消える→また出る」になった）</summary>
+    /// 外の解答欄の案内は消さずに残し、最初の思考・答えが届いた時に入れ替える（<see cref="DropStripHintForAnswer"/>）。
+    /// 外の時は消すとクイックで「出る→消える→また出る」になるため消さずに残す</summary>
     internal void DropForRun() => _hintTok++;
 
     /// <summary>キャプチャ窓を閉じた時、開いていた間の案内の消し予約を無効にする</summary>
     internal void DropOnClose() => _hintTok++;
 
-    /// <summary>修正J81: 外の解答欄が案内のままなら、答え（思考・本文）を入れる前に本文を空にする（窓は出したまま）。
+    /// <summary>外の解答欄が案内のままなら、答え（思考・本文）を入れる前に本文を空にする（窓は出したまま）。
     /// 案内の文字が答えの続きや、消える行の吸い込みに混ざらないように</summary>
     internal void DropStripHintForAnswer(AnswerStrip strip)
     {

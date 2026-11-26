@@ -5,7 +5,7 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace Bunnagetaro5.Services;
 
-/// <summary>修正J109: レイアウトのモデルが見つけた区画（画素の四角・種類・読む順番）</summary>
+/// <summary>レイアウトのモデルが見つけた区画（画素の四角・種類・読む順番）</summary>
 public sealed record LayoutRegion(Rectangle R, string Label, float Score, float Order)
 {
     /// <summary>行を1つの段落につながない区画（表・図・グラフなど。行ごとに別のまとまりにする）</summary>
@@ -13,11 +13,11 @@ public sealed record LayoutRegion(Rectangle R, string Label, float Score, float 
 }
 
 /// <summary>
-/// 修正J109: 文書の区画を見つけるモデル PP-DocLayoutV3（PaddlePaddle・Apache-2.0。OCR_LAYOUT_ROUND2 手順3）。
-/// 配る物は有志が ONNX に変換した物（AlexTransformer/PP-DocLayoutV3-onnx。人の判断 2026-11-26）を SHA256 で確かめて同梱する。
+/// 文書の区画を見つけるモデル PP-DocLayoutV3（PaddlePaddle・Apache-2.0）。
+/// 配る物は有志が ONNX に変換した物（AlexTransformer/PP-DocLayoutV3-onnx）を SHA256 で確かめて同梱する。
 /// 入力は画像を 800×800 に縮めた物（BGR・0〜1。モデルの inference.yml のとおり）と、縮めた割合。
 /// 出力は区画ごとに「種類の番号・確からしさ・左上・右下（元の画像の画素）・読む順番」。確からしさ 0.5 以上（inference.yml の draw_threshold）だけ使う。
-/// GPU（DirectML）で読み込み、だめなら CPU（内蔵 OCR の rec と同じ。修正J108）
+/// GPU（DirectML）で読み込み、だめなら CPU（内蔵 OCR の rec と同じ）。
 /// </summary>
 public sealed class LayoutModel : IDisposable
 {

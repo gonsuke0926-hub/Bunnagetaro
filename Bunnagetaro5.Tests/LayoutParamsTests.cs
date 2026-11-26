@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J100・J109: 位置の反映の細かい値（全体で1つ・上級者モード）。J109 から訳の頼み方の3つだけ</summary>
+/// <summary>位置の反映の細かい値（全体で1つ・上級者モード）。訳の頼み方の3つだけ</summary>
 public sealed class LayoutParamsTests
 {
     [Fact]
@@ -19,7 +19,7 @@ public sealed class LayoutParamsTests
         Assert.Equal(0, p.BatchChars);
         Assert.Equal(5, p.LabelWords);
         Assert.Equal(LayoutParams.Default.LabelChars, p.LabelChars);
-        Assert.Equal(4, LayoutParams.Specs.Length);   // 修正J116: 区画判定のしきい値＋訳の頼み方の3つ
+        Assert.Equal(4, LayoutParams.Specs.Length);   // 区画判定のしきい値＋訳の頼み方の3つ
     }
 
     [Fact]

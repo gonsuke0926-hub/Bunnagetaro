@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>手順3: メイン窓の位置・大きさの保存と復元（6.1）</summary>
+/// <summary>メイン窓の位置・大きさの保存と復元</summary>
 public class WindowGeometryTests
 {
     [Fact]

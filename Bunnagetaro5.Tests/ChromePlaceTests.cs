@@ -4,8 +4,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順14: バーの置き場所の計算（tw_place の純粋部分）。
-/// 単位は物理px。窓・画面の実物は _check\run14 で画面検証する。
+/// バーの置き場所の計算。単位は物理px。
 /// </summary>
 public class ChromePlaceTests
 {
@@ -46,7 +45,7 @@ public class ChromePlaceTests
     [Fact]
     public void 窓の下に余白が無い時も窓の下に置き_全部出る時だけハンドル最低限を残す()
     {
-        // F38: 窓の下辺が 1050（下端 1080 まで 30px >= 24px）→ 窓の下（1050）に置き、下へはみ出す
+        // 窓の下辺が 1050（下端 1080 まで 30px >= 24px）→ 窓の下（1050）に置き、下へはみ出す
         var pick = ChromePlace.Pick(100, 650, 740, 1050, R(108, 658, 732, 1042),
             BarW, BarH, null, null, true, Vd);
         Assert.Equal((108, 1050), pick!.Value);
@@ -93,7 +92,7 @@ public class ChromePlaceTests
     [Fact]
     public void 窓が全画面でも隠さずハンドル最低限が見える位置へ置く()
     {
-        // F38: 窓が全画面を塞いでいる（client が仮想デスクトップ一杯）。ハンドルが最低限（24px）見える位置へ
+        // 窓が全画面を塞いでいる（client が仮想デスクトップ一杯）。ハンドルが最低限（24px）見える位置へ
         var pick = ChromePlace.Pick(0, 0, 1920, 1080, R(0, 0, 1920, 1080),
             BarW, BarH, (50, 50), (0, 0), false, Vd);
         Assert.Equal((0, 1080 - ChromePlace.MinVisibleHandle), pick!.Value);

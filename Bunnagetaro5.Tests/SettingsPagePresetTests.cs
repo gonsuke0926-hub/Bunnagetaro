@@ -15,9 +15,9 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 設定ページ（手順7: プリセット・生成・自動トリガ・クイック・ホットキー・記録）の動き。
-/// 指示書6.4のテスト項目：プリセットの追加・削除・名前重複・prompt の同期・
-/// use_global の切り替え。ホットキー・キー起動の「登録」「解除」の配線もここ（手順24）。
+/// 設定ページ（プリセット・生成・自動トリガ・クイック・ホットキー・記録）の動き。
+/// プリセットの追加・削除・名前重複・prompt の同期・
+/// use_global の切り替え。ホットキー・キー起動の「登録」「解除」の配線もここ。
 /// </summary>
 public class SettingsPagePresetTests : IDisposable
 {
@@ -332,7 +332,7 @@ public class SettingsPagePresetTests : IDisposable
             model.Text = "some-vision-model";
             PressEnter(model);
             Pump(50);
-            Assert.Equal("some-vision-model", Preset(cfg, "OCR")!["model"]!.GetValue<string>());   // モデルはプリセットの "model"（修正J7）
+            Assert.Equal("some-vision-model", Preset(cfg, "OCR")!["model"]!.GetValue<string>());   // モデルはプリセットの "model"
             return true;
         });
     }
@@ -540,7 +540,7 @@ public class SettingsPagePresetTests : IDisposable
         OnSta(() =>
         {
             var page = MakePage(out _);
-            // 手順24で「登録」も生きた。ページは押下を本体へそのまま流す
+            // 「登録」は有効で、ページは押下を本体へそのまま流す
             Assert.True(FindLogical<Button>(page, "HotkeyReg")!.IsEnabled);
             Assert.True(FindLogical<Button>(page, "QuickKeyReg")!.IsEnabled);
             var got = new List<string>();
@@ -621,7 +621,7 @@ public class SettingsPagePresetTests : IDisposable
             Assert.True(useGlobal.Focusable && useGlobal.IsTabStop);
 
             // ComboBox から Tab (Next) で順に PresetReset・UseGlobalChk まで到達できること
-            // （修正J7 でモデル欄が名前・指示の下へ、「グローバル設定を使う」が「指示を既定に戻す」の下へ移った）
+            // （モデル欄は名前・指示の下、「グローバル設定を使う」は「指示を既定に戻す」の下に配置されている）
             cb.Focus();
             Pump(20);
             var visited = new List<string>();

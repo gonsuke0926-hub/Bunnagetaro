@@ -7,7 +7,7 @@ namespace Bunnagetaro5.Services;
 /// <summary>表の1マス（左上の位置・結合の大きさ・中身）。結合で隠れたマスは持たない</summary>
 public sealed record TableCellInfo(int Row, int Col, int RowSpan, int ColSpan, string Text, bool IsHeader);
 
-/// <summary>HTML の表に揃えた中身（修正I3）。OTSL も HTML の &lt;table&gt; もここへ寄せる。
+/// <summary>HTML の表に揃えた中身。OTSL も HTML の &lt;table&gt; もここへ寄せる。
 /// 結合で隠れたマスは Cells に出てこない（Rows×Cols の中で、どの Cells にも覆われない所は無い）</summary>
 public sealed class TableGrid
 {
@@ -45,7 +45,7 @@ public sealed class TableGrid
 
     /// <summary>Excel に貼って崩れないタブ区切り。1行ずつ、セルはタブで区切る。結合で隠れたマスは空。
     /// セルの中にタブ・改行・" があれば "…" で囲む（" は ""）。
-    /// cellMath=true はセルの中の \(^{a}\) などを上付き文字などにする（修正J94）</summary>
+    /// cellMath=true はセルの中の \(^{a}\) などを上付き文字などにする</summary>
     public string ToTsv(bool cellMath = false)
     {
         var g = new string?[Rows, Cols];
@@ -72,7 +72,7 @@ public sealed class TableGrid
 
     /// <summary>HTML の表（結合は rowspan・colspan）。plain=false はコピー用（Excel で線が出る属性付き・1行）、
     /// plain=true は画面に文字のまま見せる用（属性なし・行ごとに改行）。
-    /// cellMath=true はセルの中の上付き・下付きを &lt;sup&gt;・&lt;sub&gt; にする（修正J94）</summary>
+    /// cellMath=true はセルの中の上付き・下付きを &lt;sup&gt;・&lt;sub&gt; にする</summary>
     public string ToHtml(bool plain = false, bool cellMath = false)
     {
         var sb = new StringBuilder();
@@ -97,12 +97,12 @@ public sealed class TableGrid
     }
 }
 
-/// <summary>答えを「文字」と「表」の並びへ分けたもの（修正I3）</summary>
+/// <summary>答えを「文字」と「表」の並びへ分けたもの</summary>
 public abstract record AnswerPart;
 public sealed record TextPart(string Text) : AnswerPart;
 public sealed record TablePart(TableGrid Grid, string Raw) : AnswerPart;
 
-/// <summary>答えの中の表を見つける・HTML の表へ揃える（修正I3）。
+/// <summary>答えの中の表を見つける・HTML の表へ揃える。
 /// 表として扱うのは OTSL（PaddleOCR-VL）と HTML の &lt;table&gt; だけ。Markdown の表・タブ区切り・
 /// コードフェンスの中は表にしない。壊れた表は文字のまま（log に1行）</summary>
 public static class TableText
@@ -166,7 +166,7 @@ public static class TableText
 
     /// <summary>OTSL の表だけを HTML の表の文字に置き換える（ほかの文字・HTML の表はそのまま）。
     /// 変換は「OTSL → HTML → 画面の表」の順につながる。OTSL の変換 ON・HTML の表の変換 OFF の時は
-    /// HTML の文字で止めて見せる（人の判断 2026-11-15）。OTSL の表が無ければ text をそのまま返す</summary>
+    /// HTML の文字で止めて見せる。OTSL の表が無ければ text をそのまま返す</summary>
     public static string OtslToHtmlText(string text)
     {
         var parts = Parse(text, null, parseOtsl: true, parseHtml: false);
@@ -500,7 +500,7 @@ public static class TableText
 
     /// <summary>コピーの中身。表が1つも無ければ Html は null。Text は表の外を xform（LaTeX のコピーの形）へ通し、
     /// 表は TSV にして、行・段の区切りは \r\n にそろえる。Html は表の外を &lt;p&gt;、表を &lt;table&gt; にした断片。
-    /// cellMath=true はセルの中の数式も変換する（修正J94）</summary>
+    /// cellMath=true はセルの中の数式も変換する</summary>
     public static (string Text, string? Html) ToClipboard(IReadOnlyList<AnswerPart> parts, Func<string, string> xform, bool cellMath = false)
     {
         if (!HasTable(parts)) return (xform(string.Concat(parts.OfType<TextPart>().Select(p => p.Text))), null);

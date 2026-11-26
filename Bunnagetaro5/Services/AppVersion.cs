@@ -1,7 +1,7 @@
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// アプリの版。正本は csproj の &lt;Version&gt; の1か所だけ（2026-11-15。それまでは5か所に手で書いていた）。
+/// アプリの版。正本は csproj の &lt;Version&gt; の1か所だけ。
 /// 窓の題名・バージョン情報はここから出す。README だけは手で合わせる。
 /// </summary>
 public static class AppVersion

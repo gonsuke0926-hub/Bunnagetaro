@@ -11,7 +11,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 修正J50: タスクトレイのアイコンと右クリックのメニュー。
+/// タスクトレイのアイコンと右クリックのメニュー。
 /// メニューの項目は Click を呼び（PerformClick）、dispatcher を回して結果の設定を見る
 /// </summary>
 public class TrayIconTests : IDisposable
@@ -167,7 +167,7 @@ public class TrayIconTests : IDisposable
             var (w, _) = Open();
             var tray = w.Tray!;
             w.WindowState = WindowState.Minimized;
-            tray.OnDoubleClick();   // 修正J52: 左の1回押しは範囲ドラッグに変わった。窓を出すのは二重押し
+            tray.OnDoubleClick();   // 左の1回押しは範囲ドラッグ、窓を出すのは二重押し
             Assert.NotEqual(WindowState.Minimized, w.WindowState);
             bool closed = false;
             w.Closed += (_, _) => closed = true;

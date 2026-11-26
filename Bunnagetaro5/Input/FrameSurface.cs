@@ -4,7 +4,7 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5.Input;
 
 /// <summary>
-/// 修正J65: 仮想デスクトップ大の 32bpp プリマルチプライド DIB に「外・枠・中」の3色の四角を1つ描き、
+/// 仮想デスクトップ大の 32bpp プリマルチプライド DIB に「外・枠・中」の3色の四角を1つ描き、
 /// 四角が動いた時は変わりうる帯（4辺の帯）だけを塗り直して、その帯ごとに UpdateLayeredWindowIndirect で貼る部品。
 /// 範囲ドラッグの覆い（SnipOverlay：外＝暗い膜・中＝ほぼ透明）とダミー枠（QuickMarker：外も中も透明）が使う。
 /// 1回の仕事は四角の面積ではなく辺の長さに比例する（5120×1440 の実測: 全体を貼る 約3.0ms・幅8pxの帯 約0.05ms・全面を塗る 約2.0ms）。

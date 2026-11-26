@@ -3,8 +3,7 @@ using System.IO;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// データの置き場所（WPF_PORT_SPEC 5.1）。このアプリが読み書きするのは Bunnagetaro5 だけ。
-/// （前の Python 版 Bunnagetaro4 からの初回引き継ぎは 2026-11-16 に消した）
+/// データの置き場所。このアプリが読み書きするのは Bunnagetaro5 だけ。
 /// </summary>
 public sealed class Paths
 {

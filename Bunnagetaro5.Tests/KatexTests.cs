@@ -25,7 +25,7 @@ public sealed class WebView2FactAttribute : FactAttribute
     }
 }
 
-/// <summary>整理8.6: KaTeX での数式描画（WebView2 が要るものは WebView2Fact）</summary>
+/// <summary>KaTeX での数式描画（WebView2 が要るものは WebView2Fact）</summary>
 public class KatexTests : IDisposable
 {
     private readonly string _temp;
@@ -79,7 +79,7 @@ public class KatexTests : IDisposable
             finally
             {
                 // 見えない窓と WebView2 は、作ったこのスレッドが生きている間に片付ける。
-                // 次のテスト（別のスレッド）からでは Dispose が効かず、ブラウザが残る（2026-11-16）
+                // 次のテスト（別のスレッド）からでは Dispose が効かず、ブラウザが残る
                 try { MathRenderer.ResetForTests(); } catch { }
             }
         });
@@ -91,7 +91,7 @@ public class KatexTests : IDisposable
 
     private static readonly Color Fg = Color.FromRgb(0xf5, 0xf5, 0xf5);
 
-    /// <summary>実ログ由来の式と、WpfMath で落ちた命令の例（2026-11-12 の実測で通ったものから）</summary>
+    /// <summary>実ログ由来の式と、WpfMath で落ちた命令の例</summary>
     private static readonly string[] Formulas =
     {
         @"\int_{a}^{b} \left( u \frac{dv}{dx} + v \frac{du}{dx} \right) dx = vu \Big|_{a}^{b}",
@@ -157,8 +157,8 @@ public class KatexTests : IDisposable
         return sum / Math.Max(1, w * h);
     }
 
-    /// <summary>修正H2(続き): 起動中に画面の倍率を変えた直後は、見えない窓の WPF の倍率と WebView2 の倍率がずれる
-    /// （ノート実測: WPF 1.5・WebView2 2.5 で、式が大きく描かれて右が切れた／逆だと小さく左上に寄った）。
+    /// <summary>起動中に画面の倍率を変えた直後は、見えない窓の WPF の倍率と WebView2 の倍率がずれる
+    /// （例: WPF 1.5・WebView2 2.5 で、式が大きく描かれて右が切れた／逆だと小さく左上に寄った）。
     /// WebView2 の ZoomFactor で devicePixelRatio だけをずらしても、式の大きさ（DIP）と画素数は変わらない</summary>
     [WebView2Fact]
     public void WebView2の倍率がWPFとずれても式の大きさと画素は同じ()
@@ -206,7 +206,7 @@ public class KatexTests : IDisposable
             var h = MathRenderer.WindowHandle;
             Assert.NotEqual(IntPtr.Zero, h);
             Assert.True(IsWindow(h));
-            Assert.True(MathRenderer.Shutdown(20000), "ブラウザのプロセスが終わらない");   // PC が忙しいと5秒では終わらないことがある（2026-11-16）
+            Assert.True(MathRenderer.Shutdown(20000), "ブラウザのプロセスが終わらない");   // PC が忙しいと5秒では終わらないことがある
             Assert.False(IsWindow(h));
             Assert.Equal(IntPtr.Zero, MathRenderer.WindowHandle);
             Assert.False(MathRenderer.Ready);
@@ -224,7 +224,7 @@ public class KatexTests : IDisposable
             MathRenderer.ResetForTests();
             if (!MathRenderer.RuntimeAvailable()) return;
             var t = MathRenderer.Start(_p);
-            Assert.True(MathRenderer.Shutdown(20000), "ブラウザのプロセスが終わらない");   // PC が忙しいと5秒では終わらないことがある（2026-11-16）
+            Assert.True(MathRenderer.Shutdown(20000), "ブラウザのプロセスが終わらない");   // PC が忙しいと5秒では終わらないことがある
             await t;
             Assert.Equal(IntPtr.Zero, MathRenderer.WindowHandle);
             MathRenderer.ResetForTests();
@@ -284,7 +284,7 @@ public class KatexTests : IDisposable
 
     // ---- 解答欄（AnswerPanel）と組み合わせる ----
 
-    private static async Task WaitUntil(Func<bool> cond, int ms = 30000)   // 条件がそろうまで待つだけ。PC が忙しいと8秒では足りないことがある（2026-11-16）
+    private static async Task WaitUntil(Func<bool> cond, int ms = 30000)   // 条件がそろうまで待つだけ。PC が忙しいと8秒では足りないことがある
     {
         var end = DateTime.UtcNow.AddMilliseconds(ms);
         while (!cond() && DateTime.UtcNow < end) await Task.Delay(30);
@@ -345,7 +345,7 @@ public class KatexTests : IDisposable
                 var ims = Images(body);
                 Assert.Equal(4, ims.Count);
                 Assert.All(ims, im => Assert.StartsWith("$$", (string)im.Tag));
-                // 描けた後も、全文コピー・選択コピー・LaTeXでコピーは原文の式（F13: 既定の「中身だけ」。式だけの答えは中身を改行でつなぐ）
+                // 描けた後も、全文コピー・選択コピー・LaTeXでコピーは原文の式（既定の「中身だけ」。式だけの答えは中身を改行でつなぐ）
                 static string Inner(string raw) => raw[2..^2].Trim();
                 string plainAll = string.Join("\n", Maxwell.Split('\n').Select(Inner));
                 Assert.Equal(plainAll, FullText(panel));
@@ -360,7 +360,7 @@ public class KatexTests : IDisposable
                 Assert.Equal(Maxwell, FullText(panel));
                 tex.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
                 Assert.Equal((string)ims[1].Tag, Clipboard.GetText());
-                // 画像でコピー（3倍・黒い文字・透明な地。E12）: "PNG"（透明付き）と Bitmap（白地）の2形式
+                // 画像でコピー（3倍・黒い文字・透明な地）: "PNG"（透明付き）と Bitmap（白地）の2形式
                 var pic = (MenuItem)ims[1].ContextMenu!.Items[1]!;
                 Clipboard.Clear();
                 pic.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
@@ -370,7 +370,7 @@ public class KatexTests : IDisposable
                 var pngStream = (System.IO.Stream)Clipboard.GetData("PNG")!;
                 var png = System.Windows.Media.Imaging.BitmapDecoder.Create(pngStream, System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat, System.Windows.Media.Imaging.BitmapCacheOption.OnLoad).Frames[0];
                 Assert.True(png.PixelWidth >= ims[1].Width * 2.5, $"{png.PixelWidth} vs {ims[1].Width}");
-                // F13b: 画素は3倍のまま、PNG に 288dpi の解像度情報（貼ると解答欄で見えている大きさ）
+                // 画素は3倍のまま、PNG に 288dpi の解像度情報（貼ると解答欄で見えている大きさ）
                 Assert.InRange(png.DpiX, 287.5, 288.5);
                 Assert.InRange(png.DpiY, 287.5, 288.5);
                 Assert.InRange(png.PixelWidth / (png.DpiX / 96.0), ims[1].Width * 0.97, ims[1].Width * 1.03);
@@ -389,7 +389,7 @@ public class KatexTests : IDisposable
                 Assert.All(Images(body), im => Assert.NotNull(im.Source));
                 var fgNow = (Color)(((SolidColorBrush)((RichTextBox)Fld(panel.View, "_body")!).Foreground).Color);
                 Assert.True(MathRenderer.TryGetCached(((string)ims[1].Tag)[2..^2], true, fgNow, null, ((RichTextBox)Fld(panel.View, "_body")!).FontSize, 2.0 * System.Windows.Media.VisualTreeHelper.GetDpi(w).DpiScaleX, out var disp) && disp is not null);
-                // F29: 表示用は画面の倍率の2倍の画素で撮り、DIP の大きさに縮めて出す
+                // 表示用は画面の倍率の2倍の画素で撮り、DIP の大きさに縮めて出す
                 Assert.All(ims, im => Assert.InRange(((System.Windows.Media.Imaging.BitmapSource)im.Source).PixelWidth / (im.Width * System.Windows.Media.VisualTreeHelper.GetDpi(im).DpiScaleX), 1.9, 2.1));
                 Assert.All(ims, im => Assert.Equal(System.Windows.Media.BitmapScalingMode.HighQuality, System.Windows.Media.RenderOptions.GetBitmapScalingMode(im)));
                 Assert.True(MathRenderer.TryGetCached(((string)ims[1].Tag)[2..^2], true, Colors.Black, null, ((RichTextBox)Fld(panel.View, "_body")!).FontSize, 3.0, out var copyImg) && copyImg is not null);
@@ -418,7 +418,7 @@ public class KatexTests : IDisposable
         return (Bunnagetaro5.Views.AnswerView)d;
     }
 
-    /// <summary>H2（続き）: 狭い欄で、本文が伸びて縦スクロールバーが後から出ても・欄の幅を変えても、長い式の右が切れない
+    /// <summary>狭い欄で、本文が伸びて縦スクロールバーが後から出ても・欄の幅を変えても、長い式の右が切れない
     /// （250% のノートで、スクロールバーが後から出ると欄の ActualWidth が変わらず付け直されなかった・PagePadding を見ていなかった）</summary>
     [WebView2Fact]
     public void 狭い欄で長い式はスクロールバーが後から出ても欄の幅を変えても右が切れない()
@@ -457,7 +457,7 @@ public class KatexTests : IDisposable
         }, 180);
     }
 
-    /// <summary>修正J47: 行ごとに並んだ文中の分数（OCR の答えの形）が、下の行と重ならない。小さな式は今まで通り基準線に揃う</summary>
+    /// <summary>行ごとに並んだ文中の分数（OCR の答えの形）が、下の行と重ならない。小さな式は今まで通り基準線に揃う</summary>
     [WebView2Fact]
     public void J47_文中の分数が並んでも下の行と重ならず_小さな式は基準線に揃う()
     {
@@ -488,7 +488,7 @@ public class KatexTests : IDisposable
                         $"{i + 1}行目の式の下 {boxes[i].Bottom:0.##} が {i + 2}行目の式の上 {boxes[i + 1].Top:0.##} に重なった");
                 Assert.True(boxes[4].Bottom <= boxes[5].Top + 0.5,
                     $"「解 (1)」の式の下 {boxes[4].Bottom:0.##} が次の行の式の上 {boxes[5].Top:0.##} に重なった");
-                // 修正J48: 式は持ち上げない。「解 (1)」の文字の基準線と、同じ行の式の基準線（画像の下 − 基準線より下の分）が揃う
+                // 式は持ち上げない。「解 (1)」の文字の基準線と、同じ行の式の基準線（画像の下 − 基準線より下の分）が揃う
                 var rtbBox = ims[4].TransformToAncestor(body).TransformBounds(new Rect(0, 0, ims[4].ActualWidth, ims[4].ActualHeight));
                 // 式の本当の基準線は、描いた式の情報（画像の上からの基準線の位置 Base）から取る（余白の値には頼らない）
                 var view = FindView(body);
@@ -497,7 +497,7 @@ public class KatexTests : IDisposable
                 Assert.True(MathRenderer.TryGetCached(@"\log_{10}116 = \log_{10}(1.16 \times 10^2)", false, fg, null, font, scale, out var mimg) && mimg is not null);
                 double imgBase = rtbBox.Top + mimg!.Base * (rtbBox.Height / mimg.H);
                 var run = body.Document.Blocks.OfType<Paragraph>().SelectMany(p => p.Inlines.OfType<Run>())
-                    .First(r => r.Text.StartsWith("解"));   // 改行1つは同じ段落の中（F35）
+                    .First(r => r.Text.StartsWith("解"));   // 改行1つは同じ段落の中
                 var caret = run.ContentStart.GetPositionAtOffset(1)!.GetCharacterRect(LogicalDirection.Forward);
                 var ff = body.FontFamily;
                 double textBase = caret.Bottom - (ff.LineSpacing - ff.Baseline) * body.FontSize;
@@ -542,7 +542,7 @@ public class KatexTests : IDisposable
     }
 
     [WebView2Fact]
-    [Trait("Category", "Perf")]   // 整理（2026-11-22）: 時間を測って合否を決める。普段の全体の流しでは外す
+    [Trait("Category", "Perf")]   // 時間を測って合否を決める。普段の全体の流しでは外す
     public void 式30個の長い答えでもストリーミング1操作は150ms未満()
     {
         RunSta(async () =>
@@ -688,7 +688,7 @@ public class KatexTests : IDisposable
                 Assert.Null(img);   // 欠けた画像は返さない（呼び側は原文字のまま）
                 Assert.False(MathRenderer.TryGetCached(SumTex, true, Fg, null, 72, 3.0, out _));   // 欠けた結果は覚えない
                 Assert.Contains("欠けた", File.ReadAllText(_p.AppLogFile));
-                // 倍率を下げてよい呼び方（画像でコピー・F29）なら、届く倍率まで下げて欠けずに撮れる
+                // 倍率を下げてよい呼び方（画像でコピー）なら、届く倍率まで下げて欠けずに撮れる
                 var small = await MathRenderer.RenderAsync(SumTex, true, Fg, null, 72, 2.9, 1.0);
                 Assert.NotNull(small);
                 Assert.InRange(small!.Scale, 1.0, 2.89);

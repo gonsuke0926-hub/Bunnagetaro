@@ -3,7 +3,7 @@ using Microsoft.Win32;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 修正J54: Windows のサインイン時にトレイで起動する登録。現ユーザーの Run（HKCU）に
+/// Windows のサインイン時にトレイで起動する登録。現ユーザーの Run（HKCU）に
 /// 値名 <see cref="ValueName"/>、データ `"exe のフルパス" --tray` を入れる／消す。
 /// 管理者権限は要らない。キーの場所はテストが差し替えられる（本物の Run は触らない）。
 /// </summary>

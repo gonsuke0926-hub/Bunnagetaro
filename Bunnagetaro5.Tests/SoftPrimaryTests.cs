@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND4 E8: 主ボタンは淡い青（Soft 系トークン）。バーの「文字起こし」は左の隙間6</summary>
+/// <summary>主ボタンは淡い青（Soft 系トークン）。バーの「文字起こし」は左の隙間6</summary>
 public class SoftPrimaryTests : IDisposable
 {
     private readonly string _temp;
@@ -82,7 +82,7 @@ public class SoftPrimaryTests : IDisposable
                 w.Session.OpenCapture();
                 Pump(250);
                 var bar = (Window)Fld(w.Session, "_bar")!;
-                // I8: バーから「文字起こし」「画像そのまま」ラジオボタンが削除されている
+                // バーから「文字起こし」「画像そのまま」ラジオボタンが削除されている
                 Assert.Null(bar.GetType().GetField("_ocrOn", BindingFlags.NonPublic | BindingFlags.Instance));
                 Assert.Null(bar.GetType().GetField("_ocrOff", BindingFlags.NonPublic | BindingFlags.Instance));
                 var btn = (Button)Fld(bar, "_translateBtn")!;

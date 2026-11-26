@@ -4,8 +4,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順16: 解答欄 outside の帯の置き場所の計算（tw_place._position_chrome の strip 部分）
-/// と、縁リサイズ（tw_band）の HitTest。単位は物理px。実窓の挙動は _check\run16 で確かめる
+/// 解答欄 outside の帯の置き場所の計算と、縁リサイズの HitTest。単位は物理px。
 /// </summary>
 public class AnswerStripTests
 {
@@ -47,7 +46,7 @@ public class AnswerStripTests
     public void 帯の左端はいつもバーの左端に揃う_横にずれない()
     {
         var p = AnswerStrip.Pick(Win, Client, BarBelow(), Vd, Sw, Sh);
-        Assert.Equal(108, p!.Value.Left);   // F9: バーの左端（strip_offset_x は使わない）
+        Assert.Equal(108, p!.Value.Left);   // バーの左端（strip_offset_x は使わない）
         Assert.Equal(544, p.Value.Top);
         // バーがずれれば帯もそのまま付いてくる
         var p2 = AnswerStrip.Pick(Win, Client, R(300, 504, 600, 540), Vd, Sw, Sh);
@@ -68,7 +67,7 @@ public class AnswerStripTests
     {
         var p = AnswerStrip.Pick(Win, Client, BarAbove(), Vd, Sw, Sh);
         Assert.NotNull(p);
-        Assert.Equal(96 + 4, p!.Value.Top);   // H1: バーの下4pxすきあい
+        Assert.Equal(96 + 4, p!.Value.Top);   // バーの下4pxすきあい
         Assert.Equal(108, p.Value.Left);
     }
 
@@ -82,7 +81,7 @@ public class AnswerStripTests
     [Fact]
     public void バー無しで下が収まらなくても窓の下に置き画面外へはみ出す()
     {
-        // F38: 画面の下端が窓の直近でも、窓と重ねず窓の下に置いて画面の下へ切る
+        // 画面の下端が窓の直近でも、窓と重ねず窓の下に置いて画面の下へ切る
         var vd = R(0, 0, 1920, 520);
         var p = AnswerStrip.Pick(Win, Client, null, vd, Sw, Sh);
         Assert.Equal(Win.Bottom + 4, p!.Value.Top);
@@ -92,7 +91,7 @@ public class AnswerStripTests
     [Fact]
     public void バー付きで収まらなくてもバーの下に置き画面外へはみ出す()
     {
-        // F38: バーが窓の下に出ている状態で画面下端が近くても、バーの下に置き画面の下へ切る
+        // バーが窓の下に出ている状態で画面下端が近くても、バーの下に置き画面の下へ切る
         var bar = BarBelow();
         var vd = R(0, 0, 1920, 570);
         var p = AnswerStrip.Pick(Win, Client, bar, vd, Sw, Sh);
@@ -137,7 +136,7 @@ public class AnswerStripTests
         Assert.Equal(1080, p.Value.Bottom - p.Value.Top);
     }
 
-    // ---------------- 縁リサイズの当たり判定（tw_band） ----------------
+    // ---------------- 縁リサイズの当たり判定 ----------------
 
     [Fact]
     public void J79_四隅は右下だけ角になり_左上は縁ではなく_右上は右_左下は下()

@@ -3,13 +3,12 @@ using System.Globalization;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 解答欄の見た目（7.5）。overlay_fg / overlay_bg / overlay_alpha /
+/// 解答欄の見た目。overlay_fg / overlay_bg / overlay_alpha /
 /// overlay_font_family / overlay_font_size から作る純粋な値。
-/// 正規化は Python版 tw_chrome._panel_style_vals と同じ:
+/// 正規化ルール:
 /// 色は #rrggbb で読めなければ既定、alpha は 0.15〜1.0、大きさ 8〜72。
-/// 薄い色（思考欄・スクロールバー）は tw_panel._mix_toward /
-/// _think_dim_rgb の移植で、設定の色から毎回作り直す
-/// （適用のたびに薄くなっていく病気の防止も同じ）。
+/// 薄い色（思考欄・スクロールバー）は設定の色から毎回作り直す
+/// （適用のたびに薄くなっていく病気の防止）。
 /// </summary>
 public sealed record PanelStyle(
     string Fg,
@@ -24,15 +23,15 @@ public sealed record PanelStyle(
     bool ConvertHtmlTable = true,
     bool ConvertLatexMath = true,
     bool ShowFollowRow = false,
-    bool LayoutTextBg = true)   // 修正J103: 位置の反映の時、文字の所だけ地を敷く（全体の地は透明）
+    bool LayoutTextBg = true)   // 位置の反映の時、文字の所だけ地を敷く（全体の地は透明）
 {
     public const string DefaultFg = "#f5f5f5";
     public const string DefaultBg = "#202020";
-    public const double DefaultAlpha = 0.65;   // 解答欄の不透明度の既定（人の判断 2026-11-14）
-    public const double DefaultStripAlpha = 1.0;   // 外窓の不透明度の既定（今まで通り不透明。修正J101）
+    public const double DefaultAlpha = 0.65;   // 解答欄の不透明度の既定
+    public const double DefaultStripAlpha = 1.0;   // 外窓の不透明度の既定（不透明）
     public const int DefaultSize = 12;
 
-    // 段落間・行間・独立式段落の定数（F35。1か所にまとめる）
+    // 段落間・行間・独立式段落の定数（1か所にまとめる）
     public const double DefaultParaSpacing = 0.8;
     public const double MinParaSpacing = 0.0;
     public const double MaxParaSpacing = 1.5;
@@ -67,7 +66,7 @@ public sealed record PanelStyle(
                               cfg.Settings.LayoutTextBg);
     }
 
-    /// <summary>修正J101: 外窓（枠の外に出す解答欄）の見た目。色と不透明度は外窓の設定、ほかは枠の中と同じ</summary>
+    /// <summary>外窓（枠の外に出す解答欄）の見た目。色と不透明度は外窓の設定、ほかは枠の中と同じ</summary>
     public static PanelStyle ForStrip(ConfigStore cfg)
     {
         var st = From(cfg);
@@ -80,13 +79,13 @@ public sealed record PanelStyle(
         return st with { Fg = fg.ToLowerInvariant(), Bg = bg.ToLowerInvariant(), Alpha = Math.Clamp(a, 0.15, 1.0) };
     }
 
-    /// <summary>思考欄の薄い文字色（本文の文字色を背景色側へ45%寄せ・tw_panel）</summary>
+    /// <summary>思考欄の薄い文字色（本文の文字色を背景色側へ45%寄せ）</summary>
     public string ThinkHex => MixToward(Fg, Bg, 0.45);
 
     /// <summary>細スクロールバーの棒（文字色から作る。Tk版 _slim_sb_colors の趣旨）</summary>
     public string ScrollThumbHex => MixToward(Fg, Bg, 0.45);
 
-    /// <summary>色aを色b側へt（0〜1）だけ寄せた #rrggbb（tw_panel._mix_toward）。
+    /// <summary>色aを色b側へt（0〜1）だけ寄せた #rrggbb。
     /// 読めない値は既定（a=#f0f0f0, b=#202020）で混ぜる。例外じみたら #8a8a8a</summary>
     public static string MixToward(string a, string b, double t)
     {
@@ -118,11 +117,10 @@ public sealed record PanelStyle(
 }
 
 /// <summary>
-/// ストリーミング表示の純粋な道具（7.5）。
-/// delta は毎回「これまでの全文」で来る（Python版 worker と同じ）。
-/// 前回表示分の続きなら末尾だけ足す、食い違ったら全文置き換（指示書7.5）。
-/// 思考欄に出すのは最後の4000字だけ（指示書7.5。Python版に上限は無いが
-/// DECISIONS.md 記録どおり指示書の数値へ従う）。
+/// ストリーミング表示の純粋な道具。
+/// delta は毎回「これまでの全文」で来る。
+/// 前回表示分の続きなら末尾だけ足す、食い違ったら全文置き換え。
+/// 思考欄に出すのは最後の4000字だけ。
 /// </summary>
 public static class StreamText
 {

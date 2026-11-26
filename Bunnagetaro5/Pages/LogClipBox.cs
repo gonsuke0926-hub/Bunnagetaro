@@ -3,7 +3,7 @@ using System.Windows.Controls;
 
 namespace Bunnagetaro5.Pages;
 
-/// <summary>J16: ログのカードの本文の枠。たたんでいる間は、中身の長さによらず高さを BodyHeight（10行分）に
+/// <summary>ログのカードの本文の枠。たたんでいる間は、中身の長さによらず高さを BodyHeight（10行分）に
 /// そろえ、はみ出した分は切る。開く（IsExpanded）と中身の高さまで伸びる。
 /// カードの高さがそろうと、仮想化の見積りが外れなくなり、つまみを引いた時にスクロールバーが揺れない。</summary>
 public sealed class LogClipBox : Decorator

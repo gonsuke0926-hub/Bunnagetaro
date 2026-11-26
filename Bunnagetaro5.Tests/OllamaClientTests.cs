@@ -6,7 +6,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// OllamaClientの解析部分（tw_ollama.pyと同じ）と色の変換（ColorUtil）の確認。
+/// OllamaClientの解析部分と色の変換（ColorUtil）の確認。
 /// 実際の通信はこのPCにOllamaが無い想定なので、解析関数だけを叩く。
 /// </summary>
 public class OllamaClientTests
@@ -37,7 +37,7 @@ public class OllamaClientTests
     [Fact]
     public void ParseTagNamesKeepsOrderAndEmptyNames()
     {
-        // 名前が無い行も "" として並べる（Python版 ollama_tags と同じ）
+        // 名前が無い行も "" として並べる
         var names = OllamaClient.ParseTagNames(JsonNode.Parse(SampleJson));
         Assert.Equal(new[] { "gemma4:latest", "", "", "qwen3:0.6b" }, names);
     }

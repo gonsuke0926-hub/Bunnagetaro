@@ -33,10 +33,10 @@ public class ThirdPartyNoticesTests
         Assert.Contains("WpfMath", text);
         Assert.Contains("WebView2", text);
         Assert.Contains(".NET", text);
-        Assert.Contains("ONNX Runtime", text);   // 修正J17
+        Assert.Contains("ONNX Runtime", text);
         Assert.Contains("PP-OCRv6", text);
-        Assert.Contains("DirectML", text);   // 修正J108（J21 の OpenVINO・oneTBB から替えた）
-        Assert.Contains("PP-DocLayoutV3", text);   // 修正J109
+        Assert.Contains("DirectML", text);
+        Assert.Contains("PP-DocLayoutV3", text);
     }
 
     [Fact]

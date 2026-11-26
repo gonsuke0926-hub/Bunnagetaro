@@ -5,7 +5,7 @@ using System.Windows.Media;
 namespace Bunnagetaro5.Pages;
 
 /// <summary>
-/// 設定ページ的行カード（指示書6.4「SettingRow」）。
+/// 設定ページ的行カード。
 /// 左に名前と説明、右に操作部品。大きい部品は SetBottom で下段（両列またぎ）。
 /// 範囲外の値を保存しなかった時など、説明欄へ理由を出す（DescBox）。
 /// </summary>
@@ -75,7 +75,7 @@ public class SettingRow : Border
         Child = _grid;
     }
 
-    /// <summary>グループカード内の1行として使う: 外枠・角丸・影を外し、内側の余白だけ残す（I12）</summary>
+    /// <summary>グループカード内の1行として使う: 外枠・角丸・影を外し、内側の余白だけ残す</summary>
     public SettingRow AsGrouped()
     {
         Style = null;

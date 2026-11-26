@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J10d: 行の訳が終わって外れる書き起こし文の残りを、日本語の末へ吸い込ませる</summary>
+/// <summary>行の訳が終わって外れる書き起こし文の残りを、日本語の末へ吸い込ませる</summary>
 public sealed class SuckTests : IDisposable
 {
     private readonly string _temp;

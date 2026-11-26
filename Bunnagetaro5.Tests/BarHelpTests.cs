@@ -14,7 +14,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// B2: ☰メニューの「バーの使い方」。注釈図（bar_help.png）が設定ページに入っていて、
+/// ☰メニューの「バーの使い方」。注釈図（bar_help.png）が設定ページに入っていて、
 /// メニューから押すと設定ページのその節までスクロールする（以前は注釈図が無く、設定ページへ行くだけだった）。
 /// </summary>
 public class BarHelpTests : IDisposable

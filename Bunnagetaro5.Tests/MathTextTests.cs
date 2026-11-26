@@ -5,7 +5,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順25: 本文を「そのままの文字」と「式」へ分ける分割器（MathText）。
+/// 本文を「そのままの文字」と「式」へ分ける分割器（MathText）。
 /// $...$ 文中 / $$..$$・\[..\] 独立行 / 閉じ無しは文字 / 空の式は文字 /
 /// 文中の $ は行をまたがない / \$ と \$ のエスケープ。
 /// </summary>
@@ -186,7 +186,7 @@ public class MathTextTests
         }
     }
 
-    // ---- F13: LaTeX のコピーの形 ----
+    // ---- LaTeX のコピーの形 ----
 
     [Theory]
     [InlineData(LatexCopyForm.Plain, "\\frac{a}{b}", "\\frac{a}{b}")]
@@ -232,7 +232,7 @@ public class MathTextTests
         Assert.Equal("paren", MathText.CopyFormKey(LatexCopyForm.Paren));
     }
 
-    // ---------------- 修正J93: 式番号（\tag）は描く時だけ式の右に離す ----------------
+    // ---------------- 式番号（\tag）は描く時だけ式の右に離す ----------------
 
     [Fact]
     public void J93_tagは描く用だけ式の右に離した文字にする()

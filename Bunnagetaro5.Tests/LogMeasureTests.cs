@@ -18,7 +18,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>H4a の計測（人が触っていない時に、画面の外の窓で・入力を注入せずに）。
+/// <summary>計測（人が触っていない時に、画面の外の窓で・入力を注入せずに）。
 /// 環境変数 B5_MEASURE=1 の時だけ動く。結果は B5_MEASURE_OUT のファイルへ書く。</summary>
 public class LogMeasureTests
 {
@@ -110,7 +110,7 @@ public class LogMeasureTests
         Measure(100, withImages: false, "measure.txt");
     }
 
-    /// <summary>J14: ログを全部（台帳の上限 200 件）出す前と後で比べる。サムネイル画像付き・メモリも測る。</summary>
+    /// <summary>ログを全部（台帳の上限 200 件）出す前と後で比べる。サムネイル画像付き・メモリも測る。</summary>
     [Fact]
     public void J14_計測_数式と画像入りカード200件()
     {
@@ -118,7 +118,7 @@ public class LogMeasureTests
         Measure(LogStore.MaxEntries, withImages: true, "measure_j14.txt");
     }
 
-    /// <summary>J15: スクロールバーのつまみを素早く引いた時（文だけのカード）。つまみに DragStarted・DragDelta・DragCompleted を
+    /// <summary>スクロールバーのつまみを素早く引いた時（文だけのカード）。つまみに DragStarted・DragDelta・DragCompleted を
     /// 送って、人が約1秒で端から端へ引く動きを真似る（マウスは動かさない）。DragDelta は別のスレッドから 16ms ごとに入力の順位で積む。</summary>
     [Fact]
     public void J15_計測_つまみを素早く引いた時()

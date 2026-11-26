@@ -4,10 +4,8 @@ using System.Runtime.InteropServices;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// フォルダ選択ダイアログ（指示書6.4「参照」）。Win32 P/Invoke（shell32 の
-/// SHBrowseForFolder）。WPFには標準のフォルダピッカーが無い（WinFormsは
-/// NuGet本体増やしまで使わない方針なので使わない）。
-/// Python版 tw_apparel._pick_shots_dir の filedialog.askdirectory 相当。
+/// フォルダ選択ダイアログ。Win32 P/Invoke（shell32 の SHBrowseForFolder）。
+/// WPFには標準のフォルダピッカーが無く、WinFormsも使わない方針のため使用している。
 /// </summary>
 public static class FolderPicker
 {

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND4 E10: 式の画像を整数の物理pxへ寄せる計算</summary>
+/// <summary>式の画像を整数の物理pxへ寄せる計算</summary>
 public class PixelSnapTests
 {
     [Theory]

@@ -9,17 +9,17 @@
         Title="スクショはローカルAIにぶん投げろ！" Height="660" Width="940"
         MinHeight="480" MinWidth="640"
         Background="{StaticResource Bg}">
-    <!-- 6.1 メイン窓: 上の段 ＋ ページ表示域（タブは使わない） ＋ ☰メニュー（6.2） -->
+    <!-- メイン窓: 上の段 ＋ ページ表示域（タブは使わない） ＋ ☰メニュー -->
     <Grid>
         <DockPanel>
             <Border DockPanel.Dock="Top" Padding="14,12,14,8">
                 <DockPanel LastChildFill="False">
-                    <!-- 手順11: キャプチャ窓を開く（開いているときは前に出すだけ） -->
+                    <!-- キャプチャ窓を開く（開いているときは前に出すだけ） -->
                     <Button x:Name="CaptureButton" DockPanel.Dock="Left"
                             Style="{StaticResource PrimaryButton}"
                             Content="キャプチャ窓を開く"
                             Click="CaptureButton_Click"/>
-                    <!-- 修正J52: 画面を少し暗くして四角で選び、そのままぶん投げる -->
+                    <!-- 画面を少し暗くして四角で選び、そのままぶん投げる -->
                     <Button x:Name="SnipButton" DockPanel.Dock="Left"
                             Margin="8,0,0,0"
                             Content="範囲ドラッグ"
@@ -29,7 +29,7 @@
                             FontFamily="{StaticResource UiFont}" FontSize="14"
                             Foreground="{StaticResource Text}"
                             Content="前面固定"/>
-                    <!-- ☰（右端）: 6.2 のメニューを開閉する -->
+                    <!-- ☰（右端）: メニューを開閉する -->
                     <Button x:Name="MenuButton" DockPanel.Dock="Right"
                             Margin="8,0,0,0" Padding="8,4" Content="☰" FontSize="16"
                             Click="MenuButton_Click"/>
@@ -45,7 +45,7 @@
             </Border>
         </DockPanel>
 
-        <!-- 6.2 メニュー（☰）: Views/Drawer（右端から幅280が180msでスライド。覆いクリック・Escで閉じる） -->
+        <!-- メニュー（☰）: Views/Drawer（右端から幅280が180msでスライド。覆いクリック・Escで閉じる） -->
         <views:Drawer x:Name="DrawerView"/>
     </Grid>
 </Window>

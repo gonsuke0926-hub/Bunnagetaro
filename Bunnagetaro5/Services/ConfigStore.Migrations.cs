@@ -7,15 +7,15 @@ using System.Text.RegularExpressions;
 
 namespace Bunnagetaro5.Services;
 
-/// <summary>config.json の古い既定値・古い形からの引っ越し（ConfigStore を分けたもの。修正J44）</summary>
+/// <summary>config.json の古い既定値・古い形からの引っ越し（ConfigStore を分けたもの）</summary>
 public sealed partial class ConfigStore
 {
     /// <summary>「既定値そのものが入っていた項目」だけを新しい既定へ寄せる
-    /// （自分で選んだ値は触らない）。Python版 _CFG_MIGRATIONS。</summary>
+    /// （自分で選んだ値は触らない）。</summary>
     private void ApplyDefaultMigrations(JsonObject saved)
     {
         MigratePresetsV5(saved);
-        // 修正J101: 外窓の色が無い（前の版の）設定は、今まで外窓に使っていた枠の中の色を引き継ぐ（見た目を変えない）
+        // 外窓の色が無い（前の版の）設定は、今まで外窓に使っていた枠の中の色を引き継ぐ（見た目を変えない）
         foreach (var (sk, ok) in new[] { ("strip_bg", "overlay_bg"), ("strip_fg", "overlay_fg") })
             if (GetRaw(saved, sk) is null && NodeToStr(GetRaw(saved, ok)) is { Length: > 0 } ov && ColorUtil.IsHexColor(ov))
                 Root[sk] = ov;
@@ -40,7 +40,7 @@ public sealed partial class ConfigStore
             Migrations.Add("ぶん投げ文を「あらゆる言語→日本語」の新しい既定へ更新しました");
             AppLog.Info("prompt: 英語限定の旧既定 → 多言語既定へ更新");
         }
-        // E2: LaTeX プリセットの旧既定文（デリミタ無し）→ 新既定文（$$ ... $$ 付き）への引っ越し
+        // LaTeX プリセットの旧既定文（デリミタ無し）→ 新既定文（$$ ... $$ 付き）への引っ越し
         bool latexMigrated = false;
         if (GetRaw(saved, "prompts") is JsonArray pArr)
         {
@@ -75,7 +75,7 @@ public sealed partial class ConfigStore
         }
     }
 
-    /// <summary>修正I2: 旧名のプリセット（翻訳用・OCR・LaTeX・Excel）を新しい名前・指示・モデルへ1回だけ書き換える。
+    /// <summary>旧名のプリセット（翻訳用・OCR・LaTeX・Excel）を新しい名前・指示・モデルへ1回だけ書き換える。
     /// 印は presets_v5。自分で足した名前のプリセットは触らない。選んでいる物が改名されたら新しい名前を選んだままにする</summary>
     private void MigratePresetsV5(JsonObject saved)
     {
@@ -137,7 +137,7 @@ public sealed partial class ConfigStore
 
     /// <summary>既定のプリセット（OCR・数式・表）のうち、まだ一度も出していない物を
     /// 一覧の後ろへ足す。presets_offered に残すので、消した物は戻らない。
-    /// 同じ名前を自分で作っていたらそちらを残して足さない（tw_config._offer_default_presets）。</summary>
+    /// 同じ名前を自分で作っていたらそちらを残して足さない。</summary>
     private void OfferDefaultPresets(JsonObject saved)
     {
         JsonArray items;
@@ -146,10 +146,8 @@ public sealed partial class ConfigStore
         else
         {
             // v3.8以前（一覧が無く prompt 1文だけ）のconfig。その1文を「翻訳用」に
-            // してから既定のプリセットを足す。Python版はここで旧configをそのまま読んだ
-            // ため、v3.3の旧既定文の引っ越しが一覧の無いconfigでだけ取り消されていた
-            // （明示的に「更新しました」と言うのに中身が旧文のまま）。ここでは
-            // 引っ越し済みの値を読み、お知らせと中身が食い違わないようにする
+            // してから既定のプリセットを足す。旧configの生の値ではなく、
+            // 引っ越し済みの値を読み、v3.3の旧既定文への巻き戻りや通知との食い違いを防ぐ
             string old = NodeToStr(GetRaw(saved, "prompt")).Trim();
             // 文が無ければ既定の「翻訳」（PLaMo・専用の設定付き）。あればグローバルのモデルで使う
             items = new JsonArray
@@ -174,7 +172,7 @@ public sealed partial class ConfigStore
             offered.Add(name);
             if (!have.Contains(name))
             {
-                // Python版の dict(p, settings=...) と同じく settings を必ず付ける
+                // settings を必ず付ける
                 // （後で NormalizePrompts がグローバルの写しに充填する）
                 var item = (JsonObject)p.DeepClone();
                 if (item["settings"] is not JsonObject) item["settings"] = new JsonObject();
@@ -191,13 +189,13 @@ public sealed partial class ConfigStore
         }
     }
 
-    /// <summary>prompts / prompt_active / prompt を使える形へ整える
-    /// （tw_config._normalize_prompts）。cfg["prompt"] はつねに選んでいる1文へ。</summary>
+    /// <summary>prompts / prompt_active / prompt を使える形へ整える。
+    /// cfg["prompt"] はつねに選んでいる1文へ。</summary>
     private void NormalizePrompts(bool hadSaved)
     {
         var items = new JsonArray();
         var used = new HashSet<string>();
-        // 修正J27: 旧 config（「文字起こし」が別プリセット「OCR」を参照していた形）からの引き継ぎ用に、
+        // 旧 config（「文字起こし」が別プリセット「OCR」を参照していた形）からの引き継ぎ用に、
         // 変換前の「OCR」プリセットのモデルとプロンプトを控えておく
         bool hasLegacyOcr = false, legacyOcrBuiltin = false;
         string legacyOcrSize = DefaultBuiltinOcrSize, legacyOcrModel = "", legacyOcrPrompt = "";
@@ -241,7 +239,7 @@ public sealed partial class ConfigStore
                 bool rawHasOcrEngine = p["settings"] is JsonObject rs2 && rs2.ContainsKey("ocr_engine");
                 JsonObject? st = (!useGlobal || p["settings"] is JsonObject) ? PresetSettingsFrom(Root, p["settings"]) : null;
 
-                // 修正J27: モデル欄に内蔵 OCR が入っていた旧設定は「内蔵OCRのみ」へ移す
+                // モデル欄に内蔵 OCR が入っていた旧設定は「内蔵OCRのみ」へ移す
                 if (BuiltinOcr.IsBuiltin(model))
                 {
                     useGlobal = false;

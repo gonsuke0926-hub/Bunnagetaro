@@ -1,10 +1,9 @@
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 画面変化検知の純粋関数（tw_image.py の _fingerprint / change_ratio の移植）。
-/// 手順15で affinity（WDA_EXCLUDEFROMCAPTURE）により解答欄・バーは撮影に
-/// 画素差ゼロで写らないと実測済み。よって Python の obs_delta（下地が半透明
-/// panel で薄れる補正）は移植しない（DECISIONS 手順15/19）。
+/// 画面変化検知の純粋関数。
+/// Display affinity（WDA_EXCLUDEFROMCAPTURE）により解答欄・バーは撮影に
+/// 画素差ゼロで写らないため、半透明パネルによる下地の薄れ補正は行わない。
 /// BGRA の生バイトから指紋（96x54 の灰度）を作り、バイト列同士を比べる。
 /// WPF / GDI 型に依存しないので xunit で合成画像をそのまま渡せる。
 /// </summary>

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J90（段階3・出す／隠すの係）: WindowVisibility の状態管理と即座の出し入れを確かめる</summary>
+/// <summary>WindowVisibility の状態管理と即座の出し入れを確かめる</summary>
 public class WindowVisibilityTests : IDisposable
 {
     private readonly string _temp;

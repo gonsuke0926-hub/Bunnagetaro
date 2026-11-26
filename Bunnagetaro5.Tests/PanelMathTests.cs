@@ -18,7 +18,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順25: 解答欄の本文で LaTeX 式を表示する（WpfMath FormulaControl）。
+/// 解答欄の本文で LaTeX 式を表示する（WpfMath FormulaControl）。
 /// 文中式・独立行式・表示できない式は原文字・ストリーミング中は文字で出て
 /// 閉じ記号で式に差し替わる・コピー（FullText）は $ 付きの元の文。
 /// </summary>
@@ -138,7 +138,7 @@ public class PanelMathTests : IDisposable
             var fs = Formulas(body);
             Assert.Single(fs);
             Assert.Equal("x^2", fs[0].Formula);
-            // 解答欄の色・字の大きさに合わせる（指示書25）
+            // 解答欄の色・字の大きさに合わせる
             Assert.Equal(Math.Max(1.0, body.FontSize), fs[0].Scale);
             Assert.Same(body.Foreground, fs[0].Foreground);
             // 式のまわりの文字はそのまま残る
@@ -302,7 +302,7 @@ public class PanelMathTests : IDisposable
             panel.ApplyBody("E = $$x^2 + y^2$$");
             Pump(w.Dispatcher, 50);
             Assert.Single(Formulas(Body(panel)));
-            // 文書のTextには式が消えるので、コピーは $ 付きの原文（手順26の約束）
+            // 文書のTextには式が消えるので、コピーは $ 付きの原文
             Assert.Equal("E = $$x^2 + y^2$$", (string)CallPriv(panel.View, "FullText")!);
             w.Close();
             return true;
@@ -325,7 +325,7 @@ public class PanelMathTests : IDisposable
         });
     }
 
-    // ========= 手順26: コピーは $ 付き LaTeX・式は右クリックで2種のコピー =========
+    // ========= コピーは $ 付き LaTeX・式は右クリックで2種のコピー =========
 
     private static string Sel(AnswerPanel p) => (string)CallPriv(p.View, "SelectedText")!;
 
@@ -380,7 +380,7 @@ public class PanelMathTests : IDisposable
             // 式のかたまりだけを選ぶと $ 付きのそれだけ
             var iuc = last.Inlines.OfType<InlineUIContainer>().First();
             body.Selection.Select(iuc.ContentStart, iuc.ContentEnd);
-            Assert.Equal("a^2+b^2=c^2", Sel(panel));   // F13: 式だけの選択は既定の「中身だけ」
+            Assert.Equal("a^2+b^2=c^2", Sel(panel));   // 式だけの選択は既定の「中身だけ」
             // 文字の途中だけなら今まで通り文字だけ（式のかたまりは混ざらない）
             body.Selection.Select(last.ContentStart, last.ContentStart.GetPositionAtOffset(3));
             Assert.Equal("文中", Sel(panel));
@@ -424,7 +424,7 @@ public class PanelMathTests : IDisposable
             try { Clipboard.Clear(); } catch { }
             ((MenuItem)cm.Items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             Assert.True(Clipboard.ContainsText());
-            Assert.Equal("x^2 + y^2", Clipboard.GetText());   // F13: 既定は中身だけ
+            Assert.Equal("x^2 + y^2", Clipboard.GetText());   // 既定は中身だけ
             // 「$ で囲む」「\( \) で囲む」にすると、その形で出る
             var view = (Bunnagetaro5.Views.AnswerView)panel.View;
             var fi = typeof(Bunnagetaro5.Views.AnswerView).GetField("_copyForm", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;

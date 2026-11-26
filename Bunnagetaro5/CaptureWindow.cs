@@ -10,22 +10,22 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5;
 
 /// <summary>
-/// キャプチャ窓（7.1）。デスクトップに重ねる透明の枠。中は透けて、
+/// キャプチャ窓。デスクトップに重ねる透明の枠。中は透けて、
 /// 縁（4物理px・Accent半透明）だけが見える。縁ドラッグでリサイズ、
 /// 中ドラッグで移動（WM_NCHITTEST で HT* を返す）。
-/// 中は Python版と同じ不透明度1/255の見えない膜（BandAlpha）で塗ってあり、
+/// 中は不透明度1/255の見えない膜（BandAlpha）で塗ってあり、
 /// それで初めてクリックを受け取れる（完全に透明な画素は OS が窓に届けない）。
 /// 膜の画素は目に見えないうえ、窓全体が WDA_EXCLUDEFROMCAPTURE で撮影から
 /// 除外されているので撮影画素へは影響しない。位置・大きさは物理ピクセルで保存・復元。
-/// バー・解答欄・透過・枠固定は手順14以降（ここでは窓そのものだけ）。
+/// ここでは窓そのものだけを扱う（バー・解答欄・透過・枠固定は含まない）。
 /// </summary>
 public class CaptureWindow : Window
 {
-    // Python版 CAPTURE_MIN_W/H（クイックぶん投げの最小四角も将来ここを参照）
+    // キャプチャ領域の最小サイズ（クイックぶん投げの最小四角も将来ここを参照）
     public const int MinW = 30;
     public const int MinH = 30;
 
-    /// <summary>見える縁の厚さ（物理px、7.1）。窓のDPIでDIPへ換算して描く</summary>
+    /// <summary>見える縁の厚さ（物理px）。窓のDPIでDIPへ換算して描く</summary>
     public const int BorderPhys = 4;   // 既定値（実際の太さは設定 capture_border_px。CaptureBorder.Px）
 
     /// <summary>いまの縁の太さ（物理px。設定から。撮る範囲の削り幅・掴める幅・ダミー枠もこれを使う）</summary>
@@ -33,17 +33,17 @@ public class CaptureWindow : Window
 
     /// <summary>
     /// リサイズ・移動の掴み判定をする帯（物理px）。縁は4pxだが、
-    /// 200%窓で4pxは掴みにくいので内側へ見えない余裕を足した（DECISIONS）
+    /// 200%窓で4pxは掴みにくいので内側へ見えない余裕を足した
     /// </summary>
     internal static int HitBand => CaptureBorder.HitBand;
 
     /// <summary>
-    /// 中を掴めるようにする膜の不透明度（Python版 tw_band BAND_ALPHA = 1/255）。
+    /// 中を掴めるようにする膜の不透明度（1/255）。
     /// 1/255は目には見えないが、完全に透明だと OS がクリックを窓へ届けない
     /// </summary>
     internal const byte BandAlpha = 1;
 
-    /// <summary>位置が未保存・モニタ外だった時の既定位置（Python版と同じ 200,200）</summary>
+    /// <summary>位置が未保存・モニタ外だった時の既定位置（200,200）</summary>
     internal const int DefaultX = 200;
     internal const int DefaultY = 200;
 
@@ -54,7 +54,7 @@ public class CaptureWindow : Window
 
     /// <summary>
     /// 解答欄が窓の上へ出ている間、中を素通し（HTTRANSPARENT）へ戻すための問い合わせ。
-    /// 設定しない＝常に中を掴める。Python版 tw_band 338行の overlay_visible 相当。
+    /// 設定しない＝常に中を掴める。
     /// WPFの解答欄は別の窓なので通常は噛み合わないが、上の窓が奪ったクリックを
     /// 下の解答欄へ返すために付ける
     /// </summary>
@@ -68,7 +68,7 @@ public class CaptureWindow : Window
         Title = "キャプチャ窓 — ぶん投げたい領域に重ねる";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
-        ResizeMode = ResizeMode.CanResize;   // WM_NCHITTEST で縁を返しても WS_THICKFRAME が無いと OS はリサイズしない（A2点検で判明）。枠なし・透明窓なので太枠は見えない
+        ResizeMode = ResizeMode.CanResize;   // WM_NCHITTEST で縁を返しても WS_THICKFRAME が無いと OS はリサイズしない。枠なし・透明窓なので太枠は見えない
         ShowInTaskbar = false;
         Topmost = true;
         WindowStartupLocation = WindowStartupLocation.Manual;
@@ -83,12 +83,12 @@ public class CaptureWindow : Window
         _frame.BorderThickness = new Thickness(CaptureBorder.Px);
         _frame.SnapsToDevicePixels = true;
         _frame.UseLayoutRounding = true;   // 125%/175%は1物理pxが端数DIP。右下の縁のにじみ・欠けを防ぐ
-        // 中を見えない膜（A=1/255）で塗る（Python版 BAND_ALPHA=1・tw_band 36行）。
-        // これを塗らないと中のクリックが OS で取りこぼされ、窓が動かない（A2）
+        // 中を見えない膜（A=1/255）で塗る。
+        // これを塗らないと中のクリックが OS で取りこぼされ、窓が動かない
         _frame.Background = MembraneBrush();
         Content = _frame;
 
-        // 保存は500msの取りまとめ（Python版 root.after(500, _save_capture_size) と同じ）
+        // 保存は500msの取りまとめ
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _saveTimer.Tick += (_, _) => { _saveTimer.Stop(); SaveGeometryNow(); };
         LocationChanged += (_, _) => ScheduleSave();
@@ -127,18 +127,17 @@ public class CaptureWindow : Window
     {
         base.OnSourceInitialized(e);
         var hwnd = new WindowInteropHelper(this).Handle;
-        // F36: Owner をメイン窓にしないため、Alt+Tab に出ないよう WS_EX_TOOLWINDOW を付ける
+        // Owner をメイン窓にしないため、Alt+Tab に出ないよう WS_EX_TOOLWINDOW を付ける
         long ex = Native.GetWindowLongPtrW(hwnd, Native.GWL_EXSTYLE).ToInt64();
         Native.SetWindowLongPtrW(hwnd, Native.GWL_EXSTYLE, new IntPtr(ex | WS_EX_TOOLWINDOW));
-        // J1: 最大化できない窓にする（画面の上端へ寄せた時・縁をダブルクリックした時の Windows の最大化・スナップを出さない）
+        // 最大化できない窓にする（画面の上端へ寄せた時・縁をダブルクリックした時の Windows の最大化・スナップを出さない）
         long st = Native.GetWindowLongPtrW(hwnd, Native.GWL_STYLE).ToInt64();
         Native.SetWindowLongPtrW(hwnd, Native.GWL_STYLE, new IntPtr(st & ~WS_MAXIMIZEBOX));
         HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
-        // 出す・消す時のアニメーション消えかけを残さない（7.1）。
-        // Tkは map のたびに外枠を作り直すので毎回付けていたが、
-        // WPFのHWNDは作り直されないのでこの1回で足りる（DECISIONS）
+        // 出す・消す時のアニメーション消えかけを残さない。
+        // WPFのHWNDは作り直されないのでこの1回で足りる
         Native.NoTransitions(hwnd);
-        // 自分の窓はスクショに写らない（7.2）。配信・録画に映す設定が ON なら WDA_NONE（修正J30）
+        // 自分の窓はスクショに写らない。配信・録画に映す設定が ON なら WDA_NONE
         ApplyCaptureAffinity();
         ApplyBorder();
 
@@ -148,23 +147,23 @@ public class CaptureWindow : Window
                                 Native.GetSystemMetrics(Native.SM_CYSCREEN));
         var (x, y) = ResolveOpenPos(_cfg.Settings.CaptureX,
                                     _cfg.Settings.CaptureY, w, h);
-        // 物理pxでそのまま置く（DIPを通さない: 7.1「掛け間違えないこと」）
+        // 物理pxでそのまま置く（DIPを通さない。掛け間違えないこと）
         Native.SetWindowPos(hwnd, IntPtr.Zero, x, y, w, h,
             Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
     }
 
-    /// <summary>修正J30: 配信・録画に映す設定を反映する</summary>
+    /// <summary>配信・録画に映す設定を反映する</summary>
     internal void ApplyCaptureAffinity()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd != IntPtr.Zero) Native.ApplyCaptureAffinity(hwnd, _cfg.Settings.AllowCaptureOverlay);
     }
 
-    /// <summary>保存された大きさの範囲切り。Python版 min(max(v,MIN), max(MIN,screen)) と同じ</summary>
+    /// <summary>保存された大きさの範囲切り（min(max(v,MIN), max(MIN,screen))）</summary>
     internal static int ResolveOpenSize(int v, int min, int screen)
         => Math.Min(Math.Max(v, min), Math.Max(min, screen));
 
-    /// <summary>前回の位置が今もモニタ上ならそこへ、無ければ既定位置へ（7.1）</summary>
+    /// <summary>前回の位置が今もモニタ上ならそこへ、無ければ既定位置へ</summary>
     internal static (int X, int Y) ResolveOpenPos(int? sx, int? sy, int w, int h)
     {
         if (sx is int x && sy is int y && WindowGeometry.OnMonitor(x, y, w, h))
@@ -173,10 +172,10 @@ public class CaptureWindow : Window
     }
 
     /// <summary>窓が動く／大きさが変わる「直前」に、これから行く矩形（物理px）を渡す。
-    /// バー・解答欄を同じフレームで動かして、1フレーム遅れて付いてくるのを防ぐ（C4）</summary>
+    /// バー・解答欄を同じフレームで動かして、1フレーム遅れて付いてくるのを防ぐ</summary>
     internal Action<Native.RECT>? Moving;
 
-    // H6: 上・左を含む縁を引いている間は、本物の窓を動かさず、ダミー枠（QuickMarker の外から矩形を渡す形）を動かす。
+    // 上・左を含む縁を引いている間は、本物の窓を動かさず、ダミー枠（QuickMarker の外から矩形を渡す形）を動かす。
     // 本物の窓は透過窓で、位置が先に動いて中の絵が1フレーム遅れ、反対の辺がうねって見えるため。
     private bool _inSizeMove;
     private Native.RECT _moveStartRect;
@@ -193,11 +192,11 @@ public class CaptureWindow : Window
     /// バー・外の解答欄・窓の中の解答欄は、本物の窓の代わりにこれを基準に追従する</summary>
     internal Native.RECT? DragRect { get; private set; }
 
-    /// <summary>H9: ダミー枠で引き始めた時 true、片付け（離した・取り消した）の後 false。
+    /// <summary>ダミー枠で引き始めた時 true、片付け（離した・取り消した）の後 false。
     /// 窓の中の解答欄は引いている間だけ隠れる（透過窓は位置と大きさが同時に変わるとうねるため）</summary>
     internal event Action<bool>? DummyDragChanged;
 
-    // H11: ダミーを使わないサイズ変更（右・下・右下）の間、解答欄を隠している
+    // ダミーを使わないサイズ変更（右・下・右下）の間、解答欄を隠している
     private bool _sizeHidden;
     /// <summary>縁でサイズを変えている間（ダミー枠でも OS のサイズ変更でも）true。窓の中の解答欄が隠れている間</summary>
     internal bool SizeDragging => DragRect is not null || _sizeHidden;
@@ -246,9 +245,9 @@ public class CaptureWindow : Window
         _dragStartRect = start;
         DragRect = start;
         // 本物の窓の縁を消す（膜は残す。引いている間の見た目はダミー枠だけ）。
-        // 修正J66: 知らせる（DummyDragChanged）より先に消す。知らせた先で解答欄が隠れてマウスの掴みが外れると、
-        // その場で EndDummyDrag が走って縁を戻すので、後から消すと縁が消えたまま残った
-        // 修正J87: すぐには消さず、ダミー枠が画面に出てから消す（ダミー枠は別のスレッドが次のフレームで描くので、
+        // 知らせる（DummyDragChanged）より先に消す。知らせた先で解答欄が隠れてマウスの掴みが外れると、
+        // その場で EndDummyDrag が走って縁を戻すので、後から消すと縁が消えたまま残った。
+        // ただしすぐには消さず、ダミー枠が画面に出てから消す（ダミー枠は別のスレッドが次のフレームで描くので、
         // すぐ消すと縁がどこにも無い瞬間ができ、ちらついて見えた）。先に終わっていたら消さない（世代で見分ける）
         _savedBorderBrush = _frame.BorderBrush;
         HideRealBorderWhenDummyShown(_dummyGen);
@@ -257,8 +256,8 @@ public class CaptureWindow : Window
         return _dummyDrag;   // 知らせた先で終わっていたら false（呼び側は本物の窓のまま）
     }
 
-    /// <summary>修正J87: ダミー枠が画面に出たのを待ってから（最大4フレーム）、本物の窓の縁を消す。
-    /// 2枚が重なる1〜2フレームは縁が濃く見えるが、縁が消える瞬間（ちらつき）よりは目立たない（H10 の終わりと同じ考え）</summary>
+    /// <summary>ダミー枠が画面に出たのを待ってから（最大4フレーム）、本物の窓の縁を消す。
+    /// 2枚が重なる1〜2フレームは縁が濃く見えるが、縁が消える瞬間（ちらつき）よりは目立たない</summary>
     private void HideRealBorderWhenDummyShown(int gen)
     {
         Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
@@ -292,9 +291,9 @@ public class CaptureWindow : Window
         }
         _frame.BorderBrush = _savedBorderBrush ?? CaptureBorder.Brush();
         _savedBorderBrush = null;
-        try { DummyDragChanged?.Invoke(false); }   // H9: 新しい（元の）矩形が決まってから解答欄を出し直す
+        try { DummyDragChanged?.Invoke(false); }   // 新しい（元の）矩形が決まってから解答欄を出し直す
         catch (Exception ex) { AppLog.Error("capture dummy drag show", ex); }
-        // 本物の縁が描かれてからダミーを消す（一瞬縁が無い状態を作らない）。H10: 2枚が重なっている間は
+        // 本物の縁が描かれてからダミーを消す（一瞬縁が無い状態を作らない）。2枚が重なっている間は
         // 半透明どうしが重なって濃く（太く）見えるので、重なりを最短（WPF の描画が画面へ出る1〜2フレーム）にする。
         // Render 優先度で本物の縁が積まれた後に DwmFlush を2回待ってから Stop（以前は60ms待って約4フレーム重なっていた）
         int gen = _dummyGen;
@@ -305,7 +304,7 @@ public class CaptureWindow : Window
         }));
     }
 
-    // ---------------- J1: 中を掴んで動かすのは自前で（Windows のスナップ・最大化のアニメーションを出さない） ----------------
+    // ---------------- 中を掴んで動かすのは自前で（Windows のスナップ・最大化のアニメーションを出さない） ----------------
     // 前は WM_NCHITTEST の HTCAPTION を OS の移動に任せていたので、画面の上端・左右の端へ持っていくと
     // Windows のスナップ（最大化・半分）の枠やアニメーションが出た。バーのハンドル（ChromeBar.Handle_*）と同じく、
     // マウスを掴んで SetWindowPos で動かす。大きさは変えない。
@@ -333,11 +332,11 @@ public class CaptureWindow : Window
         _ownMove = true;
         if (!CaptureMouse()) { _ownMove = false; return false; }
         System.Windows.Input.Mouse.OverrideCursor = System.Windows.Input.Cursors.SizeAll;
-        BeginMoveDrag();   // 修正J65: 動かす間はダミー枠（作れなければ本物の窓をそのまま動かす）
+        BeginMoveDrag();   // 動かす間はダミー枠（作れなければ本物の窓をそのまま動かす）
         return true;
     }
 
-    /// <summary>いまのカーソル位置へ窓を動かす（大きさはそのまま）。修正J65: 動かすのはダミー枠で、本物の窓は離した時に1回だけ。
+    /// <summary>いまのカーソル位置へ窓を動かす（大きさはそのまま）。動かすのはダミー枠で、本物の窓は離した時に1回だけ。
     /// バー・解答欄は Moving で付いてくる</summary>
     internal void OwnMoveStep()
     {
@@ -355,11 +354,11 @@ public class CaptureWindow : Window
         EndMoveDrag();
     }
 
-    // ---------------- 修正J65: 窓ごと動かす間はダミー枠（中を掴む・バーのハンドル） ----------------
-    // 大きい窓を毎フレーム SetWindowPos で動かすと 1 回 6〜10ms かかってカクつく（BLOCKED の E5 項目4）。
+    // ---------------- 窓ごと動かす間はダミー枠（中を掴む・バーのハンドル） ----------------
+    // 大きい窓を毎フレーム SetWindowPos で動かすと 1 回 6〜10ms かかってカクつく。
     // 動かす間はダミー枠だけを動かし、窓の中の解答欄は隠す（大きさを変える時と同じ）。離した時に本物の窓を1回で置く。
 
-    /// <summary>窓ごと動かし始める。修正J87: ダミー枠はまだ出さず、実際に動いた時（<see cref="MoveDragTo"/>）に出す
+    /// <summary>窓ごと動かし始める。ダミー枠はまだ出さず、実際に動いた時（<see cref="MoveDragTo"/>）に出す
     /// （掴んだだけ・クリックしただけで縁が消えたり窓の中の解答欄が隠れたりして、ちらつかないように）。準備できたら true</summary>
     internal bool BeginMoveDrag()
     {
@@ -371,10 +370,10 @@ public class CaptureWindow : Window
         return true;
     }
 
-    /// <summary>修正J87: BeginMoveDrag の後、まだ動いていない（ダミー枠を出していない）</summary>
+    /// <summary>BeginMoveDrag の後、まだ動いていない（ダミー枠を出していない）</summary>
     private bool _moveArmed;
     private Native.RECT _moveArmRect;
-    /// <summary>修正J87: ダミー枠を出す途中（知らせの中）で EndMoveDrag が呼ばれた</summary>
+    /// <summary>ダミー枠を出す途中（知らせの中）で EndMoveDrag が呼ばれた</summary>
     private bool _moveEndedInStart;
 
     /// <summary>窓の左上を (x, y)（物理px）へ。大きさは動かし始めのまま</summary>
@@ -384,12 +383,12 @@ public class CaptureWindow : Window
         if (hwnd == IntPtr.Zero) return;
         if (!_dummyDrag && _moveArmed)
         {
-            // 修正J87: まだ掴んだ場所から動いていなければ何もしない。動いたら、ここでダミー枠を出す
+            // まだ掴んだ場所から動いていなければ何もしない。動いたら、ここでダミー枠を出す
             if (x == _moveArmRect.Left && y == _moveArmRect.Top) return;
             _moveArmed = false;
             _moveEndedInStart = false;
             bool started = BeginDummyDrag(_moveArmRect);   // 出せなければ下で本物の窓を動かす
-            // 動かし始めの知らせの中で終わった（J66: マウスの掴みが外れた）なら、本物の窓も動かさない
+            // 動かし始めの知らせの中で終わった（マウスの掴みが外れた）なら、本物の窓も動かさない
             if (!started && _moveEndedInStart) return;
         }
         if (!_dummyDrag)
@@ -413,7 +412,7 @@ public class CaptureWindow : Window
     /// <summary>窓ごと動かし終わり。commit なら本物の窓を最後の場所へ1回で置く（取り消しなら元の場所のまま）</summary>
     internal void EndMoveDrag(bool commit = true)
     {
-        _moveArmed = false;   // 修正J87: 動かずに離した（クリックだけ）なら何も起きない
+        _moveArmed = false;   // 動かずに離した（クリックだけ）なら何も起きない
         _moveEndedInStart = true;
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == IntPtr.Zero) return;
@@ -442,7 +441,7 @@ public class CaptureWindow : Window
     {
         if (msg == Native.WM_NCLBUTTONDOWN && wParam.ToInt64() == Native.HTCAPTION)
         {
-            // 中を掴んだ（窓の中・解答欄の余白ドラッグ E1 からの SendMessage も同じ）。OS の移動には渡さない
+            // 中を掴んだ（窓の中・解答欄の余白ドラッグからの SendMessage も同じ）。OS の移動には渡さない
             if (BeginOwnMove(hwnd)) { handled = true; return IntPtr.Zero; }
             return IntPtr.Zero;
         }
@@ -476,7 +475,7 @@ public class CaptureWindow : Window
             if (_dummyDrag) EndDummyDrag(hwnd, commit: !_dragCancelled && !EscapeDown());
             else if (_sizeHidden)
             {
-                // H11: 右・下・右下（OS のサイズ変更）の終わり。窓の矩形が決まってから解答欄を出し直す
+                // 右・下・右下（OS のサイズ変更）の終わり。窓の矩形が決まってから解答欄を出し直す
                 _sizeHidden = false;
                 try { DummyDragChanged?.Invoke(false); }
                 catch (Exception ex) { AppLog.Error("capture size drag show", ex); }
@@ -488,7 +487,7 @@ public class CaptureWindow : Window
             int edge = (int)wParam.ToInt64();
             if (!_dummyDrag)
             {
-                // 修正J87: 縁を掴んだだけ（大きさがまだ変わらない）の間はダミー枠を出さない（クリックだけでちらつかない）
+                // 縁を掴んだだけ（大きさがまだ変わらない）の間はダミー枠を出さない（クリックだけでちらつかない）
                 var p0 = CursorProvider();
                 var rc0 = DragRectFor(_moveStartRect, edge, p0.X - _moveStartCursor.X, p0.Y - _moveStartCursor.Y, MinW, MinH);
                 if (rc0.Left == _moveStartRect.Left && rc0.Top == _moveStartRect.Top &&
@@ -498,10 +497,10 @@ public class CaptureWindow : Window
                     handled = true;
                     return new IntPtr(1);
                 }
-                // 修正J65: 右・下・右下もダミー枠で引く（大きい窓を OS のサイズ変更で毎回 SetWindowPos するとカクつく）
+                // 右・下・右下もダミー枠で引く（大きい窓を OS のサイズ変更で毎回 SetWindowPos するとカクつく）
                 if (!BeginDummyDrag(_moveStartRect))
                 {
-                    // ダミー枠が作れない時だけ今まで通り OS のサイズ変更。H11: ただし窓の中の解答欄は隠す
+                    // ダミー枠が作れない時だけ今まで通り OS のサイズ変更。ただし窓の中の解答欄は隠す
                     // （WM_SIZING が来た＝移動ではなくサイズ変更。移動では来ないので隠れない）
                     if (!_sizeHidden)
                     {
@@ -543,7 +542,7 @@ public class CaptureWindow : Window
         if (msg == Native.WM_GETMINMAXINFO)
         {
             // 最小 30×30 物理px。MinWidth(DIP)だとDPIで値が変わるので
-            // マウスドラッグ限界を直接物理pxで決める（DECISIONS）
+            // マウスドラッグ限界を直接物理pxで決める
             var mmi = Marshal.PtrToStructure<Native.MINMAXINFO>(lParam);
             mmi.ptMinTrackSize = new Native.POINT { X = MinW, Y = MinH };
             mmi.ptMaxTrackSize = new Native.POINT { X = 0x7FFF, Y = 0x7FFF };
@@ -553,7 +552,7 @@ public class CaptureWindow : Window
         }
         if (msg == Native.WM_NCHITTEST)
         {
-            // バーの「透過」がONの間は中も縁も素通し（Python版 tw_band 246行付近と同じ）
+            // バーの「透過」がONの間は中も縁も素通し
             long ex = Native.GetWindowLongPtrW(hwnd, Native.GWL_EXSTYLE).ToInt64();
             if ((ex & Native.WS_EX_TRANSPARENT) != 0)
             {
@@ -568,7 +567,7 @@ public class CaptureWindow : Window
                 int hit = HitTest(mx - r.Left, my - r.Top,
                                   r.Right - r.Left, r.Bottom - r.Top, HitBand);
                 if (hit == 0)
-                    // 中はどこを掴んでも窓が動く（A2）。膜を塗ったのでクリックは届く。
+                    // 中はどこを掴んでも窓が動く。膜を塗ったのでクリックは届く。
                     // 解答欄が出ている時だけ、下の窓（解答欄）へ返す
                     hit = InteriorHit(InteriorBlocked?.Invoke() == true);
                 handled = true;
@@ -579,7 +578,7 @@ public class CaptureWindow : Window
         if (msg == Native.WM_SETCURSOR)
         {
             // lParamの下16ビットはヒットテストの結果。中（HTCAPTION）は四方向矢印、
-            // 縁はそれぞれのリサイズ矢印（Python版 tw_band CURSORS と同じ形）
+            // 縁はそれぞれのリサイズ矢印
             IntPtr cur = CursorForHit((int)(lParam.ToInt64() & 0xFFFF));
             if (cur != IntPtr.Zero)
             {
@@ -611,14 +610,13 @@ public class CaptureWindow : Window
 
     /// <summary>
     /// 掴みなし域（HitTest が 0 を返した所）の扱い。膜（BandAlpha）を塗ったので
-    /// 中は掴んで移動（HTCAPTION）。解答欄が出ている間は素通しへ戻し、余白ドラッグ（E1）に任せる
-    /// （Python版 tw_band 338行の overlay_visible 相当）
+    /// 中は掴んで移動（HTCAPTION）。解答欄が出ている間は素通しへ戻し、余白ドラッグに任せる
     /// </summary>
     internal static int InteriorHit(bool panelShowing)
         => panelShowing ? Native.HTTRANSPARENT : Native.HTCAPTION;
 
     /// <summary>
-    /// 窓の左上基準の物理px座標を縁判定へ。四辺と四隅はリサイズ（上端も HTTOP、E3）、
+    /// 窓の左上基準の物理px座標を縁判定へ。四辺と四隅はリサイズ（上端も HTTOP）、
     /// 中は 0（掴みなし域）。呼び手側で中は HTCAPTION へ
     /// 置き換える（下の WndProc）。隅は端より優先
     /// </summary>
@@ -646,8 +644,7 @@ public class CaptureWindow : Window
     }
 
     /// <summary>
-    /// capture_x/y/width/height（物理px）へ書き出して保存。Python版
-    /// tw_drag._save_capture_size と同じガード: 壊れた大きさ（最小未満）は
+    /// capture_x/y/width/height（物理px）へ書き出して保存。壊れた大きさ（最小未満）は
     /// 保存しない。隠している間の座標は本当の置き場所ではないので位置だけ触らない
     /// </summary>
     internal void SaveGeometryNow()

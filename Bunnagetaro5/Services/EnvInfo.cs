@@ -3,9 +3,8 @@ using System.Runtime.InteropServices;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 起動時に app.log へ1行ずつ書く環境情報（指示書 7.10 env_info）。
-/// Python版 tw_shots.env_info（app_version/os/machine/cpu/ram）に対応させ、
-/// 指示書に合わせて「画面構成」（モニタ1台ずつと仮想デスクトップ）も足す。
+/// 起動時に app.log へ1行ずつ書く環境情報（app_version/os/machine/cpu/ram と
+/// モニタ1台ずつ・仮想デスクトップの画面構成）。
 /// crash.log の調査で「そのPCで何が起きたか」を突き止めるための足場。
 /// </summary>
 public static class EnvInfo
@@ -18,7 +17,7 @@ public static class EnvInfo
         lines.Add("env os=" + RuntimeInformation.OSDescription);
         lines.Add("env machine=" + RuntimeInformation.OSArchitecture + " proc=" + RuntimeInformation.ProcessArchitecture);
         string cpu = Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "";
-        if (cpu.Length > 80) cpu = cpu[..80];   // Python版 env_info の [:80] と同じ切り方
+        if (cpu.Length > 80) cpu = cpu[..80];
         lines.Add($"env cpu={cpu} cores={Environment.ProcessorCount}");
         double ramGb = Math.Round(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 1073741824.0, 1);
         lines.Add($"env ram_gb={ramGb}");
@@ -79,7 +78,7 @@ public static class EnvInfo
         return list;
     }
 
-    // ---- P/Invoke（このファイル専用。tw_win32 に対応する物ではない） ----
+    // ---- P/Invoke（このファイル専用） ----
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT { public int Left, Top, Right, Bottom; }

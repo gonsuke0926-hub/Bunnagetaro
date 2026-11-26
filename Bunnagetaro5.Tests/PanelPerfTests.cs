@@ -14,13 +14,13 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// 手順28: 性能の確認。1万字を超える思考を流しているあいだ、UIスレッドが50ms以上
-/// 止まらないこと（指示書L492）。流し方は実アプリと同じ便で、裏の「workerスレッド」
+/// 性能の確認。1万字を超える思考を流しているあいだ、UIスレッドが50ms以上
+/// 止まらないこと。流し方は実アプリと同じ便で、裏の「workerスレッド」
 /// から60字ごとに BeginInvoke（MainWindow の Push と同じ形）。遅れは
 /// DispatcherTimer の tick 間隔そのもので測り、操作1個のapply実時間も併記する。
-/// 値は app.log（テスト用一時）へログも残す（指示書の「テストかログ」の両方）。
+/// 値は app.log（テスト用一時）へログも残す。
 /// </summary>
-// 整理（2026-11-22）: 時間を測って合否を決めるので、PC が忙しいと落ちる。普段の全体の流しでは外す（AGENTS.md「テストの流し方」）
+// 時間を測って合否を決めるので、PC が忙しいと落ちる。普段の全体の流しでは外す
 [Trait("Category", "Perf")]
 public class PanelPerfTests : IDisposable
 {
@@ -42,7 +42,7 @@ public class PanelPerfTests : IDisposable
         try { Directory.Delete(_temp, true); } catch { }
     }
 
-    private const int LimitMs = 50;   // 指示書の手順28の50ms
+    private const int LimitMs = 50;
 
     // ---- helpers（PanelMathTests と同じ形） ----
 

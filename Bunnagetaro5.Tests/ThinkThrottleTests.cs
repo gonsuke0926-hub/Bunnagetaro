@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>F7: 思考欄の更新は 200ms に1回だけ画面へ出す（4000字の入れ直しのレイアウトが1回 25〜45ms のため）</summary>
+/// <summary>思考欄の更新は 200ms に1回だけ画面へ出す（4000字の入れ直しのレイアウトが1回 25〜45ms のため）</summary>
 public class ThinkThrottleTests
 {
     [Fact]

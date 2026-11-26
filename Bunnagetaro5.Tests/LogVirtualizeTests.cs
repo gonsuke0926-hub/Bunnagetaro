@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>FIX_ROUND2 C2: ログの ListBox の仮想化が実際に効いている（全カードを実体化しない）。</summary>
+/// <summary>ログの ListBox の仮想化が実際に効いている（全カードを実体化しない）。</summary>
 public class LogVirtualizeTests : IDisposable
 {
     private readonly string _temp;

@@ -4,23 +4,22 @@ using System.Text.RegularExpressions;
 
 namespace Bunnagetaro5.Services;
 
-/// <summary>解答欄の本文の区切れ目（手順25 / フェーズ7）。
+/// <summary>解答欄の本文の区切れ目。
 /// Text: そのまま出す文字（Texは空）。Inline: $...$ の式。
 /// Display: $$...$$ または \[...\] の独立行の式。</summary>
 public enum MathSegKind { Text, Inline, Display }
 
-/// <summary>LaTeX のコピーの形（F13。設定 latex_copy）</summary>
+/// <summary>LaTeX のコピーの形（設定 latex_copy）</summary>
 public enum LatexCopyForm { Plain, Dollar, Paren }
 
 /// <summary>ひとつ分の区切れ目。Raw は元の文字そのまま（デリミタ込み・
 /// 式が表示できないとき原文字へ戻すのに使う）。Tex はデリミタの中身。</summary>
 public readonly record struct MathSeg(MathSegKind Kind, string Raw, string Tex);
 
-/// <summary>本文を「そのままの文字」と「式」へ分ける（指示書25手順:
-/// $...$ は文中、$$..$$・\[..\] は独立行）。閉じ記号が来ていない部分は
-/// 式にせず文字のまま返す（ストリーミング中に文字で出る約束）。
+/// <summary>本文を「そのままの文字」と「式」へ分ける（$...$ は文中、$$..$$・\[..\] は独立行）。
+/// 閉じ記号が来ていない部分は式にせず文字のまま返す（ストリーミング中に文字で出る約束）。
 /// 空の式（$$ の直後閉じ等）も文字のまま。文中の $...$ は行をまたがない
-/// （値段の $ が2行またぎで式に見えるのを防ぐ。DECISIONS 記録）。</summary>
+/// （値段の $ が2行またぎで式に見えるのを防ぐ）。</summary>
 public static class MathText
 {
     public static List<MathSeg> Split(string s)
@@ -142,11 +141,11 @@ public static class MathText
     }
 
     /// <summary>文中の $...$ として認める形か。両端が空白だと値段の $ などで
-    /// 化ける（"cost $5 or $10" を式にしない。DECISIONS 記録）</summary>
+    /// 化ける（"cost $5 or $10" を式にしない）</summary>
     private static bool ValidInline(string inner)
         => inner.Length > 0 && !char.IsWhiteSpace(inner[0]) && !char.IsWhiteSpace(inner[^1]);
 
-    // ---------------- LaTeX のコピーの形（F13） ----------------
+    // ---------------- LaTeX のコピーの形 ----------------
 
     /// <summary>設定 latex_copy の値。plain=中身だけ（既定）／dollar=$ $$ で囲む／paren=\( \) \[ \] で囲む</summary>
     public static LatexCopyForm ParseCopyForm(string? v) => v switch
@@ -199,13 +198,13 @@ public static class MathText
         return sb.ToString();
     }
 
-    // ---------------- 式番号（修正J93） ----------------
+    // ---------------- 式番号 ----------------
 
     private static readonly Regex TagRe = new(@"\\tag(\*?)\s*\{((?:[^{}]|\{[^{}]*\})*)\}", RegexOptions.Compiled);
 
-    /// <summary>修正J93: 描く用の式の式番号。\tag{X} は「\qquad\text{(X)}」、\tag*{X} は「\qquad\text{X}」にする。
+    /// <summary>描く用の式の式番号。\tag{X} は「\qquad\text{(X)}」、\tag*{X} は「\qquad\text{X}」にする。
     /// KaTeX は \tag を式の幅いっぱいの右端に置くので、式の幅ぴったりの箱で描くと式の右端に重なる
-    /// （GLM-OCR が式番号を \tag で返す。人の報告 2026-11-24）。\tag が2つある（aligned の中など）時も全部置き換える。
+    /// （GLM-OCR が式番号を \tag で返す）。\tag が2つある（aligned の中など）時も全部置き換える。
     /// コピー用の原文字（MathSeg.Raw）には使わない（LaTeX の文書では \tag が正しい書き方）</summary>
     public static string TagForDisplay(string tex) =>
         tex.Contains("\\tag", StringComparison.Ordinal)
@@ -214,7 +213,7 @@ public static class MathText
                 : "\\qquad\\text{(" + m.Groups[2].Value + ")}")
             : tex;
 
-    /// <summary>修正J93: 式の区切れ目の描く用の中身（Tex）だけ式番号を置き換えたもの（Raw はそのまま）</summary>
+    /// <summary>式の区切れ目の描く用の中身（Tex）だけ式番号を置き換えたもの（Raw はそのまま）</summary>
     public static List<MathSeg> WithDisplayTags(List<MathSeg> segs)
     {
         for (int i = 0; i < segs.Count; i++)

@@ -12,8 +12,7 @@ internal interface IModelListView
 }
 
 /// <summary>
-/// 起動時・窓を開いた時・モデルを変えた時の、AIまわりの準備と前提チェック（修正A4）。
-/// Python版 translator_window の _startup_models / _warm_ai / _switch_model / _env_probe の移植。
+/// 起動時・窓を開いた時・モデルを変えた時の、AIまわりの準備と前提チェック。
 /// どれもUIを止めない（async）。失敗してもぶん投げ自体は止めない。
 /// </summary>
 internal sealed partial class ThrowController
@@ -25,7 +24,7 @@ internal sealed partial class ThrowController
     /// <summary>この窓が裏で Ollama へ問い合わせる（温め・前提チェック・一覧読み・終了時の降ろし）か</summary>
     internal bool EnvChecks = EnvChecksDefault;
 
-    /// <summary>連続で積み直さないための間隔（秒。Python版 WARM_MIN_INTERVAL）</summary>
+    /// <summary>連続で積み直さないための間隔（秒）</summary>
     internal const double WarmMinIntervalSec = 240.0;
 
     private bool _modelsReady;                 // 起動時に一覧を読めたか
@@ -40,7 +39,6 @@ internal sealed partial class ThrowController
     /// <summary>
     /// コンストラクタの最後で呼ぶ。「ぶん投げに使う設定」の控えを取り、
     /// 窓ができたあと 900/1100/1400ms 後に 温め・一覧読み・前提チェック を順に走らせる
-    /// （Python版 App.__init__ の root.after(900/1100/1400, ...)）
     /// </summary>
     internal void InitRunKey()
     {
@@ -60,7 +58,7 @@ internal sealed partial class ThrowController
     /// <summary>モデル一覧の表示先（設定ページ。後から付く）</summary>
     internal IModelListView? ModelList { get; set; }
 
-    /// <summary>ぶん投げに内蔵の OCR を使う設定か（内蔵OCRのみ、または文字起こし＋内蔵OCR。修正J17・J26・J27）</summary>
+    /// <summary>ぶん投げに内蔵の OCR を使う設定か（内蔵OCRのみ、または文字起こし＋内蔵OCR）</summary>
     private static string? BuiltinModelOf(JsonObject cfg)
     {
         string mode = TranslatePipeline.ThrowModeOf(cfg);
@@ -127,7 +125,7 @@ internal sealed partial class ThrowController
     {
         if (!EnvChecks) return;
         var cfg = _cfg.EffectiveConfig();
-        // 修正J17: 内蔵の OCR を使う設定なら、それも裏で読み込んでおく（Ollama には積まない）
+        // 内蔵の OCR を使う設定なら、それも裏で読み込んでおく（Ollama には積まない）
         if (BuiltinModelOf(cfg) is { } bm) _ = BuiltinOcr.WarmAsync(bm);
         if (!AiIsLocal(cfg)) return;
         if (TranslatePipeline.ThrowModeOf(cfg) == ConfigStore.ThrowModeBuiltinOcr) return;
@@ -207,7 +205,7 @@ internal sealed partial class ThrowController
         bool builtin = TranslatePipeline.ThrowModeOf(cfg) == ConfigStore.ThrowModeBuiltinOcr;
         string model = builtin ? TranslatePipeline.BuiltinOcrModelOf(cfg) : ConfigStore.NodeToStr(cfg["model"]).Trim();
         if (model.Length == 0) return;
-        if (BuiltinModelOf(cfg) is { } bm) _ = BuiltinOcr.WarmAsync(bm);   // 修正J17・J27
+        if (BuiltinModelOf(cfg) is { } bm) _ = BuiltinOcr.WarmAsync(bm);
         int generation = ++_warmupGeneration;
         bool local = AiIsLocal(cfg) && !builtin;
         bool moved = ConfigStore.NodeToStr(prevCfg["base_url"]) != ConfigStore.NodeToStr(cfg["base_url"]);
@@ -259,7 +257,7 @@ internal sealed partial class ThrowController
         var cfg = _cfg.EffectiveConfig();
         int gen = ++_probeGen;
         string problem = "";
-        // 修正J17・J27: 内蔵の OCR だけで読む設定は Ollama が無くても動く。モデルのファイルがあるかだけ見る
+        // 内蔵の OCR だけで読む設定は Ollama が無くても動く。モデルのファイルがあるかだけ見る
         if (TranslatePipeline.ThrowModeOf(cfg) == ConfigStore.ThrowModeBuiltinOcr)
         {
             string bm = TranslatePipeline.BuiltinOcrModelOf(cfg);
@@ -284,7 +282,7 @@ internal sealed partial class ThrowController
             }
             else
             {
-                // I9: 文字起こしONの時は翻訳モデルがテキスト専用でも動くため vision非対応 を出さない
+                // 文字起こしONの時は翻訳モデルがテキスト専用でも動くため vision非対応 を出さない
                 bool ocrSplit = TranslatePipeline.ThrowModeOf(cfg) == ConfigStore.ThrowModeOcr;
                 if (!ocrSplit)
                 {
@@ -312,7 +310,7 @@ internal sealed partial class ThrowController
 
     /// <summary>
     /// 終了後も keep_alive で数GBが常駐しないよう、keep_alive:0 で最善努力の unload（3秒で諦める・
-    /// 失敗は握り潰す。Ollama の死活で終了を止めない）。Python版 _quit の末尾と同じ
+    /// 失敗は握り潰す。Ollama の死活で終了を止めない）。
     /// </summary>
     internal void UnloadOnQuit()
     {
@@ -320,7 +318,7 @@ internal sealed partial class ThrowController
         try
         {
             var cfg = _cfg.EffectiveConfig();
-            if (!AiIsLocal(cfg)) return;   // F33: 共有サーバーで他人のモデルを降ろさない
+            if (!AiIsLocal(cfg)) return;   // 共有サーバーで他人のモデルを降ろさない
             var models = new HashSet<string>
             {
                 _cfg.Settings.Model.Trim(),
@@ -335,7 +333,7 @@ internal sealed partial class ThrowController
                     models.Add(ConfigStore.NodeToStr(cfg["ocr_vlm_model"]).Trim());
             }
             models.Remove("");
-            models.RemoveWhere(BuiltinOcr.IsBuiltin);   // 修正J17: 内蔵の OCR は Ollama に積んでいない
+            models.RemoveWhere(BuiltinOcr.IsBuiltin);   // 内蔵の OCR は Ollama に積んでいない
             if (models.Count == 0) return;
             // UIスレッドの同期コンテキストを避けるため Task.Run で包んでから待つ
             Task.Run(() => Task.WhenAll(models.Select(m => OllamaClient.UnloadModelAsync(cfg, m))))

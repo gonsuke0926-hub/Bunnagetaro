@@ -1,7 +1,7 @@
 namespace Bunnagetaro5.Status;
 
 /// <summary>
-/// 状態欄の文言を決める（Python版 _tick_status / _set_status の移植部分）。窓には文字列だけを渡す。
+/// 状態欄の文言を決める。窓には文字列だけを渡す。
 /// 印のフラグ（Busy など）は、ぶん投げ・前提チェック・巡回が立てる。Tick は350msごとに呼ばれて今の文言を返す。
 /// </summary>
 public sealed class StatusModel
@@ -28,7 +28,7 @@ public sealed class StatusModel
     /// <summary>自動トリガが有効か（呼び手が決める）</summary>
     public Func<bool> TriggerEnabled { get; set; } = () => false;
 
-    /// <summary>一言出す。12秒たつと監視中/待機中へ戻る（Python版 _set_status）</summary>
+    /// <summary>一言出す。12秒たつと監視中/待機中へ戻る</summary>
     public void Set(string msg)
     {
         _shownUtc = DateTime.UtcNow;
@@ -49,7 +49,7 @@ public sealed class StatusModel
     private string WithNote(string s) =>
         _note.Length > 0 && DateTime.UtcNow < _noteUntilUtc ? s + "　" + _note : s;
 
-    /// <summary>350msごとの文言（Python版 _tick_status）</summary>
+    /// <summary>350msごとの文言</summary>
     public string Tick() => WithNote(TickCore());
 
     private string TickCore()
@@ -65,7 +65,7 @@ public sealed class StatusModel
         var d = new string('.', TrigTicks % 4);
         if (EnvProblem.Length > 0)
             // 前提が足りていない間は、監視中／待機中の代わりにその理由だけを出す。
-            // 点は付けない（動いている印に見える。AIサーバー未起動・モデル未導入・vision非対応とも。F1）
+            // 点は付けない（動いている印に見える。AIサーバー未起動・モデル未導入・vision非対応とも）
             return EnvProblem;
         if (WarmRunning)
             return "AIモデル準備中" + d;

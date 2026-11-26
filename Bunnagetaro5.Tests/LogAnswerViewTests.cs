@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>H4a・H4b: ログの本文を解答欄と同じ AnswerView で出す</summary>
+/// <summary>ログの本文を解答欄と同じ AnswerView で出す</summary>
 public class LogAnswerViewTests : IDisposable
 {
     private readonly string _temp;

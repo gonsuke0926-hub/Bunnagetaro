@@ -15,20 +15,19 @@ using Bunnagetaro5.Session;
 namespace Bunnagetaro5;
 
 /// <summary>
-/// バー（chrome / 7.7）。キャプチャ窓に添える高さ36pxほどの横帯。
+/// バー（chrome）。キャプチャ窓に添える高さ36pxほどの横帯。
 /// 左: 移動ハンドル・ぶん投げる・くっつける / 右: 自動トリガ・ぶん投げ方・
 /// 透過・プリセット・閉じる。2行目にステータス（Subtle 12、長い … ）。
 ///
-/// 位置計算はWin32物理pxに統一（Tk版 tw_place._win_phys と同じ趣旨。
-/// WPFのDIPと混在させると125%環境で1.25倍ずれて窓に寄らない、の実測対策）。
-/// 収まる場所が無ければバーは隠れる（Python版の「重ね配置は絶対しない」）。
+/// 位置計算はWin32物理pxに統一（WPFのDIPと混在させると125%環境で1.25倍ずれて窓に寄らない、の実測対策）。
+/// 収まる場所が無ければバーは隠れる（重ね配置は絶対しない）。
 /// </summary>
 public class ChromeBar : Window
 {
-    /// <summary>バーの角丸（7.7）</summary>
+    /// <summary>バーの角丸</summary>
     private const int CornerRad = 6;
 
-    /// <summary>出し終わりの透明度（7.7）。開く・閉じる・クイックの動きの基準</summary>
+    /// <summary>出し終わりの透明度。開く・閉じる・クイックの動きの基準</summary>
     internal const double RestOpacity = 0.92;
 
     /// <summary>おまけの帯なので Alt+Tab に出さない。WS_EX_TOOLWINDOW</summary>
@@ -48,9 +47,9 @@ public class ChromeBar : Window
     private TextBlock _statusText = new();
     private StatusFitBox _statusBox = new();
 
-    /// <summary>修正J18: 2行目のステータスの入れ物。バーの大きさを決める時は BaseWidth（48文字ぶん）だけを
+    /// <summary>2行目のステータスの入れ物。バーの大きさを決める時は BaseWidth（48文字ぶん）だけを
     /// 求め、並べる時は渡された幅（＝バーの幅）いっぱいで文字を測る。長い文はその幅で … になる。
-    /// 修正J18b: 測る幅と並べる幅を同じにする。前は測る時 48 文字ぶん・並べる時バーの幅で中身を測り直していたので、
+    /// 測る幅と並べる幅を同じにする。前は測る時 48 文字ぶん・並べる時バーの幅で中身を測り直していたので、
     /// 48 文字ぶんより長い文の間は中身の大きさが毎回食い違い、並べ直しが止まらなかった（1秒に約1800回。
     /// 画面のスレッドが塞がり、長い一言が出ている12秒の間、窓がかくかくした）</summary>
     internal sealed class StatusFitBox : Decorator
@@ -68,7 +67,7 @@ public class ChromeBar : Window
             return new Size(BaseWidth, Child.DesiredSize.Height);
         }
 
-        /// <summary>テスト用: 並べた回数（修正J18b）</summary>
+        /// <summary>テスト用: 並べた回数</summary>
         internal int ArrangeCount { get; private set; }
 
         protected override Size ArrangeOverride(Size arrangeSize)
@@ -86,7 +85,7 @@ public class ChromeBar : Window
         }
     }
 
-    // ---- 状態（Python版の _chrome_* 変数に対応） ----
+    // ---- 状態 ----
     private bool _linked = true;
     private bool _passthru;
     private bool _filling;             // 塗り直し中に発火したハンドラを止める
@@ -116,7 +115,7 @@ public class ChromeBar : Window
         Topmost = true;
         SizeToContent = SizeToContent.WidthAndHeight;
         WindowStartupLocation = WindowStartupLocation.Manual;
-        Opacity = RestOpacity;   // 7.7 の指定（Python版 alpha 0.82 より指示書を優先）
+        Opacity = RestOpacity;
 
         _linked = _cfg.Settings.ChromeLinked;
         _passthru = _cfg.Settings.ChromePassthru;
@@ -194,7 +193,7 @@ public class ChromeBar : Window
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        // 移動ハンドル（2本線）。ここを掴んで引く（tw_drag のハンドル）
+        // 移動ハンドル（2本線）。ここを掴んで引く
         _handle.Width = 14;
         _handle.Height = 20;
         _handle.Background = Brushes.Transparent;   // からでも掴めるように当たりだけ置く
@@ -287,7 +286,7 @@ public class ChromeBar : Window
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0),
         };
-        // 修正J18: 幅は固定にせず、バーの幅いっぱいまで使う（48文字ぶんの固定では、全角の字が
+        // 幅は固定にせず、バーの幅いっぱいまで使う（48文字ぶんの固定では、全角の字が
         // 約24字で切れ、1行目のボタンの幅があっても途中で … になっていた）。
         // バーの大きさを決めるのは今まで通り 1行目と「48文字ぶん」で、ステータスの長さではバーは伸びない
         _statusBox = new StatusFitBox { BaseWidth = 48 * TextW("0", 12), Child = _statusText };
@@ -315,7 +314,7 @@ public class ChromeBar : Window
         VerticalAlignment = VerticalAlignment.Center,
     };
 
-    // ---------------- 配置（tw_place._position_chrome） ----------------
+    // ---------------- 配置 ----------------
 
     /// <summary>バーを窓の外側へ即再配置。収まる場所が無ければ隠す（置き場所・表示は WindowPlacer / WindowVisibility が決める）</summary>
     public void PositionChrome() => PositionChrome(null);
@@ -346,7 +345,7 @@ public class ChromeBar : Window
         => new() { Left = x, Top = y, Right = x + w, Bottom = y + h };
 
     /// <summary>バーの実窓の物理矩形。見えていなければ null（帯の配置は
-    /// 「バーが無い時」の分岐へ落ちる。tw_place の chrome 非表示扱いと同じ）</summary>
+    /// 「バーが無い時」の分岐へ落ちる）</summary>
     internal Native.RECT? BarRectNow()
     {
         if (!IsVisible) return null;
@@ -355,7 +354,7 @@ public class ChromeBar : Window
         return Native.GetWindowRect(b, out var r) ? r : (Native.RECT?)null;
     }
 
-    // ---------------- ハンドル・ドラッグ（tw_drag） ----------------
+    // ---------------- ハンドル・ドラッグ ----------------
 
     private void Handle_Down(object sender, MouseButtonEventArgs e)
     {
@@ -365,12 +364,12 @@ public class ChromeBar : Window
         if (!Native.GetWindowRect(bar, out var br) || !Native.GetWindowRect(cap, out var wr)) return;
         if (!Native.GetCursorPos(out var p)) return;
 
-        // 連結ONかつ透過OFFのときだけ窓ごと動く（locked は 7.8 でUI廃止＝常に false）
+        // 連結ONかつ透過OFFのときだけ窓ごと動く（locked は UI廃止＝常に false）
         bool group = _linked && !_passthru;
         _drag = new DragState(br.Left, br.Top, br.Right - br.Left, br.Bottom - br.Top,
             wr.Left, wr.Top, p.X, p.Y, group);
         _handle.CaptureMouse();
-        if (group) _cap.BeginMoveDrag();   // 修正J65: 窓ごと動かす間はダミー枠（離した時に本物の窓を1回で置く）
+        if (group) _cap.BeginMoveDrag();   // 窓ごと動かす間はダミー枠（離した時に本物の窓を1回で置く）
         e.Handled = true;
     }
 
@@ -383,19 +382,19 @@ public class ChromeBar : Window
 
         if (d.Group)
         {
-            // 窓ごと動かす。修正J65: 動くのはダミー枠で、バーは Moving→PositionChrome でついてくる
+            // 窓ごと動かす。動くのはダミー枠で、バーは Moving→PositionChrome でついてくる
             _cap.MoveDragTo(d.CapX + p.X - d.CurX, d.CapY + p.Y - d.CurY);
         }
         else
         {
-            // バー単独: 収まる場所のときだけ動かす（tw_drag._move_toolbar_one と同じ）
+            // バー単独: 収まる場所のときだけ動かす
             var client = Native.ClientRectScreen(cap);
             if (client is null) return;
             int nx = d.BarX + p.X - d.CurX, ny = d.BarY + p.Y - d.CurY;
             if (ChromePlace.Fits(nx, ny, d.BarW, d.BarH, Native.VirtualDesktop(), client.Value))
             {
                 _barPos = (nx, ny);
-                // F3: バーが動く直前に外の解答欄も同じフレームで置く（D1 と同じ。巡回を待たない）
+                // バーが動く直前に外の解答欄も同じフレームで置く（巡回を待たない）
                 _host.BarMovingTo(RectAt(nx, ny, d.BarW, d.BarH));
                 Native.SetWindowPos(RootHwnd, IntPtr.Zero, nx, ny, 0, 0,
                     Native.SWP_NOSIZE | Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
@@ -408,11 +407,11 @@ public class ChromeBar : Window
         if (_drag is not { } d) return;
         _drag = null;
         if (_handle.IsMouseCaptured) _handle.ReleaseMouseCapture();
-        if (d.Group) _cap.EndMoveDrag();   // 修正J65: 本物の窓を最後の場所へ1回で置いてから、差を保存する
+        if (d.Group) _cap.EndMoveDrag();   // 本物の窓を最後の場所へ1回で置いてから、差を保存する
         SyncOffsetAfterMove();
     }
 
-    /// <summary>ドラッグ終了: バーと窓の左上の差を chrome_offset_x/y に保存（tw_place._sync_chrome_offset_after_move）</summary>
+    /// <summary>ドラッグ終了: バーと窓の左上の差を chrome_offset_x/y に保存</summary>
     private void SyncOffsetAfterMove()
     {
         var bar = RootHwnd;
@@ -441,7 +440,7 @@ public class ChromeBar : Window
     public void SetStatusText(string msg) => _statusText.Text = msg;
 
     /// <summary>
-    /// くっつける ON/OFF（tw_place._chrome_linked_changed）。
+    /// くっつける ON/OFF。
     /// ONは位置記憶を捨てて窓直下へ吸着 → 現在の位置からオフセットを計算して保存。
     /// OFFは現在位置を記憶したままオフセットだけ保存（離れても元の場所を維持）
     /// </summary>
@@ -584,7 +583,7 @@ public class ChromeBar : Window
         }
     }
 
-    /// <summary>修正J30: 配信・録画に映す設定を反映する</summary>
+    /// <summary>配信・録画に映す設定を反映する</summary>
     internal void ApplyCaptureAffinity()
     {
         var h = new WindowInteropHelper(this).Handle;
@@ -599,8 +598,8 @@ public class ChromeBar : Window
         var h = new WindowInteropHelper(this).Handle;
         long ex = Native.GetWindowLongPtrW(h, Native.GWL_EXSTYLE).ToInt64();
         Native.SetWindowLongPtrW(h, Native.GWL_EXSTYLE, new IntPtr(ex | WS_EX_TOOLWINDOW));
-        // 開閉のシステムアニメを出さない＋自分の窓は撮影に写らない指定（7.2。
-        // バーが撮る範囲に重なることがあっても写らない）
+        // 開閉のシステムアニメを出さない＋自分の窓は撮影に写らない指定
+        // （バーが撮る範囲に重なることがあっても写らない）
         Native.NoTransitions(h);
         if (!Native.ApplyCaptureAffinity(h, _cfg.Settings.AllowCaptureOverlay))
             AppLog.Error("バーの SetWindowDisplayAffinity 失敗");

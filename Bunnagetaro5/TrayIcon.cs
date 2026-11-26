@@ -7,7 +7,7 @@ using Bunnagetaro5.Services;
 namespace Bunnagetaro5;
 
 /// <summary>
-/// 修正J50: タスクトレイ（通知領域）のアイコンと右クリックのメニュー。メイン窓が持つ。
+/// タスクトレイ（通知領域）のアイコンと右クリックのメニュー。メイン窓が持つ。
 /// アプリが動いているあいだいつも出し、窓を閉じたら外す（残像を残さない）。
 /// メニューの中身は新しく作らず、設定ページ・バーが使っている道をそのまま呼ぶ:
 /// 解答欄の場所は SettingsPage.SetResultPlaceForActive、クイックは SettingsPage.SetQuickEnabled、
@@ -62,7 +62,7 @@ internal sealed class TrayIcon : IDisposable
             ContextMenuStrip = _menu,
             Visible = true,
         };
-        // 修正J52: 左の1回押しは範囲ドラッグ（二重押しの時間だけ待ち、二重押しが来なければ始める）。二重押しは窓を出す
+        // 左の1回押しは範囲ドラッグ（二重押しの時間だけ待ち、二重押しが来なければ始める）。二重押しは窓を出す
         _clickTimer = new DispatcherTimer(DispatcherPriority.Normal, _disp)
         { Interval = TimeSpan.FromMilliseconds(System.Windows.Forms.SystemInformation.DoubleClickTime) };
         _clickTimer.Tick += (_, _) =>
@@ -121,7 +121,7 @@ internal sealed class TrayIcon : IDisposable
 
     internal void ShowWindow() => _win.ShowAndActivate();
 
-    /// <summary>左の1回押し（修正J52: 画面を少し暗くして範囲ドラッグ）</summary>
+    /// <summary>左の1回押し（画面を少し暗くして範囲ドラッグ）</summary>
     internal void OnLeftClick() => _win.StartSnip();
 
     /// <summary>1回押しを預かる。二重押しの時間（システム設定）のうちに二重押しが来なければ OnLeftClick を始める</summary>
@@ -163,7 +163,7 @@ internal sealed class TrayIcon : IDisposable
     /// <summary>吹き出しを出した回数（テスト用。OS の吹き出しは見ない）</summary>
     internal int HintCount { get; private set; }
 
-    /// <summary>修正J55: しまった時の吹き出しは、これまでに1度も出していない時だけ出す（出したら `tray_hint_shown` を保存。音が毎回鳴ってうるさいため）。--tray の起動では出さない</summary>
+    /// <summary>しまった時の吹き出しは、これまでに1度も出していない時だけ出す（出したら `tray_hint_shown` を保存。音が毎回鳴ってうるさいため）。--tray の起動では出さない</summary>
     internal void MaybeShowHiddenHint(bool startedHidden)
     {
         if (_disposed || startedHidden || _cfg.Settings.TrayHintShown) return;
@@ -172,7 +172,7 @@ internal sealed class TrayIcon : IDisposable
         ShowHiddenHint();
     }
 
-    /// <summary>修正J51: 吹き出しを出す（出すかどうかは MaybeShowHiddenHint が決める）</summary>
+    /// <summary>吹き出しを出す（出すかどうかは MaybeShowHiddenHint が決める）</summary>
     internal void ShowHiddenHint()
     {
         if (_disposed) return;

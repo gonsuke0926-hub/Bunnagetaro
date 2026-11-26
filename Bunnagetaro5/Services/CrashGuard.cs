@@ -4,10 +4,9 @@ using System.Windows.Threading;
 namespace Bunnagetaro5.Services;
 
 /// <summary>
-/// 異常時の記録（指示書 7.10）。未処理の例外は crash.log に書き、ダイアログで知らせる。
+/// 異常時の記録。未処理の例外は crash.log と app.log に書き、ダイアログで知らせる。
 /// フックは AppDomain.UnhandledException / DispatcherUnhandledException /
-/// TaskScheduler.UnobservedTaskException の3種（指示書指定）。
-/// Python版 translator_window.py の _excepthook（app.log へ "unhandled:" で全文残す）も踏襲。
+/// TaskScheduler.UnobservedTaskException の3種。
 /// </summary>
 public static class CrashGuard
 {
@@ -23,7 +22,6 @@ public static class CrashGuard
         _installed = true;
 
         // UIスレッドの未処理例外。アプリは生かしたまま続ける
-        // （Python版 Tk もコールバック内の例外で本体まで死なないのと同じ趣旨）
         app.DispatcherUnhandledException += (_, e) =>
         {
             HandleWithDialog("unhandled(UI)", e.Exception);
@@ -70,7 +68,7 @@ public static class CrashGuard
 
     private static void Record(string tag, Exception ex)
     {
-        AppLog.Error(tag, ex);      // app.log にも（Python版 excepthook の "unhandled:" 相当）
+        AppLog.Error(tag, ex);      // app.log にも残す
         AppLog.Crash(Describe(tag, ex));
     }
 

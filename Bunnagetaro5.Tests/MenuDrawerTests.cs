@@ -14,7 +14,7 @@ using Xunit;
 namespace Bunnagetaro5.Tests;
 
 /// <summary>
-/// ☰メニュー（6.2）の動作確認。このPCの自動化シェルからはマウス・鍵盤入力が
+/// ☰メニューの動作確認。このPCの自動化シェルからはマウス・鍵盤入力が
 /// 窓に届かないため、WPF自身のイベント（Click・Esc・スクリーンクリック）を
 /// 起こして、開閉・スクリーン・今のページ印・ページ切り替えを確かめる。
 /// </summary>
@@ -206,7 +206,7 @@ public class MenuDrawerTests : IDisposable
             Assert.Equal(Visibility.Visible, Find<System.Windows.Shapes.Rectangle>(w, "MarkCfg")!.Visibility);
             Assert.Equal(Visibility.Collapsed, Find<System.Windows.Shapes.Rectangle>(w, "MarkLog")!.Visibility);
 
-            // 設定ページの見出し（6.4）でログへ戻れる
+            // 設定ページの見出しでログへ戻れる
             var back = Find<Button>(w, "BackButton")!;
             back.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             Pump(w.Dispatcher, 200);
@@ -242,7 +242,7 @@ public class MenuDrawerTests : IDisposable
         });
     }
 
-    /// <summary>D7: 開く動きはレイアウト後の次フレームから始まり、項目の動作は閉じ終わってから走る。
+    /// <summary>開く動きはレイアウト後の次フレームから始まり、項目の動作は閉じ終わってから走る。
     /// 動いている間だけビットマップキャッシュが載り、終わったら外れる</summary>
     [Fact]
     public void 開く動きはレイアウト後に始まり_項目の動作は閉じ終わってから走る()

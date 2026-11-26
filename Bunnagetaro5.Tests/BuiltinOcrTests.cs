@@ -17,7 +17,7 @@ using Xunit;
 
 namespace Bunnagetaro5.Tests;
 
-/// <summary>修正J17: 内蔵の OCR（PP-OCRv6 medium）。前処理・後処理の計算と、本物のモデルでの読み取り、送る流れの分かれ方。</summary>
+/// <summary>内蔵の OCR（PP-OCRv6 medium）。前処理・後処理の計算と、本物のモデルでの読み取り、送る流れの分かれ方。</summary>
 public class BuiltinOcrTests : IDisposable
 {
     private readonly List<HttpClient> _clients = new();
@@ -339,7 +339,7 @@ public class BuiltinOcrTests : IDisposable
         int err = Lev(got, want);
         Assert.True(err * 100 <= want.Length * 3, $"文字の誤りが 3% を超えた（{err}/{want.Length}）: {text}");
         Assert.Equal(Truth.Length, (int)diag["builtin_ocr_boxes"]!);
-        // 修正J17b: 単語の間の空白が詰まらない
+        // 単語の間の空白が詰まらない
         Assert.Contains("The quick brown fox jumps over the lazy dog.", text);
     }
 
@@ -698,7 +698,7 @@ public class BuiltinOcrTests : IDisposable
         Assert.Equal("glm-ocr:latest", diag2["ocr_model"]);
     }
 
-    // ---- 修正J109: レイアウトのモデルの区画に行を入れる ----
+    // ---- レイアウトのモデルの区画に行を入れる ----
 
     private static LayoutRegion Reg(int l, int t, int r, int b, string label = "text", float order = 0) =>
         new(Rectangle.FromLTRB(l, t, r, b), label, 0.9f, order);
@@ -770,7 +770,7 @@ public class BuiltinOcrTests : IDisposable
         Assert.All(blocks, b => { Assert.InRange(b.X, 0, 1); Assert.InRange(b.Y, 0, 1); });
     }
 
-    // ---- 修正J110: VLM で位置の反映（区画ごとに切り抜いて頼む） ----
+    // ---- VLM で位置の反映（区画ごとに切り抜いて頼む） ----
 
     [Fact]
     public async Task J110_画像そのままで位置の反映がONなら_区画を先に渡し_区画ごとに1回ずつ頼んで1行ずつ返す()

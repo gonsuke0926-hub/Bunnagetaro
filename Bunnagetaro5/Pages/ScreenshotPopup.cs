@@ -17,14 +17,14 @@ public sealed class ScreenshotPopup : Window
     private readonly Image _img = new();
     private BitmapSource? _bmp;
 
-    /// <summary>H8/J88: 透過しない窓なので動きは付けず Windows の出る動きに任せ、位置合わせだけ先に済ませて出す</summary>
+    /// <summary>透過しない窓なので動きは付けず Windows の出る動きに任せ、位置合わせだけ先に済ませて出す</summary>
     public void ShowAnimated()
     {
         PlaceBeforeShow();
         WindowMotion.ShowFade(this, 1.0, WindowMotion.OpenMs);
     }
 
-    /// <summary>H8: Show の前に HWND を作って、窓の大きさを測り、最終の位置へ置いておく。
+    /// <summary>Show の前に HWND を作って、窓の大きさを測り、最終の位置へ置いておく。
     /// 既定の位置に一瞬出てから動く、を無くす</summary>
     private void PlaceBeforeShow()
     {
@@ -39,7 +39,7 @@ public sealed class ScreenshotPopup : Window
             double chromeW = ((wr.Right - wr.Left) - (cr.Right - cr.Left)) / dpi.DpiScaleX;
             double chromeH = ((wr.Bottom - wr.Top) - (cr.Bottom - cr.Top)) / dpi.DpiScaleY;
             // 画像が小さい時（拡大率が高い時は 200px の画像でも 150% で 133 DIP）は、窓は最小の大きさ（MinWidth・MinHeight）になる。
-            // 見積もりにもそれを入れないと、開いた後に置き直して一瞬ずれる（2026-11-16、150% の PC で H8 のテストが落ちた原因）
+            // 見積もりにもそれを入れないと、開いた後に置き直して一瞬ずれる
             PositionAtOwner(Math.Max(MinWidth, _orig.W + chromeW), Math.Max(MinHeight, _orig.H + chromeH));
         }
         catch (Exception ex) { AppLog.Error("popup preplace failed", ex); }
@@ -123,7 +123,7 @@ public sealed class ScreenshotPopup : Window
         }
     }
 
-    /// <summary>F15: 大きさが決まった後で、Owner（メイン窓）の中央へ置く（作業領域内に収める）</summary>
+    /// <summary>大きさが決まった後で、Owner（メイン窓）の中央へ置く（作業領域内に収める）</summary>
     private void PositionAtOwner(double preW = 0, double preH = 0)
     {
         if (Owner is not { } own) return;
@@ -152,7 +152,7 @@ public sealed class ScreenshotPopup : Window
     private bool _settled;
 
     /// <summary>初回レイアウト後: 窓の大きさを固定値へ移して SizeToContent を Manual に戻し、
-    /// 画像は窓に合わせて Uniform で拡縮させる（D3）</summary>
+    /// 画像は窓に合わせて Uniform で拡縮させる</summary>
     private void Settle()
     {
         if (_settled || _bmp is null) return;
@@ -203,14 +203,14 @@ public sealed class ScreenshotPopup : Window
     {
         Title = $"スクショ — {ts}";
         SizeToContent = SizeToContent.WidthAndHeight;
-        ResizeMode = ResizeMode.CanResize;   // 広げ縮めできる（大きさは保存しない。D3）
+        ResizeMode = ResizeMode.CanResize;   // 広げ縮めできる（大きさは保存しない）
         MinWidth = 160;
         MinHeight = 120;
         Background = (Brush)Application.Current.Resources["Bg"];
         ShowInTaskbar = false;
         Icon = AppIcon.Window();
 
-        // F14・H4b: 下の「画像をコピー」行は無くし、右クリックは「スクショをコピー」だけ（答えのコピーは本文の右クリックで）
+        // 下の「画像をコピー」行は無くし、右クリックは「スクショをコピー」だけ（答えのコピーは本文の右クリックで）
         var menu = new ContextMenu();
         var miImg = new MenuItem { Header = "スクショをコピー", IsEnabled = !string.IsNullOrEmpty(file) };
         miImg.Click += (_, _) => LogPage.CopyShotToClipboard(file, setStatus);
