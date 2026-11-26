@@ -1,0 +1,157 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- 7.3の撮影はCopyFromScreen可と明記。System.DrawingはWinFormsフレームワーク同梱
+         （NuGetは増やさない）。画面撮影だけこれを使う -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- DPI は app.manifest で PerMonitorV2 を宣言する（ApplicationHighDpiMode は WinForms 専用で WPF には効かない） -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WinForms 側の「マニフェストのDPI設定は API で」という助言（WFAC010）。WPF なので manifest が正 -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- 版の正本はここ1か所（AppVersion が読む。窓の題名・バージョン情報に出る。README は手で合わせる） -->
+    <Version>1.3.0</Version>
+    <!-- 配る exe の名前は Bunnagetaro.exe（2026-11-15 人の判断。買う人に「5」は意味が無い）。
+         名前空間・設定フォルダ（%APPDATA%\Bunnagetaro5）・Mutex 名は変えない。
+         アセンブリ名が変わるので pack URI は "/Bunnagetaro;component/..." -->
+    <AssemblyName>Bunnagetaro</AssemblyName>
+    <RootNamespace>Bunnagetaro5</RootNamespace>
+    <!-- exe のファイルアイコン（A6） -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- 配布はフォルダごと zip（2026-11-15 人の判断）。.NET とアプリは exe に入れ、
+       WPF・WebView2 のネイティブ DLL は exe の横に置く（%TEMP%\.net へ展開しない＝版ごとに溜まらない）。
+       配布フォルダに要らない pdb・API 説明の xml は出さない（行番号は exe に埋める） -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinFormsの世界using（Application等）でWPF参照が曖昧にならないよう既定usingから外す。
+         System.Drawingは必要なファイルで明示usingする -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\bar_help.png" />
+    <!-- 窓の Icon（タスクバー・Alt+Tab）とバージョン情報の絵（A6） -->
+    <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\app_256.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- テストが HttpClient の差し替え口（internal）を使えるようにする -->
+    <InternalsVisibleTo Include="Bunnagetaro5.Tests" />
+    <InternalsVisibleTo Include="b6" Condition="'$(Configuration)'=='Debug'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WpfMath" Version="2.1.0" />
+    <!-- 数式の描画（整理8.6 / 1.3）。版は固定 -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+    <!-- 内蔵の OCR（PP-OCRv6 medium）を動かす（修正J17・2026-11-18 人の判断で追加）。版は固定。
+         修正J21（2026-11-18 人の判断）: OpenVINO 入りの ONNX Runtime に替えた（このPCで約2倍速い）。
+         修正J108（2026-11-26 人の判断「vino はすてる」）: GPU のある PC でも使うため DirectML 入りの ONNX Runtime に替えた。
+         onnxruntime.dll がぶつかるので OpenVINO 入り・ふつうの ONNX Runtime とは一緒に入れられない。DirectML 入りは 1.24.4 まで -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
+  </ItemGroup>
+
+  <!-- 内蔵の OCR のモデル（PP-OCRv6 medium / small・Apache-2.0。修正J17・J26）。
+       git には入れず（medium 約140MB ＋ small 約30MB）、初めてビルドする時に公式の Hugging Face から版を固定して落とし、
+       SHA256 が合うか確かめてから ..\.models に置く（2026-11-18・11-19 人の判断）。
+       配布フォルダには exe の横の Models\ppocrv6 と Models\ppocrv6-small に出す（zip に同梱） -->
+  <PropertyGroup>
+    <PpOcrCacheDir>$(MSBuildThisFileDirectory)..\.models\ppocrv6-medium\</PpOcrCacheDir>
+    <PpOcrDetUrl>https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_det_onnx/resolve/61323801669c338b7891481ec7bac61ce31b576a/inference.onnx</PpOcrDetUrl>
+    <PpOcrRecUrl>https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/50c7eacafc52fa7bcf4194e8cd08e46f8558504b/inference.onnx</PpOcrRecUrl>
+    <PpOcrDictUrl>https://huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx/resolve/50c7eacafc52fa7bcf4194e8cd08e46f8558504b/inference.yml</PpOcrDictUrl>
+    <PpOcrSmallCacheDir>$(MSBuildThisFileDirectory)..\.models\ppocrv6-small\</PpOcrSmallCacheDir>
+    <PpOcrSmallDetUrl>https://huggingface.co/PaddlePaddle/PP-OCRv6_small_det_onnx/resolve/28fe5895c24fd108c19eb3e8479f4ab385fbfc62/inference.onnx</PpOcrSmallDetUrl>
+    <PpOcrSmallRecUrl>https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx/resolve/b8f84f0b80c529de40b4fbb3544b84fa7233a513/inference.onnx</PpOcrSmallRecUrl>
+    <PpOcrSmallDictUrl>https://huggingface.co/PaddlePaddle/PP-OCRv6_small_rec_onnx/resolve/b8f84f0b80c529de40b4fbb3544b84fa7233a513/inference.yml</PpOcrSmallDictUrl>
+  </PropertyGroup>
+  <ItemGroup>
+    <PpOcrModel Include="det.onnx" Url="$(PpOcrDetUrl)" Sha256="eb13b44b25bb36f89528b68720af8a61d9cf381176107f465db1757b65d086e1" />
+    <PpOcrModel Include="rec.onnx" Url="$(PpOcrRecUrl)" Sha256="9c09abf0957f7968c7586464b7397b84ad2387a0497a351af40e9acc71b673ba" />
+    <PpOcrModel Include="rec.yml" Url="$(PpOcrDictUrl)" Sha256="991b700facf5b50a7de193468207d5f4255b538dde0d312ae3b7c7a9b6873129" />
+    <Content Include="@(PpOcrModel->'$(PpOcrCacheDir)%(Identity)')" Link="Models\ppocrv6\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" Visible="false" />
+    <PpOcrSmallModel Include="det.onnx" Url="$(PpOcrSmallDetUrl)" Sha256="d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e" />
+    <PpOcrSmallModel Include="rec.onnx" Url="$(PpOcrSmallRecUrl)" Sha256="5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634" />
+    <PpOcrSmallModel Include="rec.yml" Url="$(PpOcrSmallDictUrl)" Sha256="ab078671bb49f06228eadccd34f1bb501e157f7a047095ffb943ba81512c77d1" />
+    <Content Include="@(PpOcrSmallModel->'$(PpOcrSmallCacheDir)%(Identity)')" Link="Models\ppocrv6-small\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" Visible="false" />
+  </ItemGroup>
+  <!-- 修正J109: 区画を見つけるモデル PP-DocLayoutV3（PaddlePaddle・Apache-2.0）。有志が ONNX に変換した物
+       （AlexTransformer/PP-DocLayoutV3-onnx。人の判断 2026-11-26）を版を固定して落とし、SHA256 を確かめて同梱する（約132MB）。
+       配布フォルダには exe の横の Models\pp-doclayoutv3\layout.onnx に出す -->
+  <PropertyGroup>
+    <LayoutCacheDir>$(MSBuildThisFileDirectory)..\.models\pp-doclayoutv3\</LayoutCacheDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <LayoutModelFile Include="layout.onnx" Url="https://huggingface.co/AlexTransformer/PP-DocLayoutV3-onnx/resolve/504ba2bdc97c81ecdc92f4540ea6b6d6b1c0aacb/inference.onnx"
+                     Sha256="bc307c102a52a10eedf20f36a03df384b8eb2224beb2e5e716c581901a8f0b61" />
+    <Content Include="@(LayoutModelFile->'$(LayoutCacheDir)%(Identity)')" Link="Models\pp-doclayoutv3\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" Visible="false" />
+  </ItemGroup>
+  <Target Name="FetchLayoutModel" BeforeTargets="BeforeBuild">
+    <MakeDir Directories="$(LayoutCacheDir)" />
+    <DownloadFile Condition="!Exists('$(LayoutCacheDir)%(LayoutModelFile.Identity)')" SourceUrl="%(LayoutModelFile.Url)"
+                  DestinationFolder="$(LayoutCacheDir)" DestinationFileName="%(LayoutModelFile.Identity).part" Retries="2" />
+    <VerifyFileHash Condition="!Exists('$(LayoutCacheDir)%(LayoutModelFile.Identity)')" File="$(LayoutCacheDir)%(LayoutModelFile.Identity).part"
+                    Hash="%(LayoutModelFile.Sha256)" Algorithm="SHA256" />
+    <Move Condition="!Exists('$(LayoutCacheDir)%(LayoutModelFile.Identity)')" SourceFiles="$(LayoutCacheDir)%(LayoutModelFile.Identity).part"
+          DestinationFiles="$(LayoutCacheDir)%(LayoutModelFile.Identity)" />
+  </Target>
+  <!-- ONNX Runtime の NuGet はリンク用の .lib も出すが、配るフォルダには要らない。
+       OpenVINO の NuGet が出す TBB の *_debug.dll（デバッグ版の OpenVINO 用）も要らない（修正J21） -->
+  <Target Name="DropOnnxRuntimeLibs" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.lib'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(Filename)').EndsWith('_debug')) And '%(Extension)' == '.dll'" />
+      <!-- 修正J111: DirectML の NuGet が出すデバッグ用の DLL（DirectML.Debug.dll）と記号の .pdb も要らない -->
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Filename)%(Extension)' == 'DirectML.Debug.dll' Or '%(Filename)%(Extension)' == 'DirectML.Debug.pdb' Or '%(Filename)%(Extension)' == 'DirectML.pdb'" />
+    </ItemGroup>
+  </Target>
+  <Target Name="FetchPpOcrModels" BeforeTargets="BeforeBuild">
+    <MakeDir Directories="$(PpOcrCacheDir)" />
+    <MakeDir Directories="$(PpOcrSmallCacheDir)" />
+    <!-- 無い時だけ落とす（.part に落としてから確かめ、合えば名前を付ける。途中で切れた物を使わない） -->
+    <DownloadFile Condition="!Exists('$(PpOcrCacheDir)%(PpOcrModel.Identity)')" SourceUrl="%(PpOcrModel.Url)"
+                  DestinationFolder="$(PpOcrCacheDir)" DestinationFileName="%(PpOcrModel.Identity).part" Retries="2" />
+    <VerifyFileHash Condition="!Exists('$(PpOcrCacheDir)%(PpOcrModel.Identity)')" File="$(PpOcrCacheDir)%(PpOcrModel.Identity).part"
+                    Hash="%(PpOcrModel.Sha256)" Algorithm="SHA256" />
+    <Move Condition="!Exists('$(PpOcrCacheDir)%(PpOcrModel.Identity)')" SourceFiles="$(PpOcrCacheDir)%(PpOcrModel.Identity).part"
+          DestinationFiles="$(PpOcrCacheDir)%(PpOcrModel.Identity)" />
+    <DownloadFile Condition="!Exists('$(PpOcrSmallCacheDir)%(PpOcrSmallModel.Identity)')" SourceUrl="%(PpOcrSmallModel.Url)"
+                  DestinationFolder="$(PpOcrSmallCacheDir)" DestinationFileName="%(PpOcrSmallModel.Identity).part" Retries="2" />
+    <VerifyFileHash Condition="!Exists('$(PpOcrSmallCacheDir)%(PpOcrSmallModel.Identity)')" File="$(PpOcrSmallCacheDir)%(PpOcrSmallModel.Identity).part"
+                    Hash="%(PpOcrSmallModel.Sha256)" Algorithm="SHA256" />
+    <Move Condition="!Exists('$(PpOcrSmallCacheDir)%(PpOcrSmallModel.Identity)')" SourceFiles="$(PpOcrSmallCacheDir)%(PpOcrSmallModel.Identity).part"
+          DestinationFiles="$(PpOcrSmallCacheDir)%(PpOcrSmallModel.Identity)" />
+  </Target>
+
+  <ItemGroup>
+    <!-- KaTeX 0.16.11（MIT）一式。単一ファイル publish でも exe 単体で動くよう埋め込み、
+         起動時に %APPDATA%\Bunnagetaro5\katex-0.16.11 へ展開して仮想ホストで読む（ネットからは読まない） -->
+    <EmbeddedResource Include="Assets\katex\**\*" LogicalName="katex/%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- 同梱サードパーティライセンス表示（G14）。exe 埋め込み＋配布フォルダにも出力する -->
+    <EmbeddedResource Include="THIRD_PARTY_NOTICES.txt" LogicalName="THIRD_PARTY_NOTICES.txt" />
+    <Content Include="THIRD_PARTY_NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <!-- 配布はフォルダごと zip（2026-11-15 人の判断）。配布フォルダには README.txt（メモ帳で開ける・UTF-8 BOM 付き）を出す。
+         README.md は GitHub で見る用 -->
+    <Content Include="..\README.txt" Link="README.txt" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    <Content Include="..\LICENSE" Link="LICENSE" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,51 @@
+<Window x:Class="Bunnagetaro5.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Bunnagetaro5"
+        xmlns:views="clr-namespace:Bunnagetaro5.Views"
+        mc:Ignorable="d"
+        Title="スクショはローカルAIにぶん投げろ！" Height="660" Width="940"
+        MinHeight="480" MinWidth="640"
+        Background="{StaticResource Bg}">
+    <!-- 6.1 メイン窓: 上の段 ＋ ページ表示域（タブは使わない） ＋ ☰メニュー（6.2） -->
+    <Grid>
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Padding="14,12,14,8">
+                <DockPanel LastChildFill="False">
+                    <!-- 手順11: キャプチャ窓を開く（開いているときは前に出すだけ） -->
+                    <Button x:Name="CaptureButton" DockPanel.Dock="Left"
+                            Style="{StaticResource PrimaryButton}"
+                            Content="キャプチャ窓を開く"
+                            Click="CaptureButton_Click"/>
+                    <!-- 修正J52: 画面を少し暗くして四角で選び、そのままぶん投げる -->
+                    <Button x:Name="SnipButton" DockPanel.Dock="Left"
+                            Margin="8,0,0,0"
+                            Content="範囲ドラッグ"
+                            Click="SnipButton_Click"/>
+                    <CheckBox x:Name="TopmostCheck" DockPanel.Dock="Left"
+                            Margin="14,0,0,0" VerticalAlignment="Center"
+                            FontFamily="{StaticResource UiFont}" FontSize="14"
+                            Foreground="{StaticResource Text}"
+                            Content="前面固定"/>
+                    <!-- ☰（右端）: 6.2 のメニューを開閉する -->
+                    <Button x:Name="MenuButton" DockPanel.Dock="Right"
+                            Margin="8,0,0,0" Padding="8,4" Content="☰" FontSize="16"
+                            Click="MenuButton_Click"/>
+                    <TextBlock x:Name="StatusText" DockPanel.Dock="Right"
+                            Style="{StaticResource SubtleText}"
+                            VerticalAlignment="Center" Margin="0,0,8,0"
+                            Text="待機中"/>
+                </DockPanel>
+            </Border>
+            <!-- ログ／設定／バーの使い方を切り替える域 -->
+            <Border Padding="14,0,14,14">
+                <Grid x:Name="PageArea"/>
+            </Border>
+        </DockPanel>
+
+        <!-- 6.2 メニュー（☰）: Views/Drawer（右端から幅280が180msでスライド。覆いクリック・Escで閉じる） -->
+        <views:Drawer x:Name="DrawerView"/>
+    </Grid>
+</Window>

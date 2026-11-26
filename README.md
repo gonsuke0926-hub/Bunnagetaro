@@ -1,8 +1,8 @@
-# スクショはローカルAIにぶん投げろ！ v1.2.2
+# スクショはローカルAIにぶん投げろ！ v1.3.0
 
 **囲った範囲の画像を PC の AI（Ollama）に送り、答えをキャプチャ枠の中に透過表示する Windows 向けツールです。**
 
-![看板のネオン「open till dawn」を枠で囲むと、枠の中に「夜明けまで営業」と訳が重なって表示される](docs/images/demo_sign.webp)
+![英文記事を範囲ドラッグで囲むと、各区画の元の位置に日本語訳や OCR 結果が重なって表示される](docs/images/demo_sign.webp)
 
 画像は、プリセットごとに設定した指示（プロンプト）と一緒に送ります。翻訳・OCR・数式・表の読み取りなどに使えます。内蔵 OCR（PP-OCRv6）で読み取った文字を送ることもでき、OCR だけなら Ollama なしでも使えます。  
 答えはそのままクリップボードにコピーでき、枠の外に表示することもできます。  
@@ -24,6 +24,8 @@
 設定で、いろいろ自由に変えられます。
 
 - 使う AI モデルや指示を変える・自分用のプリセットを作る
+- 画面の区画を自動で検出し、枠の中では元の文字の位置に重ねて表示する（内蔵 OCR・VLM のどちらでも利用可能）
+- 枠の中と外窓それぞれの背景色・文字色・不透明度を設定する
 - 文字起こししてから AI に渡すか、画像のまま画像対応の AI（VLM）に渡すかを選ぶ
 - 画面が止まったら自動で読み取る・答えを自動でコピーする・答えに続けて質問する・タスクトレイに常駐する など
 
@@ -36,9 +38,8 @@
 
 ### 1. zip を展開して起動する
 
-1. [Releases](https://github.com/gonsuke0926-hub/Bunnagetaro/releases/latest) から `Bunnagetaro-v1.2.2-win-x64.zip` をダウンロードします。
-2. zip を右クリックし、「すべて展開」で任意のフォルダへ展開します。
-3. 展開した中の `Bunnagetaro` フォルダを開き、`Bunnagetaro.exe` を起動します。
+1. `Bunnagetaro-v1.3.0-win-x64.zip` を右クリックし、「すべて展開」で任意のフォルダへ展開します。
+2. 展開した中の `Bunnagetaro` フォルダを開き、`Bunnagetaro.exe` を起動します。
    - `Bunnagetaro.exe` だけを別の場所へ移動すると動作しません（同じフォルダの DLL や `Models` フォルダが必要です）。デスクトップなどから起動したい場合はショートカットを作成してください。
    - 初回起動時に Windows SmartScreen の警告が出た場合は、「詳細情報」→「実行」を選択してください。
 
@@ -74,6 +75,24 @@
 1. 「設定」→「AI接続」で「接続テスト」「モデル一覧を取得」を押します。
 2. 「キャプチャ窓を開く」を押し、読みたい範囲に枠を合わせてバーの「ぶん投げる」を押します。
 
+## ソースからビルドする
+
+- 必要な環境: Windows 10 / 11 (64bit)、[.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+
+```bat
+git clone https://github.com/gonsuke0926-hub/Bunnagetaro.git
+cd Bunnagetaro
+dotnet build Bunnagetaro5.sln
+```
+
+※ 初回ビルド時に内蔵 OCR モデル（PP-OCRv6）と区画検出モデル（PP-DocLayoutV3）を Hugging Face から自動取得し、SHA256 を検証して配置します。
+
+配布用フォルダ（`publish`）を作成する場合:
+
+```bat
+dotnet publish Bunnagetaro5 -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+```
+
 ## 既定プリセット
 
 | プリセット | ぶん投げ方（既定） | 想定モデル | Ollama |
@@ -99,9 +118,8 @@
 - 設定とログは `%APPDATA%\Bunnagetaro5` に保存されます。
 - アンインストール時は、展開したフォルダと `%APPDATA%\Bunnagetaro5` を削除してください。
 
-## 利用について
+## ライセンス
 
-- 無料で、個人・商用を問わず自由に使えます。zip を変更しなければ再配布も自由です。
-- 無保証です。使用によって生じた損害について、作者は責任を負いません。
-- 同梱のサードパーティソフトウェア（PP-OCRv6 / OpenVINO / ONNX Runtime 等）のライセンス表記は `THIRD_PARTY_NOTICES.txt`（およびアプリ内「バージョン情報」）をご確認ください。
+- 本ソフトウェアは **MIT License**（[LICENSE](LICENSE)）の下で公開しています。個人・商用を問わず自由に利用・改変・再配布できます（無保証）。
+- 同梱のサードパーティソフトウェア（PP-OCRv6 / PP-DocLayoutV3 / ONNX Runtime / DirectML / KaTeX 等）のライセンス表記は `THIRD_PARTY_NOTICES.txt`（およびアプリ内「バージョン情報」）をご確認ください。
 - Ollama で別途取得する AI モデルは、各モデル配布元のライセンス条件に従ってください。

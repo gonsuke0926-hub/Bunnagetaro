@@ -1,0 +1,28 @@
+<UserControl x:Class="Bunnagetaro5.Pages.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d">
+    <!-- 6.4 設定ページの見出し行: ←（ログへ戻る）＋「設定」。中身は手順6以降 -->
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="0,4,0,8">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button x:Name="BackButton" Style="{StaticResource IconButton}"
+                            FontSize="14" Padding="8,4" Content="&#xE72B;"
+                            Click="Back_Click"/>
+                    <TextBlock Text="設定" Style="{StaticResource PageHeading}"
+                               VerticalAlignment="Center" Margin="6,0,0,0"/>
+                </StackPanel>
+                <CheckBox x:Name="ExpertModeChk" DockPanel.Dock="Right"
+                          Content="上級者モード" VerticalAlignment="Center"
+                          Margin="0,0,8,0"/>
+            </DockPanel>
+        </Border>
+        <!-- 中身は最大幅860で中央寄せ・縦スクロール -->
+        <ScrollViewer x:Name="BodyScroll" VerticalScrollBarVisibility="Auto" Focusable="False" IsTabStop="False">
+            <StackPanel x:Name="BodyPanel" MaxWidth="860" HorizontalAlignment="Center"/>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
