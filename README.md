@@ -95,12 +95,12 @@ dotnet publish Bunnagetaro5 -c Release -r win-x64 --self-contained true -p:Publi
 
 ## 既定プリセット
 
-| プリセット | ぶん投げ方（既定） | 想定モデル | Ollama |
-| :--- | :--- | :--- | :--- |
-| 翻訳 | 文字起こし → 内蔵OCR（`PP-OCRv6 small`） | `hf.co/pfnet/plamo-3-translate-0.8b-GGUF:Q4_K_M` | 要 |
-| OCR | 内蔵OCRのみ（`PP-OCRv6 small`） | 同梱（`PP-OCRv6 small` / `medium`） | 不要 |
-| 数式 | 画像そのまま | `glm-ocr` | 要 |
-| 表 | 画像そのまま | `hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF` | 要 |
+| プリセット | 1 レイアウト判定 | 2 前処理 | 3 AI処理（想定モデル） | Ollama |
+| :--- | :--- | :--- | :--- | :--- |
+| 翻訳 | 使用する | 内蔵OCR（`PP-OCRv6 small`） | `hf.co/pfnet/plamo-3-translate-0.8b-GGUF:Q4_K_M` | 要 |
+| OCR | 使用する | 内蔵OCR（`PP-OCRv6 small` / `medium` 同梱） | 使用しない | 不要 |
+| 数式 | 使用しない | 使用しない（画像のまま渡す） | `glm-ocr` | 要 |
+| 表 | 使用しない | 使用しない（画像のまま渡す） | `hf.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF` | 要 |
 
 設定ページの「処理の流れ」で、プリセットごとに `1 レイアウト判定`（PP-DocLayoutV3）→ `2 前処理`（`内蔵OCR` / `VLM`）→ `3 AI処理` の各段を「使用する」かどうか選べます（前処理だけで AI に頼まず読んだ文をそのまま出す・画像のまま AI に渡す、なども可能）。  
 数式・表は解答欄の右クリックからコピーできます。

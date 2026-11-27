@@ -75,10 +75,10 @@
 
 ■ 既定プリセット
 
-  ・翻訳：文字起こし → 内蔵OCR（PP-OCRv6 small）＋ PLaMo 3 Translate
-  ・OCR ：内蔵OCRのみ（PP-OCRv6 small / medium 同梱。Ollama 不要）
-  ・数式：画像そのまま ＋ GLM-OCR（右クリックで LaTeX / 画像コピー）
-  ・表  ：画像そのまま ＋ PaddleOCR-VL 1.6（右クリックで Excel 用コピー）
+  ・翻訳：レイアウト判定 → 前処理 内蔵OCR（PP-OCRv6 small）→ AI処理 PLaMo 3 Translate
+  ・OCR ：レイアウト判定 → 前処理 内蔵OCR（PP-OCRv6 small / medium 同梱）のみ。Ollama 不要
+  ・数式：画像のまま AI処理 GLM-OCR へ（右クリックで LaTeX / 画像コピー）
+  ・表  ：画像のまま AI処理 PaddleOCR-VL 1.6 へ（右クリックで Excel 用コピー）
 
   設定ページの「処理の流れ」で、プリセットごとに
   1 レイアウト判定（PP-DocLayoutV3）→ 2 前処理（内蔵OCR / VLM）→ 3 AI処理
