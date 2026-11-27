@@ -194,12 +194,13 @@ public class SettingsPagePresetTests : IDisposable
         OnSta(() =>
         {
             var page = MakePage(out var cfg);
-            var name = FindLogical<TextBox>(page, "PresetNameBox")!;
+            var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
             string active = cfg.GetStr("prompt_active");
-            name.Text = "OCR";   // 既定プリセットの名前とかぶらせる
-            PressEnter(name);
+            cb.Text = "OCR";   // 既定プリセットの名前とかぶらせる（自動切替せず重複検証される）
+            PressEnter(cb);
             Pump(50);
             Assert.NotEqual("OCR", Preset(cfg, active)!["name"]!.GetValue<string>());
+            Assert.Equal(active, cfg.GetStr("prompt_active"));
             Assert.Contains("重複", FindLogical<SettingRow>(page, "PresetRow")!.DescBox.Text);
             return true;
         });
@@ -213,7 +214,7 @@ public class SettingsPagePresetTests : IDisposable
             var page = MakePage(out var cfg);
             var instr = FindLogical<TextBox>(page, "PresetTextBox")!;
             instr.Text = "   ";
-            PressEnter(FindLogical<TextBox>(page, "PresetNameBox")!);
+            PressEnter(FindLogical<ComboBox>(page, "PresetCombo")!);
             Pump(50);
             Assert.NotEqual("   ", cfg.GetStr("prompt"));
             Assert.Contains("指示が空です", FindLogical<SettingRow>(page, "PresetRow")!.DescBox.Text);
@@ -368,14 +369,14 @@ public class SettingsPagePresetTests : IDisposable
             Assert.False(aiUse.IsChecked);                                        // 新しい設定の OCR は内蔵OCRのみ＝AI処理しない
 
             string[] unused = { "ModelCombo", "PresetTextBox", "PresetReset", "ThinkCombo", "ShowFollowChk", "CtxBox", "PredictBox", "TempBox", "KeepBox" };
-            string[] used = { "PresetNameBox", "AiUse", "BuiltinSizeCombo", "ClipChk", "ConvertOtslChk", "ConvertHtmlChk", "ConvertLatexChk" };
+            string[] used = { "PresetCombo", "AiUse", "BuiltinSizeCombo", "ClipChk", "ConvertOtslChk", "ConvertHtmlChk", "ConvertLatexChk" };
             void Expect(bool off)
             {
                 foreach (var n in unused)
                     Assert.True(FindLogical<FrameworkElement>(page, n)!.IsEnabled == !off, n + " の IsEnabled");
                 foreach (var n in used)
                     Assert.True(FindLogical<FrameworkElement>(page, n)!.IsEnabled, n + " は触れる");
-                Assert.Equal(off ? 0.45 : 1.0, FindLogical<FrameworkElement>(page, "FlowAiBody")!.Opacity, 3);
+                Assert.Equal(off ? Visibility.Collapsed : Visibility.Visible, FindLogical<FrameworkElement>(page, "FlowAiBody")!.Visibility);
                 Assert.True(FindLogical<CheckBox>(page, "PreUse")!.IsEnabled == !off, "AI処理しないなら前処理のチェックは外せない");
             }
             Expect(off: true);
@@ -423,6 +424,7 @@ public class SettingsPagePresetTests : IDisposable
             Assert.True(preUse.IsChecked);
             Assert.True(preBuilt.IsChecked);
             Assert.True(aiUse.IsChecked);
+            Assert.Equal("レイアウト判定 → 内蔵OCR → AI処理", FindLogical<TextBlock>(page, "FlowSummaryText")!.Text);
             Assert.Equal(0, sizeCb.SelectedIndex);
             Assert.Equal(Visibility.Visible, sizePanel.Visibility);
             Assert.Equal(Visibility.Collapsed, vlmPanel.Visibility);
@@ -456,9 +458,10 @@ public class SettingsPagePresetTests : IDisposable
             Assert.Equal(ConfigStore.ThrowModeVlmOcr, St(cfg, "翻訳", "throw_mode"));
             Assert.False(cfg.EffectiveBool("ocr_split_mode", true));
 
-            // 内蔵OCR ＋ AI処理しない → builtin_ocr
+            // 内蔵OCR ＋ AI処理しない → builtin_ocr（まとめバッジにも「そのまま出力」は出さない）
             preBuilt.IsChecked = true;
             Pump(50);
+            Assert.Equal("レイアウト判定 → 内蔵OCR", FindLogical<TextBlock>(page, "FlowSummaryText")!.Text);
             Assert.Equal(ConfigStore.ThrowModeBuiltinOcr, St(cfg, "翻訳", "throw_mode"));
             Assert.Equal(ConfigStore.OcrEngineBuiltin, St(cfg, "翻訳", "ocr_engine"));
 
@@ -466,6 +469,7 @@ public class SettingsPagePresetTests : IDisposable
             aiUse.IsChecked = true;
             preUse.IsChecked = false;
             Pump(50);
+            Assert.Equal("レイアウト判定 → AI処理", FindLogical<TextBlock>(page, "FlowSummaryText")!.Text);
             Assert.Equal(ConfigStore.ThrowModeImage, St(cfg, "翻訳", "throw_mode"));
             Assert.False(FindLogical<FrameworkElement>(page, "FlowPreBody")!.IsEnabled);
             Assert.False(sizeCb.IsEnabled);
@@ -607,7 +611,7 @@ public class SettingsPagePresetTests : IDisposable
             var page = MakePage(out var cfg);
             var instr = FindLogical<TextBox>(page, "PresetTextBox")!;
             instr.Text = "勝手に書き換えた";
-            PressEnter(FindLogical<TextBox>(page, "PresetNameBox")!);
+            PressEnter(FindLogical<ComboBox>(page, "PresetCombo")!);
             Pump(30);
             Assert.Equal("勝手に書き換えた", cfg.GetStr("prompt"));
             var reset = FindLogical<Button>(page, "PresetReset")!;
@@ -625,6 +629,7 @@ public class SettingsPagePresetTests : IDisposable
         OnSta(() =>
         {
             var page = MakePage(out _);
+            page.SelectCategory(SettingsPage.CatPresets);
             var w = new Window { Content = page, Width = 900, Height = 700, ShowInTaskbar = false, WindowStyle = WindowStyle.None, Opacity = 0 };
             w.Show();
             Pump(50);
@@ -632,7 +637,6 @@ public class SettingsPagePresetTests : IDisposable
             var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
             var add = FindLogical<Button>(page, "PresetAdd")!;
             var del = FindLogical<Button>(page, "PresetDel")!;
-            var nameBox = FindLogical<TextBox>(page, "PresetNameBox")!;
             var instr = FindLogical<TextBox>(page, "PresetTextBox")!;
             var reset = FindLogical<Button>(page, "PresetReset")!;
 
@@ -641,13 +645,11 @@ public class SettingsPagePresetTests : IDisposable
             Assert.True(cb.Focusable && cb.IsTabStop);
             Assert.True(add.Focusable && add.IsTabStop);
             Assert.True(del.Focusable && del.IsTabStop);
-            Assert.True(nameBox.Focusable && nameBox.IsTabStop);
             Assert.True(instr.Focusable && instr.IsTabStop);
             Assert.True(reset.Focusable && reset.IsTabStop);
 
 
-            // ComboBox から Tab (Next) で順に PresetReset・UseGlobalChk まで到達できること
-            // （モデル欄は名前・指示の下、「グローバル設定を使う」は「指示を既定に戻す」の下に配置されている）
+            // ComboBox から Tab (Next) で順に PresetReset まで到達できること
             cb.Focus();
             Pump(20);
             var visited = new List<string>();
@@ -665,7 +667,8 @@ public class SettingsPagePresetTests : IDisposable
             w.Close();
             Assert.Contains("PresetReset", visited);
 
-            Assert.True(visited.IndexOf("PresetCombo") < visited.IndexOf("PresetReset"), string.Join(" > ", visited));   // 「グローバル設定を使う」は無くした
+            int cbIdx = visited.FindIndex(n => n is "PresetCombo" or "PART_EditableTextBox");
+            Assert.True(cbIdx >= 0 && cbIdx < visited.IndexOf("PresetReset"), string.Join(" > ", visited));
             return true;
         });
     }
@@ -676,16 +679,14 @@ public class SettingsPagePresetTests : IDisposable
         OnSta(() =>
         {
             var page = MakePage(out _);
+            page.SelectCategory(SettingsPage.CatPresets);
             var w = new Window { Content = page, Width = 900, Height = 700, ShowInTaskbar = false, WindowStyle = WindowStyle.None, Opacity = 0 };
             w.Show();
             Pump(50);
 
-            var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
-            var nameBox = FindLogical<TextBox>(page, "PresetNameBox")!;
             var instr = FindLogical<TextBox>(page, "PresetTextBox")!;
 
             // 前は［グローバル設定］を選ぶと無効になった。今は欄を無効にして同じ見た目を確かめる
-            nameBox.IsEnabled = false;
             instr.IsEnabled = false;
             Pump(30);
 
@@ -693,7 +694,7 @@ public class SettingsPagePresetTests : IDisposable
             var border = Application.Current.Resources["Border"];
             var surface = Application.Current.Resources["Surface"];
 
-            foreach (var tb in new[] { nameBox, instr })
+            foreach (var tb in new[] { instr })
             {
                 tb.ApplyTemplate();
                 var bd = tb.Template.FindName("Bd", tb) as Border;
@@ -809,6 +810,35 @@ public class SettingsPagePresetTests : IDisposable
             Pump(50);
             Assert.True(Preset(cfg, "数式")!["settings"]!["builtin_ocr_layout"]!.GetValue<bool>());
             Assert.True(body.IsEnabled);
+            return true;
+        });
+    }
+
+    [Fact]
+    public void J140_プリセット名はコンボボックスでインライン編集できEscで戻せる()
+    {
+        OnSta(() =>
+        {
+            var page = MakePage(out var cfg);
+            Assert.Null(FindLogical<TextBox>(page, "PresetNameBox"));
+            var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
+            Assert.True(cb.IsEditable);
+            Assert.False(cb.IsTextSearchEnabled);
+
+            cb.Text = "英語翻訳";
+            PressEnter(cb);
+            Pump(50);
+            Assert.Equal("英語翻訳", cfg.GetStr("prompt_active"));
+            Assert.NotNull(Preset(cfg, "英語翻訳"));
+
+            cb.Text = "途中入力";
+            cb.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(cb), 0, Key.Escape)
+            {
+                RoutedEvent = UIElement.KeyDownEvent
+            });
+            Pump(30);
+            Assert.Equal("英語翻訳", cb.Text);
+            Assert.Equal("英語翻訳", cfg.GetStr("prompt_active"));
             return true;
         });
     }

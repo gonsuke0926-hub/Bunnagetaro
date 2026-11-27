@@ -75,7 +75,7 @@ public partial class SettingsPage
             if (have)
             {
                 name = S(item["name"]);
-                _nameBox.Text = name;
+                _presetCb.Text = name;
                 _instrBox.Text = S(item["text"]);
                 _modelCb.Text = ConfigStore.PresetModel(item);
             }
@@ -124,6 +124,7 @@ public partial class SettingsPage
         _otslChk.IsChecked = src["convert_otsl_table"] is not JsonValue c1 || c1.GetValueKind() != JsonValueKind.False;
         _htmlChk.IsChecked = src["convert_html_table"] is not JsonValue c2 || c2.GetValueKind() != JsonValueKind.False;
         _latexChk.IsChecked = src["convert_latex_math"] is not JsonValue c3 || c3.GetValueKind() != JsonValueKind.False;
+        _mdChk.IsChecked = src["convert_markdown"] is not JsonValue c5 || c5.GetValueKind() != JsonValueKind.False;
         _followChk.IsChecked = src["show_follow_row"] is JsonValue c4 && c4.GetValueKind() == JsonValueKind.True;   // 既定 OFF
         string think = S(src["ollama_think"]);
         int ti = Array.FindIndex(ThinkChoices, c => c.Val == think);
@@ -131,7 +132,7 @@ public partial class SettingsPage
         foreach (var n in _genNums) n.Load(src);
     }
 
-    /// <summary>生成の欄が書く場所（選んでいるプリセットの settings。いつもこれ）</summary>
+    /// <summary>生成の欄が書く場所（選んでいるプリセットの settings。からいつもこれ）</summary>
     private JsonObject? GenScope()
     {
         if (_filling) return null;
@@ -284,6 +285,7 @@ public partial class SettingsPage
             CommitGenBool("convert_otsl_table", _otslChk.IsChecked == true);
             CommitGenBool("convert_html_table", _htmlChk.IsChecked == true);
             CommitGenBool("convert_latex_math", _latexChk.IsChecked == true);
+            CommitGenBool("convert_markdown", _mdChk.IsChecked == true);
             CommitGenBool("show_follow_row", _followChk.IsChecked == true);
             foreach (var n in _genNums) n.Commit(this);
         }
@@ -292,9 +294,9 @@ public partial class SettingsPage
     private void StoreCur()
     {
         if (!TryCurPreset(out var item)) return;
-        item["name"] = _nameBox.Text;
+        item["name"] = _presetCb.Text;
         item["text"] = _instrBox.Text;
-        item["use_global"] = false;
+        item["use_global"] = false;   // 
     }
 
     private void OnInstrDebounceTick(object? sender, EventArgs e)
@@ -309,8 +311,8 @@ public partial class SettingsPage
         _presetRejected = false;
         if (_filling) return;
         if (!TryCurPreset(out var item)) return;
-        if (S(item["name"]) == _nameBox.Text && S(item["text"]) == _instrBox.Text) return;
-        item["name"] = _nameBox.Text;
+        if (S(item["name"]) == _presetCb.Text && S(item["text"]) == _instrBox.Text) return;
+        item["name"] = _presetCb.Text;
         item["text"] = _instrBox.Text;
         _presetRejected = !WritePresets();
     }
@@ -363,7 +365,7 @@ public partial class SettingsPage
             {
                 _presetCb.ItemsSource = _pitems.Select(p => S(p["name"])).ToList();
                 _presetCb.SelectedIndex = _pcur;
-                _nameBox.Text = active;
+                _presetCb.Text = active;
             }
             finally { _filling = false; }
         }
@@ -385,7 +387,9 @@ public partial class SettingsPage
         WritePresets();
         ShowPrompt();
         Note("「" + nm + "」を増やしました。名前と指示を直して使ってください");
-        _nameBox.Focus();
+        _presetCb.Focus();
+        if (_presetCb.Template?.FindName("PART_EditableTextBox", _presetCb) is TextBox tb)
+            tb.SelectAll();
     }
 
     private bool Confirm(string message)

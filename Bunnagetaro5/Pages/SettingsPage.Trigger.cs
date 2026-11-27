@@ -23,10 +23,10 @@ public partial class SettingsPage
 
     private void BuildTrigSection()
     {
-        BodyPanel.Children.Add(Section("自動トリガ"));
+        var host = Pane(CatInput);
+        host.Children.Add(Section("自動トリガ"));
 
-        _modeChk = new CheckBox { Content = "自動トリガ", VerticalAlignment = VerticalAlignment.Center, Name = "ModeChk" };
-        _modeChk.IsChecked = _cfg.Settings.Mode == "auto";
+        _modeChk = MakeSwitch("ModeChk", _cfg.Settings.Mode == "auto");
         _modeChk.Checked += (_, _) => { if (_filling) return; WriteSelf(() => _cfg.Settings.Mode = "auto"); SaveSoon(); };
         _modeChk.Unchecked += (_, _) => { if (_filling) return; WriteSelf(() => _cfg.Settings.Mode = "manual"); SaveSoon(); };
         var trigOnRow = new SettingRow("自動トリガ", "画面の変化が止まったら自動でぶん投げます", _modeChk);
@@ -50,8 +50,8 @@ public partial class SettingsPage
         expStack.Children.Add(MakeDivider());
         expStack.Children.Add(t5.Row.AsGrouped());
 
-        BodyPanel.Children.Add(MakeGroupCard(trigOnRow, MakeExpertWrap(expStack, withTopDivider: true)));
-        BodyPanel.Children.Add(MakeExpertWrap(Subtle("動き・静止の判定しきい値")));
+        host.Children.Add(MakeGroupCard(trigOnRow, MakeExpertWrap(expStack, withTopDivider: true)));
+        host.Children.Add(MakeExpertWrap(Subtle("動き・静止の判定しきい値")));
     }
 }
 

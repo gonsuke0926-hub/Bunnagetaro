@@ -369,6 +369,7 @@ public partial class AnswerView
         NewDocGen();
         _body.Document.Blocks.Clear();
         if (_tablesShown && _tableParts is not null) BuildTableDoc();
+        else if (_convertMarkdown) MdRender(_mdText, _segs);
         else BuildMathDoc();
     }
 }

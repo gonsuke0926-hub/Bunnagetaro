@@ -23,14 +23,14 @@ public partial class SettingsPage
 
     private void BuildQuickSection()
     {
-        BodyPanel.Children.Add(Section("クイックぶん投げ"));
+        var host = Pane(CatInput);
+        host.Children.Add(Section("クイックぶん投げ", first: true));
 
-        _quickOnChk = new CheckBox { Content = "クイックぶん投げを使う", VerticalAlignment = VerticalAlignment.Center, Name = "QuickOnChk" };
-        _quickOnChk.IsChecked = _cfg.Settings.QuickEnabled;
+        _quickOnChk = MakeSwitch("QuickOnChk", _cfg.Settings.QuickEnabled);
         _quickOnChk.Checked += (_, _) => { _cfg.Settings.QuickEnabled = true; NotifyInputChanged(); SaveSoon(); };
         _quickOnChk.Unchecked += (_, _) => { _cfg.Settings.QuickEnabled = false; NotifyInputChanged(); SaveSoon(); };
         var quickOnRow = new SettingRow(
-            "使う",
+            "クイックぶん投げを使う",
             "長押しドラッグで範囲指定して即ぶん投げ（選んだボタンは他アプリに届きません）",
             _quickOnChk);
 
@@ -79,21 +79,22 @@ public partial class SettingsPage
         qExp.Children.Add(MakeDivider());
         qExp.Children.Add(qH.Row.AsGrouped());
 
-        BodyPanel.Children.Add(MakeGroupCard(quickOnRow, quickBtnRow, MakeExpertWrap(qExp, withTopDivider: true)));
+        host.Children.Add(MakeGroupCard(quickOnRow, quickBtnRow, MakeExpertWrap(qExp, withTopDivider: true)));
 
         var qNotes = new StackPanel();
         qNotes.Children.Add(DangerNote(
             "ONのあいだ、起動に使う入力は他のアプリには渡りません（ホイールクリックの自動スクロール、戻る/進む、そのキーの通常の動作が使えなくなります）"));
         qNotes.Children.Add(Subtle(
             "四角が最小幅・最小高さ未満のまま離すと実行せず、窓は元の位置・サイズへ戻ります（既定30x30）\n窓が未開でも使えます"));
-        BodyPanel.Children.Add(MakeExpertWrap(qNotes));
+        host.Children.Add(MakeExpertWrap(qNotes));
     }
 
     // ================= ホットキー =================
 
     private void BuildHotkeySection()
     {
-        BodyPanel.Children.Add(Section("ホットキー"));
+        var host = Pane(CatInput);
+        host.Children.Add(Section("ホットキー"));
 
         _hotkeyBox = new TextBox { Width = 150, IsReadOnly = true, Text = Binding.Label(_cfg.Settings.Hotkey), Name = "HotkeyBox" };
         var hkReg = new Button { Content = "登録", Margin = new Thickness(6, 0, 0, 0), Name = "HotkeyReg" };
@@ -120,8 +121,8 @@ public partial class SettingsPage
         var skRow = new SettingRow("範囲ドラッグのキー", "押すと画面が少し暗くなり、ドラッグで選んだ範囲をぶん投げ", skPanel);
         _snipKeyNotice = MakeBindNotice("SnipKeyNotice");
         skRow.SetBottom(_snipKeyNotice);
-        BodyPanel.Children.Add(MakeGroupCard(hkRow, skRow));
-        BodyPanel.Children.Add(Subtle(
+        host.Children.Add(MakeGroupCard(hkRow, skRow));
+        host.Children.Add(Subtle(
             "設定したキー・ボタンはこのアプリが使うので、他のアプリには渡りません\nよく打つキーを単独で当てると打鍵を取ってしまいます"));
     }
 

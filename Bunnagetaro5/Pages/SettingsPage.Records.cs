@@ -23,23 +23,18 @@ public partial class SettingsPage
 
     private void BuildRecordSection()
     {
-        BodyPanel.Children.Add(Section("記録"));
+        var host = Pane(CatSystem);
+        host.Children.Add(Section("記録", first: true));
 
-        _saveShotsChk = new CheckBox
-        {
-            Content = "スクショの控えを残す",
-            VerticalAlignment = VerticalAlignment.Center,
-            Name = "SaveShotsChk",
-            IsChecked = _cfg.Settings.SaveShots,
-        };
+        _saveShotsChk = MakeSwitch("SaveShotsChk", _cfg.Settings.SaveShots);
         _saveShotsChk.Checked += (_, _) => { _cfg.Settings.SaveShots = true; SaveSoon(); };
         _saveShotsChk.Unchecked += (_, _) => { _cfg.Settings.SaveShots = false; SaveSoon(); };
         var saveShotsRow = new SettingRow(
-            "スクショの控え",
+            "スクショの控えを残す",
             "撮るたびに shots フォルダへ保存します",
             _saveShotsChk);
 
-        _shotsBox = new TextBox { Width = 250, Text = _cfg.Settings.ShotsDir, Name = "ShotsBox" };
+        _shotsBox = new TextBox { Width = 200, Text = _cfg.Settings.ShotsDir, Name = "ShotsBox" };
         _shotsBox.KeyDown += (_, e) => { if (e.Key == Key.Enter) CommitShotsDir(); };
         BindCommitOnFocusLoss(_shotsBox, CommitShotsDir);
         var sdBtn = new Button { Content = "参照...", Margin = new Thickness(6, 0, 0, 0), Name = "ShotsPick" };
@@ -57,8 +52,8 @@ public partial class SettingsPage
 
         var openBtn = new Button
         {
-            Content = _cfg.Paths.ConfigJson,
-            MaxWidth = 420,
+            Content = new TextBlock { Text = _cfg.Paths.ConfigJson, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap },
+            MaxWidth = 360,
             Name = "OpenConfigFolder",
         };
         openBtn.Click += (_, _) =>
@@ -70,7 +65,7 @@ public partial class SettingsPage
             catch (Exception ex) { AppLog.Warning("settings: 設定の保存先を開けない: " + ex.Message); }
         };
         var openRow = new SettingRow("設定の保存先", "クリックするとこのフォルダを開きます", openBtn);
-        BodyPanel.Children.Add(MakeGroupCard(saveShotsRow, shotsRow, openRow));
+        host.Children.Add(MakeGroupCard(saveShotsRow, shotsRow, openRow));
     }
 
     private void CommitShotsDir()

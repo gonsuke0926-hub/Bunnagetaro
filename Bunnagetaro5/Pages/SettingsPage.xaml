@@ -4,9 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d">
-    <!-- 設定ページの見出し行: ←（ログへ戻る）＋「設定」 -->
+    <!-- 設定ページ: 見出し行（← 設定 ＋ 上級者モードスイッチ）＋ 左カテゴリメニュー ＋ 右スクロール領域 -->
     <DockPanel>
-        <Border DockPanel.Dock="Top" Padding="0,4,0,8">
+        <Border DockPanel.Dock="Top" Padding="0,2,4,10"
+                BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1">
             <DockPanel LastChildFill="False">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                     <Button x:Name="BackButton" Style="{StaticResource IconButton}"
@@ -16,13 +17,39 @@
                                VerticalAlignment="Center" Margin="6,0,0,0"/>
                 </StackPanel>
                 <CheckBox x:Name="ExpertModeChk" DockPanel.Dock="Right"
+                          Style="{StaticResource ToggleSwitch}"
                           Content="上級者モード" VerticalAlignment="Center"
-                          Margin="0,0,8,0"/>
+                          Margin="0,0,4,0"/>
             </DockPanel>
         </Border>
-        <!-- 中身は最大幅860で中央寄せ・縦スクロール -->
-        <ScrollViewer x:Name="BodyScroll" VerticalScrollBarVisibility="Auto" Focusable="False" IsTabStop="False">
-            <StackPanel x:Name="BodyPanel" MaxWidth="860" HorizontalAlignment="Center"/>
-        </ScrollViewer>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="154"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左サイドメニュー（一番上が AI接続、一番下が 使い方） -->
+            <Border Grid.Column="0" Padding="6,8,6,8" Margin="0,8,0,0"
+                    Background="{StaticResource NavBg}"
+                    BorderBrush="{StaticResource Border}" BorderThickness="1"
+                    CornerRadius="8">
+                <DockPanel LastChildFill="False">
+                    <StackPanel x:Name="NavTopPanel" DockPanel.Dock="Top"/>
+                    <StackPanel x:Name="NavBottomPanel" DockPanel.Dock="Bottom">
+                        <Border Height="1" Background="{StaticResource BorderStrong}" Margin="6,6,6,6" Opacity="0.45"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- 右ペイン: 選択カテゴリの設定カード群 -->
+            <ScrollViewer x:Name="BodyScroll" Grid.Column="1"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          Focusable="False" IsTabStop="False"
+                          Padding="16,8,6,14">
+                <StackPanel x:Name="BodyPanel" MaxWidth="720" HorizontalAlignment="Stretch"/>
+            </ScrollViewer>
+        </Grid>
     </DockPanel>
 </UserControl>

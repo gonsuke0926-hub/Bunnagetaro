@@ -25,10 +25,10 @@ namespace Bunnagetaro5;
 public class ChromeBar : Window
 {
     /// <summary>バーの角丸</summary>
-    private const int CornerRad = 6;
+    private const int CornerRad = 8;
 
     /// <summary>出し終わりの透明度。開く・閉じる・クイックの動きの基準</summary>
-    internal const double RestOpacity = 0.92;
+    internal const double RestOpacity = 0.94;
 
     /// <summary>おまけの帯なので Alt+Tab に出さない。WS_EX_TOOLWINDOW</summary>
     private const int WS_EX_TOOLWINDOW = 0x00000080;
@@ -39,9 +39,9 @@ public class ChromeBar : Window
 
     // ---- 各部品 ----
     private readonly Canvas _handle = new();
-    private readonly Line _hl1 = new(), _hl2 = new();
+    private readonly List<Ellipse> _handleDots = new();
     private Button _translateBtn = new();
-    private TextBlock _translateLabel = new();
+    private Path _translateIcon = new();
     private ToggleButton _linkTgl = new(), _autoTgl = new(), _passTgl = new();
     private ComboBox _presetCb = new();
     private TextBlock _statusText = new();
@@ -110,6 +110,7 @@ public class ChromeBar : Window
         Title = "バー";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
+        Background = Brushes.Transparent;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
         Topmost = true;
@@ -171,100 +172,163 @@ public class ChromeBar : Window
         return ft.WidthIncludingTrailingWhitespace;
     }
 
+    private const string PlayIconData = "M 1.5,0.5 L 10.5,5.5 L 1.5,10.5 Z";
+    private const string StopIconData = "M 1,1 L 9.5,1 L 9.5,9.5 L 1,9.5 Z";
+    private const string LinkIconData = "M 6.5,9.5 L 9.5,6.5 M 4.5,7.5 L 3,9 A 2.8,2.8 0 0 0 7,13 L 8.5,11.5 M 11.5,8.5 L 13,7 A 2.8,2.8 0 0 0 9,3 L 7.5,4.5";
+    private const string AutoIconData = "M 9,1.5 L 3.5,9 L 8,9 L 7,14.5 L 12.5,7 L 8,7 Z";
+    private const string PassIconData = "M 2.5,5.5 L 2.5,2.5 L 5.5,2.5 M 10.5,2.5 L 13.5,2.5 L 13.5,5.5 M 13.5,10.5 L 13.5,13.5 L 10.5,13.5 M 5.5,13.5 L 2.5,13.5 L 2.5,10.5 M 8,5.5 L 8,10.5 M 5.5,8 L 10.5,8";
+    private const string CloseIconData = "M 0,0 L 8,8 M 8,0 L 0,8";
+
     private void BuildLayout()
     {
+        ToolTipService.SetInitialShowDelay(this, 220);
+
         var root = new Border
         {
             Background = BrushOf("BarBg"),
+            BorderBrush = BrushOf("BorderStrong"),
+            BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(CornerRad),
-            Padding = new Thickness(6, 2, 6, 1),
+            Padding = new Thickness(6, 3, 6, 3),
             SnapsToDevicePixels = true,
         };
 
-        // 1行目: 左の塊と右寄せの塊を並べる（Tkの pack LEFT/RIGHT と同じ発想）
+        // 1行目: 左（グリップ＋横長のぶん投げるアイコン＋くっつける）と右（自動トリガ・透過・プリセット・✕）
         var rowGrid = new Grid();
         rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         var left = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        var right = new StackPanel {
+        var right = new StackPanel
+        {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        // 移動ハンドル（2本線）。ここを掴んで引く
-        _handle.Width = 14;
+        // 移動ハンドル（6点ドットグリップ）。ここを掴んで引く
+        _handle.Width = 12;
         _handle.Height = 20;
-        _handle.Background = Brushes.Transparent;   // からでも掴めるように当たりだけ置く
+        _handle.Background = Brushes.Transparent;
         _handle.Cursor = Cursors.SizeAll;
-        foreach (var (ln, x) in new[] { (_hl1, 4.0), (_hl2, 9.0) })
+        _handle.ToolTip = "ドラッグして移動";
+        _handleDots.Clear();
+        foreach (double y in new[] { 3.5, 8.8, 14.1 })
         {
-            ln.X1 = ln.X2 = x;
-            ln.Y1 = 3;
-            ln.Y2 = 17;
-            ln.Stroke = BrushOf("Subtle");
-            ln.StrokeThickness = 2;
-            _handle.Children.Add(ln);
+            foreach (double x in new[] { 2.0, 6.8 })
+            {
+                var dot = new Ellipse
+                {
+                    Width = 2.4,
+                    Height = 2.4,
+                    Fill = BrushOf("Disabled"),
+                };
+                Canvas.SetLeft(dot, x);
+                Canvas.SetTop(dot, y);
+                _handleDots.Add(dot);
+                _handle.Children.Add(dot);
+            }
         }
-        _handle.MouseEnter += (_, _) => { _hl1.Stroke = _hl2.Stroke = BrushOf("Text"); };
-        _handle.MouseLeave += (_, _) => { _hl1.Stroke = _hl2.Stroke = BrushOf("Subtle"); };
+        _handle.MouseEnter += (_, _) => { foreach (var d in _handleDots) d.Fill = BrushOf("Text"); };
+        _handle.MouseLeave += (_, _) => { foreach (var d in _handleDots) d.Fill = BrushOf("Disabled"); };
         _handle.MouseLeftButtonDown += Handle_Down;
         _handle.MouseMove += Handle_Move;
         _handle.MouseLeftButtonUp += Handle_Up;
         _handle.LostMouseCapture += Handle_Up;
         left.Children.Add(_handle);
 
-        // ぶん投げる（主ボタン）。ぶん投げ中は「やめる」。文字が変わっても幅は動かさない
-        _translateLabel = BarLabel("ぶん投げる");
-        _translateBtn = new Button
+        // ぶん投げる（主ボタン・淡い青 AccentSoft・押しやすい横長アイコン）
+        _translateIcon = new Path
         {
-            Style = (Style)Res("PrimaryButton")!,
-            Content = _translateLabel,
-            Padding = new Thickness(8, 3, 8, 3),
-            Margin = new Thickness(4, 0, 0, 0),
+            Data = Geometry.Parse(PlayIconData),
+            Stretch = Stretch.None,
+            HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        _translateBtn.Width = Math.Max(TextW("ぶん投げる", 13), TextW("やめる", 13)) + 18;
+        _translateIcon.SetBinding(Shape.FillProperty, new System.Windows.Data.Binding("Foreground")
+        {
+            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1),
+        });
+        _translateBtn = new Button
+        {
+            Style = (Style)(Res("BarRunButton") ?? Res("PrimaryButton"))!,
+            Content = _translateIcon,
+            Width = 54,
+            Height = 26,
+            Margin = new Thickness(6, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = "ぶん投げる",
+        };
+        ToolTipService.SetInitialShowDelay(_translateBtn, 220);
         _translateBtn.Click += Translate_Click;
         left.Children.Add(_translateBtn);
 
-        // くっつける（トグル）
-        _linkTgl = MakeToggle("くっつける", _linked);
-        _linkTgl.Checked += (_, _) => LinkChanged();
-        _linkTgl.Unchecked += (_, _) => LinkChanged();
+        // くっつける（アイコントグル）
+        _linkTgl = MakeIconToggle(LinkIconData, _linked, new Thickness(4, 0, 0, 0));
+        _linkTgl.Checked += (_, _) => { LinkChanged(); UpdateToggleTooltips(); };
+        _linkTgl.Unchecked += (_, _) => { LinkChanged(); UpdateToggleTooltips(); };
         left.Children.Add(_linkTgl);
 
-        // ---- 右寄せ（Tkの pack RIGHT と同じ並び。視覚的に左→右は 自動トリガ…閉じる） ----
-        _autoTgl = MakeToggle("自動トリガ", _cfg.Settings.Mode == "auto");
-        _autoTgl.Checked += (_, _) => { if (!_filling) _host.BarAutoTrig(true); };
-        _autoTgl.Unchecked += (_, _) => { if (!_filling) _host.BarAutoTrig(false); };
+        // ---- 右寄せ（自動トリガ・透過・区切り・プリセット・✕） ----
+        _autoTgl = MakeIconToggle(AutoIconData, _cfg.Settings.Mode == "auto", new Thickness(4, 0, 0, 0));
+        _autoTgl.Checked += (_, _) => { if (!_filling) _host.BarAutoTrig(true); UpdateToggleTooltips(); };
+        _autoTgl.Unchecked += (_, _) => { if (!_filling) _host.BarAutoTrig(false); UpdateToggleTooltips(); };
         right.Children.Add(_autoTgl);
 
-        _passTgl = MakeToggle("透過", _passthru);
-        _passTgl.Checked += (_, _) => PassthruChanged(true);
-        _passTgl.Unchecked += (_, _) => PassthruChanged(false);
+        _passTgl = MakeIconToggle(PassIconData, _passthru, new Thickness(4, 0, 0, 0));
+        _passTgl.Checked += (_, _) => { PassthruChanged(true); UpdateToggleTooltips(); };
+        _passTgl.Unchecked += (_, _) => { PassthruChanged(false); UpdateToggleTooltips(); };
         right.Children.Add(_passTgl);
 
-        // プリセット（選んだ瞬間に切り替え・12文字ぶん）
+        right.Children.Add(new Border
+        {
+            Width = 1,
+            Height = 16,
+            Background = BrushOf("Divider"),
+            Margin = new Thickness(6, 0, 6, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+
+        // プリセット（選んだ瞬間に切り替え）
         _presetCb = new ComboBox
         {
-            Width = 12 * TextW("0", 13) + 26,
+            Width = 11 * TextW("0", 13) + 32,
+            Height = 26,
+            Padding = new Thickness(8, 2, 4, 2),
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(6, 0, 0, 0),
-            FontSize = 13,
+            FontSize = 12.5,
+            ToolTip = "使うプリセット",
         };
+        ToolTipService.SetInitialShowDelay(_presetCb, 220);
         _presetCb.SelectionChanged += Preset_Changed;
         right.Children.Add(_presetCb);
 
-        var closeBtn = new Button
+        var closeIcon = new Path
         {
-            Content = BarLabel("閉じる"),
-            Padding = new Thickness(6, 3, 6, 3),
-            Margin = new Thickness(6, 0, 0, 0),
+            Data = Geometry.Parse(CloseIconData),
+            Stretch = Stretch.None,
+            StrokeThickness = 1.5,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         };
-        closeBtn.Width = 6 * TextW("0", 13) + 12;
+        closeIcon.SetBinding(Shape.StrokeProperty, new System.Windows.Data.Binding("Foreground")
+        {
+            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1),
+        });
+        var closeBtn = new Button
+        {
+            Name = "BarCloseBtn",
+            Style = (Style)(Res("BarCloseButton") ?? Res("IconButton"))!,
+            Content = closeIcon,
+            Width = 26,
+            Height = 26,
+            Margin = new Thickness(4, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = "キャプチャ窓を閉じる",
+        };
+        ToolTipService.SetInitialShowDelay(closeBtn, 220);
         closeBtn.Click += (_, _) => _host.CloseCaptureAll();
         right.Children.Add(closeBtn);
 
@@ -273,8 +337,7 @@ public class ChromeBar : Window
         rowGrid.Children.Add(left);
         rowGrid.Children.Add(right);
 
-        // 2行目: ステータス（Subtle 12。48文字ぶん幅で … 切り捨て）。
-        // 幅固定でバー自体が伸び縮みしないようにする（Tkの label width=48 と同じ狙い）
+        // 2行目: ステータス（バーの幅いっぱいまで使い、長い文でもバー自体は伸びない）
         _statusText = new TextBlock
         {
             Text = "待機中",
@@ -286,10 +349,12 @@ public class ChromeBar : Window
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0),
         };
-        // 幅は固定にせず、バーの幅いっぱいまで使う（48文字ぶんの固定では、全角の字が
-        // 約24字で切れ、1行目のボタンの幅があっても途中で … になっていた）。
-        // バーの大きさを決めるのは今まで通り 1行目と「48文字ぶん」で、ステータスの長さではバーは伸びない
-        _statusBox = new StatusFitBox { BaseWidth = 48 * TextW("0", 12), Child = _statusText };
+        _statusBox = new StatusFitBox
+        {
+            BaseWidth = 32 * TextW("0", 12),
+            Margin = new Thickness(0, 3, 0, 0),
+            Child = _statusText,
+        };
 
         var grid = new Grid();
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -302,17 +367,50 @@ public class ChromeBar : Window
         root.Child = grid;
         Content = root;
 
+        UpdateToggleTooltips();
         RefreshPresetCombo();
     }
 
-    private ToggleButton MakeToggle(string text, bool isChecked) => new()
+    private ToggleButton MakeIconToggle(string pathData, bool isChecked, Thickness margin)
     {
-        Style = (Style)Res("ToolToggle")!,
-        Content = BarLabel(text),
-        IsChecked = isChecked,
-        Margin = new Thickness(6, 0, 0, 0),
-        VerticalAlignment = VerticalAlignment.Center,
-    };
+        var icon = new Path
+        {
+            Data = Geometry.Parse(pathData),
+            Width = 15,
+            Height = 15,
+            Stretch = Stretch.Uniform,
+            StrokeThickness = 1.6,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        icon.SetBinding(Shape.StrokeProperty, new System.Windows.Data.Binding("Foreground")
+        {
+            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(ToggleButton), 1),
+        });
+        var tgl = new ToggleButton
+        {
+            Style = (Style)(Res("BarIconToggle") ?? Res("ToolToggle"))!,
+            Content = icon,
+            IsChecked = isChecked,
+            Margin = margin,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        ToolTipService.SetInitialShowDelay(tgl, 220);
+        return tgl;
+    }
+
+    private void UpdateToggleTooltips()
+    {
+        if (_linkTgl is not null)
+            _linkTgl.ToolTip = _linkTgl.IsChecked == true ? "くっつける: ON" : "くっつける: OFF";
+        if (_autoTgl is not null)
+            _autoTgl.ToolTip = _autoTgl.IsChecked == true ? "自動トリガ: ON" : "自動トリガ: OFF";
+        if (_passTgl is not null)
+            _passTgl.ToolTip = _passTgl.IsChecked == true ? "透過: ON" : "透過: OFF";
+    }
 
     // ---------------- 配置 ----------------
 
@@ -430,10 +528,12 @@ public class ChromeBar : Window
 
     private void Translate_Click(object sender, RoutedEventArgs e) => _host.BarTranslatePressed();
 
-    /// <summary>ぶん投げ中は「やめる」。やめ要求中は押させない（_sync_translate_btn）</summary>
+    /// <summary>ぶん投げ中は停止アイコン＋「やめる」説明。やめ要求中は押させない</summary>
     public void SetBusy(bool busy, bool cancelling)
     {
-        _translateLabel.Text = busy ? "やめる" : "ぶん投げる";
+        _translateIcon.Data = Geometry.Parse(busy ? StopIconData : PlayIconData);
+        _translateBtn.Tag = busy ? "busy" : null;
+        _translateBtn.ToolTip = busy ? "やめる" : "ぶん投げる";
         _translateBtn.IsEnabled = !cancelling;
     }
 
@@ -519,6 +619,7 @@ public class ChromeBar : Window
         _filling = true;
         t.IsChecked = v;
         _filling = false;
+        UpdateToggleTooltips();
     }
 
     // ---------------- プリセット（_preset_select / _preset_bar_refresh） ----------------

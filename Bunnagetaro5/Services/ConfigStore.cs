@@ -81,11 +81,11 @@ public sealed partial class ConfigStore
     {
         "throw_mode", "ocr_split_mode", "ocr_engine", "builtin_ocr_size", "builtin_ocr_layout",
         "ocr_vlm_model", "ocr_vlm_prompt", "clip_answer",
-        "ocr_vlm_num_ctx", "ocr_vlm_num_predict", "ocr_vlm_temperature", "ocr_vlm_keep_alive_min",
+        "ocr_vlm_num_ctx", "ocr_vlm_num_predict", "ocr_vlm_temperature", "ocr_vlm_keep_alive_min",   // 
         "ollama_num_ctx", "ollama_num_predict", "ollama_temperature",
         "ollama_keep_alive_min", "ollama_think",
         "result_place", "convert_otsl_table", "convert_html_table",
-        "convert_latex_math", "show_follow_row",
+        "convert_latex_math", "convert_markdown", "show_follow_row",
     };
 
     /// <summary>v4.5の既定プリセット設定（表・数式・文字の形は画像そのまま＋コピー）。</summary>
@@ -193,6 +193,7 @@ public sealed partial class ConfigStore
             ["convert_otsl_table"] = true,
             ["convert_html_table"] = true,
             ["convert_latex_math"] = true,
+            ["convert_markdown"] = true,
             ["show_follow_row"] = false,
             ["latex_copy"] = "plain",
             ["answer_para_spacing"] = PanelStyle.DefaultParaSpacing,
@@ -282,6 +283,7 @@ public sealed partial class ConfigStore
                 ["builtin_ocr_size"] = DefaultBuiltinOcrSize,
                 ["builtin_ocr_layout"] = true,   // 既定の「OCR」は位置の反映 ON
                 ["clip_answer"] = false,
+                ["convert_markdown"] = false,   // 読んだ文字の * # | をそのまま出す
             },
             ["text"] = OcrPresetText,
         },
@@ -460,7 +462,7 @@ public sealed partial class ConfigStore
         return NodeToStr(cfg["model"]).Trim();
     }
 
-    /// <summary>
+    /// <summary>（。人の判断 2026-11-27「グローバル設定はいらない」）:
     /// プリセットはいつも自分の設定を持つ。「グローバル設定を使う」だったプリセットは、今のグローバルの値を写してから外す
     /// （動きは変わらない・値は消さない）。専用の設定を持つプリセットも、足りないキーをグローバルの値で埋める</summary>
     internal static bool DropGlobalSettings(JsonObject root)
@@ -484,7 +486,7 @@ public sealed partial class ConfigStore
                 changed = true;
             }
         }
-        if (changed) AppLog.Info("グローバル設定をなくした: グローバルを使っていたプリセットへ今の値を写した");
+        if (changed) AppLog.Info("グローバル設定をなくした: グローバルを使っていたプリセットへ今の値を写した（修正J121）");
         return changed;
     }
 

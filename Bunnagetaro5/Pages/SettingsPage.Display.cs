@@ -23,7 +23,8 @@ public partial class SettingsPage
 
     private void BuildAnswerSection()
     {
-        BodyPanel.Children.Add(Section("答えの表示"));
+        var host = Pane(CatDisplay);
+        host.Children.Add(Section("答えの表示", first: true));
 
         // 背景色・文字色（四角を押すと色パレット、欄へ #rrggbb も直接書ける）
         _bgRow = new SettingRow("背景色", "", MakeColorRow("overlay_bg", out _bgSwatch, out _bgBox));
@@ -31,7 +32,7 @@ public partial class SettingsPage
         // 外窓（枠の外に出す解答欄）の色は枠の中と別
         _stripBgRow = new SettingRow("背景色", "", MakeColorRow("strip_bg", out _stripBgSwatch, out _stripBgBox));
         _stripFgRow = new SettingRow("文字色", "", MakeColorRow("strip_fg", out _stripFgSwatch, out _stripFgBox));
-        _stripAlphaLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+        _stripAlphaLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), MinWidth = 32 };
         _stripAlphaSlider = new Slider
         {
             Minimum = 0.15, Maximum = 1.0,
@@ -55,7 +56,7 @@ public partial class SettingsPage
         var stripAlphaRow = new SettingRow("背景の不透明度", "既定 1.00（透けない）", stripAlphaCtl);
 
         // 背景の不透明度
-        _alphaLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+        _alphaLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), MinWidth = 32 };
         _alphaSlider = new Slider
         {
             Minimum = 0.15, Maximum = 1.0,
@@ -91,7 +92,8 @@ public partial class SettingsPage
         _sizeBox = new TextBox
         {
             Text = _cfg.Settings.OverlayFontSize.ToString(CultureInfo.InvariantCulture),
-            Width = 64, HorizontalAlignment = HorizontalAlignment.Right,
+            Width = 72, HorizontalAlignment = HorizontalAlignment.Right,
+            HorizontalContentAlignment = HorizontalAlignment.Right,
             Name = "FontSizeBox",
         };
         _sizeBox.KeyDown += (_, e) =>
@@ -101,14 +103,12 @@ public partial class SettingsPage
         BindCommitOnFocusLoss(_sizeBox, CommitSize);
         _sizeRow = new SettingRow("文字の大きさ", "8〜72", _sizeBox);
 
-        // プレビュー（通常設定でも色・フォントの確認ができるよう _fontRow の下段に置く）
-        // 枠の中・枠の外（外窓）の見本を並べる
+        // 見本（それぞれのカードのすぐ下に対応づけて置く）
         (_previewBg, _previewText) = MakePreviewBox();
         (_previewStripBg, _previewStripText) = MakePreviewBox();
-        _fontRow.SetBottom(MakePreviewHost());
 
-        // まとまりの間（文字の大きさに対する倍率 0〜1.5、0.1刻み、既定 0.8）
-        _paraSpacingLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+        // まとまりの間
+        _paraSpacingLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), MinWidth = 28 };
         _paraSpacingSlider = new Slider
         {
             Minimum = PanelStyle.MinParaSpacing, Maximum = PanelStyle.MaxParaSpacing,
@@ -125,7 +125,7 @@ public partial class SettingsPage
         paraCtl.Children.Add(_paraSpacingLbl);
         var paraRow = new SettingRow("まとまりの間", "段落間の空き（文字サイズの倍率）", paraCtl);
 
-        // 行間（文字の大きさに対する倍率 1.0〜2.0、0.1刻み、既定は指定なし相当）
+        // 行間
         _lineSpacingLbl = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), MinWidth = 32 };
         _lineSpacingSlider = new Slider
         {
@@ -152,37 +152,23 @@ public partial class SettingsPage
         lineCtl.Children.Add(_lineSpacingResetBtn);
         var lineRow = new SettingRow("行間", "行の高さの倍率（1.0〜2.0）", lineCtl);
 
-        // LaTeX のコピーの形
-        var copyPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        // LaTeX のコピーの形（セグメント選択）
         string copyNow = _cfg.Settings.LatexCopy;
-        RadioButton CopyRadio(string text, string key, bool last)
+        RadioButton CopyRadio(string text, string key)
         {
-            var rb = new RadioButton
-            {
-                Content = text, GroupName = "latexcopy", IsChecked = copyNow == key,
-                Margin = new Thickness(0, 0, last ? 0 : 10, 0), VerticalAlignment = VerticalAlignment.Center,
-            };
+            var rb = MakeSegRadio(null, text, "latexcopy", copyNow == key);
             rb.Checked += (_, _) => CommitLatexCopy(key);
-            copyPanel.Children.Add(rb);
             return rb;
         }
-        CopyRadio("中身だけ", "plain", false);
-        CopyRadio("$ で囲む", "dollar", false);
-        CopyRadio("\\( \\) で囲む", "paren", true);
         var copyRow = new SettingRow("LaTeX のコピーの形",
-            "式コピー時の囲み方（文章と混ざる時は $ を付けます）", copyPanel);
+            "式コピー時の囲み方（文章と混ざる時は $ を付けます）",
+            MakeSegGroup(CopyRadio("中身だけ", "plain"), CopyRadio("$ で囲む", "dollar"), CopyRadio("\\( \\) で囲む", "paren")));
 
-        var allowCaptureChk = new CheckBox
-        {
-            Content = "OBS などの配信・録画に枠・バー・解答欄を映す",
-            IsChecked = _cfg.Settings.AllowCaptureOverlay,
-            VerticalAlignment = VerticalAlignment.Center,
-            Name = "AllowCaptureOverlayChk",
-        };
+        var allowCaptureChk = MakeSwitch("AllowCaptureOverlayChk", _cfg.Settings.AllowCaptureOverlay);
         allowCaptureChk.Checked += (_, _) => { _cfg.Settings.AllowCaptureOverlay = true; SaveSoon(); };
         allowCaptureChk.Unchecked += (_, _) => { _cfg.Settings.AllowCaptureOverlay = false; SaveSoon(); };
         var allowCaptureRow = new SettingRow("配信・録画に映す",
-            "ON で録画・配信に映ります（既定 OFF。※窓内表示＋自動トリガ併用時は誤検知注意）",
+            "OBS などの配信・録画に枠・バー・解答欄を映します（窓内表示＋自動トリガ併用時は誤検知注意）",
             allowCaptureChk);
 
         var expStack = new StackPanel();
@@ -194,23 +180,43 @@ public partial class SettingsPage
         expStack.Children.Add(MakeDivider());
         expStack.Children.Add(copyRow.AsGrouped());
 
-        // 枠の中・枠の外（外窓）を見出しで分ける（中と外がはっきり分かる見た目に）
-        BodyPanel.Children.Add(MakeGroupCard(
-            GroupHeading("枠の中に出す時"), _bgRow, _fgRow, MakeExpertWrap(alphaRow.AsGrouped(), withTopDivider: true),
-            GroupHeading("枠の外（外窓）に出す時"), _stripBgRow, _stripFgRow, MakeExpertWrap(stripAlphaRow.AsGrouped(), withTopDivider: true),
-            GroupHeading("共通"), _fontRow, allowCaptureRow,
+        // 枠の中・枠の外・共通をそれぞれ見通しの良い独立カードに分ける
+        host.Children.Add(MakeGroupCard(
+            GroupHeading("枠の中に出す時"),
+            _bgRow, _fgRow,
+            MakeExpertWrap(alphaRow.AsGrouped(), withTopDivider: true),
+            MakeSinglePreviewSection("見本（枠の中）", _previewBg)));
+
+        host.Children.Add(MakeGroupCard(
+            GroupHeading("枠の外（外窓）に出す時"),
+            _stripBgRow, _stripFgRow,
+            MakeExpertWrap(stripAlphaRow.AsGrouped(), withTopDivider: true),
+            MakeSinglePreviewSection("見本（枠の外・外窓）", _previewStripBg)));
+
+        host.Children.Add(MakeGroupCard(
+            GroupHeading("共通"),
+            _fontRow, allowCaptureRow,
             MakeExpertWrap(expStack, withTopDivider: true)));
     }
 
     /// <summary>欄の中の小見出し（枠の中・枠の外などの区切り）。MakeGroupCard は見出しの直後に区切り線を入れない</summary>
     private Border GroupHeading(string text)
     {
-        var tb = new TextBlock { Text = text, FontWeight = FontWeights.SemiBold, FontSize = 13 };
+        var tb = new TextBlock
+        {
+            Text = text,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 13,
+            Foreground = SettingRow.SubtleBrush(),
+        };
         return new Border
         {
             Child = tb,
-            Padding = new Thickness(14, 10, 14, 2),
-            Background = new SolidColorBrush(Color.FromArgb(14, 0, 0, 0)),
+            Padding = new Thickness(14, 9, 14, 6),
+            Background = SettingRow.SubtleSurfaceBrush(),
+            BorderBrush = SettingRow.DividerBrush(),
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            CornerRadius = new CornerRadius(8, 8, 0, 0),
             Tag = GroupHeadingTag,
         };
     }
@@ -230,9 +236,9 @@ public partial class SettingsPage
         {
             CornerRadius = new CornerRadius(6),
             BorderThickness = new Thickness(1),
-            BorderBrush = SettingRow.NormalBorderBrush(),
+            BorderBrush = SettingRow.CardBorderBrush(),
             Padding = new Thickness(12, 8, 12, 8),
-            Height = 88,
+            Height = 72,
             ClipToBounds = true,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
@@ -247,29 +253,18 @@ public partial class SettingsPage
         return (bg, text);
     }
 
-    private FrameworkElement MakePreviewHost()
+    private static FrameworkElement MakeSinglePreviewSection(string label, Border box)
     {
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition());
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition());
-        void Col(int c, string label, Border box)
+        var sp = new StackPanel { Margin = new Thickness(14, 8, 14, 12) };
+        sp.Children.Add(new TextBlock
         {
-            var sp = new StackPanel();
-            sp.Children.Add(new TextBlock
-            {
-                Text = label,
-                FontSize = 12,
-                Foreground = SettingRow.SubtleBrush(),
-                Margin = new Thickness(0, 0, 0, 4),
-            });
-            sp.Children.Add(box);
-            Grid.SetColumn(sp, c);
-            grid.Children.Add(sp);
-        }
-        Col(0, "見本（枠の中）", _previewBg);
-        Col(2, "見本（枠の外・外窓）", _previewStripBg);
-        return grid;
+            Text = label,
+            FontSize = 12,
+            Foreground = SettingRow.SubtleBrush(),
+            Margin = new Thickness(0, 0, 0, 4),
+        });
+        sp.Children.Add(box);
+        return sp;
     }
 
     private static List<string> FontFamilies()

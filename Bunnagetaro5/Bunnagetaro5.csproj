@@ -14,7 +14,7 @@
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- 版の正本はここ1か所（AppVersion が読む。窓の題名・バージョン情報に出る。README は手で合わせる） -->
-    <Version>1.3.1</Version>
+    <Version>1.4.0</Version>
     <!-- 配る exe の名前は Bunnagetaro.exe。
          名前空間・設定フォルダ（%APPDATA%\Bunnagetaro5）・Mutex 名は変えない。
          アセンブリ名が変わるので pack URI は "/Bunnagetaro;component/..." -->

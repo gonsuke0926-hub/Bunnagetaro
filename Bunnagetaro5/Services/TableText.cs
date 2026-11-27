@@ -103,8 +103,8 @@ public sealed record TextPart(string Text) : AnswerPart;
 public sealed record TablePart(TableGrid Grid, string Raw) : AnswerPart;
 
 /// <summary>答えの中の表を見つける・HTML の表へ揃える。
-/// 表として扱うのは OTSL（PaddleOCR-VL）と HTML の &lt;table&gt; だけ。Markdown の表・タブ区切り・
-/// コードフェンスの中は表にしない。壊れた表は文字のまま（log に1行）</summary>
+/// 表として扱うのは OTSL（PaddleOCR-VL）と HTML の &lt;table&gt;、Markdown の変換が ON の時の Markdown の表
+/// （parseMarkdown）。タブ区切り・コードフェンスの中は表にしない。壊れた表は文字のまま（log に1行）</summary>
 public static class TableText
 {
     private static readonly Regex OtslTok = new(@"<(fcel|ecel|lcel|ucel|xcel|nl)>", RegexOptions.Compiled);
@@ -112,18 +112,24 @@ public static class TableText
     private static readonly Regex Tag = new(@"<(/?)([a-zA-Z][a-zA-Z0-9]*)((?:[^>""']|""[^""]*""|'[^']*')*)>", RegexOptions.Compiled);
     private static readonly Regex Attr = new(@"([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:""([^""]*)""|'([^']*)'|([^\s""'>]+))", RegexOptions.Compiled);
 
-    /// <summary>表の気配が無ければ（OTSL の印も &lt;table も無い）すぐ false。流している間の判定に使わない</summary>
-    public static bool MayContainTable(string s, bool parseOtsl = true, bool parseHtml = true) =>
+    /// <summary>Markdown の表の区切りの行（|---|:---:| など）</summary>
+    private static readonly Regex MdDelimRow = new(@"^[ \t]*\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$", RegexOptions.Compiled);
+    private static readonly Regex MdDelimAny = new(@"(^|\n)[ \t]*\|?[ \t]*:?-+:?[ \t]*\|", RegexOptions.Compiled);
+
+    /// <summary>表の気配が無ければ（OTSL の印も &lt;table も Markdown の表の区切りの行も無い）すぐ false。
+    /// 流している間の判定に使わない</summary>
+    public static bool MayContainTable(string s, bool parseOtsl = true, bool parseHtml = true, bool parseMarkdown = false) =>
         (parseHtml && s.Contains("<table", StringComparison.OrdinalIgnoreCase)) ||
-        (parseOtsl && OtslTok.IsMatch(s));
+        (parseOtsl && OtslTok.IsMatch(s)) ||
+        (parseMarkdown && s.Contains('|') && MdDelimAny.IsMatch(s));
 
     /// <summary>text を 文字／表 の並びへ。表が無ければ全体で TextPart 1つ。
     /// 表の前後の文字は、表と接する側の改行を削る。壊れた表は文字のまま残し、log にその理由を渡す</summary>
     public static List<AnswerPart> Parse(
-        string text, Action<string>? log = null, bool parseOtsl = true, bool parseHtml = true)
+        string text, Action<string>? log = null, bool parseOtsl = true, bool parseHtml = true, bool parseMarkdown = false)
     {
         var parts = new List<AnswerPart>();
-        if (!MayContainTable(text, parseOtsl, parseHtml))
+        if (!MayContainTable(text, parseOtsl, parseHtml, parseMarkdown))
         {
             parts.Add(new TextPart(text));
             return parts;
@@ -135,6 +141,7 @@ public static class TableText
         {
             if (parseHtml) FindHtml(text, a, b, found, log);
             if (parseOtsl) FindOtsl(text, a, b, found, log);
+            if (parseMarkdown) FindMarkdown(text, a, b, found);
         }
         found.Sort((x, y) => x.Start.CompareTo(y.Start));
         // 重なり（HTML の中の OTSL の印など）は先に始まったほうだけ
@@ -216,6 +223,89 @@ public static class TableText
         }
         if (!inFence && segStart < s.Length) res.Add((segStart, s.Length));
         return res;
+    }
+
+    // ---------------------------------------------------------------- Markdown の表
+
+    /// <summary>見出しの行・区切りの行（|---|）・続く行（| を含む空でない行）を表にする。
+    /// 見出しと区切りの列の数が違えば表にしない。行のマスが多ければ切り、少なければ空で埋める</summary>
+    private static void FindMarkdown(string s, int from, int to, List<(int, int, TableGrid)> found)
+    {
+        var lines = new List<(int Start, int End)>();
+        int i = from;
+        while (i < to)
+        {
+            int eol = s.IndexOf('\n', i, to - i);
+            int end = eol < 0 ? to : eol;
+            lines.Add((i, end));
+            i = end + 1;
+        }
+        string L(int k) => s.Substring(lines[k].Start, lines[k].End - lines[k].Start).TrimEnd('\r');
+        for (int k = 0; k + 1 < lines.Count; k++)
+        {
+            string head = L(k);
+            if (!head.Contains('|')) continue;
+            string delim = L(k + 1);
+            if (!delim.Contains('|') || !MdDelimRow.IsMatch(delim)) continue;
+            var hcells = SplitMdRow(head);
+            int cols = SplitMdRow(delim).Count;
+            if (hcells.Count != cols || cols == 0) continue;
+            var rows = new List<List<string>> { hcells };
+            int last = k + 1;
+            for (int r = k + 2; r < lines.Count; r++)
+            {
+                string ln = L(r);
+                if (ln.Trim().Length == 0 || !ln.Contains('|')) break;
+                rows.Add(SplitMdRow(ln));
+                last = r;
+            }
+            var cells = new List<TableCellInfo>();
+            for (int r = 0; r < rows.Count; r++)
+                for (int c = 0; c < cols; c++)
+                {
+                    string raw = c < rows[r].Count ? rows[r][c] : "";
+                    cells.Add(new TableCellInfo(r, c, 1, 1, CleanMdCell(raw), r == 0));
+                }
+            found.Add((lines[k].Start, lines[last].End, new TableGrid(rows.Count, cols, cells)));
+            k = last;
+        }
+    }
+
+    /// <summary>表の1行をマスに分ける。両端の | は外す。\| ・`…` の中・$…$ の式の中の | では分けない</summary>
+    private static List<string> SplitMdRow(string line)
+    {
+        string t = line.Trim();
+        if (t.StartsWith('|')) t = t[1..];
+        if (t.EndsWith('|') && !t.EndsWith("\\|", StringComparison.Ordinal)) t = t[..^1];
+        var cells = new List<string>();
+        var sb = new StringBuilder();
+        foreach (var seg in MathText.Split(t))
+        {
+            if (seg.Kind != MathSegKind.Text) { sb.Append(seg.Raw); continue; }
+            string r = seg.Raw;
+            for (int i = 0; i < r.Length; i++)
+            {
+                char c = r[i];
+                if (c == '\\' && i + 1 < r.Length && r[i + 1] == '|') { sb.Append("\\|"); i++; continue; }
+                if (c == '`')
+                {
+                    int n = 0;
+                    while (i + n < r.Length && r[i + n] == '`') n++;
+                    int close = r.IndexOf(new string('`', n), i + n, StringComparison.Ordinal);
+                    if (close >= 0) { sb.Append(r, i, close + n - i); i = close + n - 1; continue; }
+                }
+                if (c == '|') { cells.Add(sb.ToString()); sb.Clear(); continue; }
+                sb.Append(c);
+            }
+        }
+        cells.Add(sb.ToString());
+        return cells;
+    }
+
+    private static string CleanMdCell(string raw)
+    {
+        string t = Regex.Replace(raw.Trim(), @"<br\s*/?>", "\n", RegexOptions.IgnoreCase);
+        return MarkdownText.InlineToPlain(t).Replace("\\|", "|").Trim();
     }
 
     // ---------------------------------------------------------------- OTSL

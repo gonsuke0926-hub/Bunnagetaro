@@ -22,10 +22,10 @@ public partial class AnswerView
     private void ApplyTables()
     {
         if (_tablesShown || _otslHtmlShown || _model.Length == 0) return;
-        if (_convertOtslTable && !_convertHtmlTable)
+        bool otslAsHtmlText = _convertOtslTable && !_convertHtmlTable;
+        if (otslAsHtmlText && TableText.MayContainTable(_model, parseOtsl: true, parseHtml: false))
         {
             // 変換は OTSL → HTML → 画面の表 の順。HTML の表の変換が OFF なら HTML の文字で止める
-            if (!TableText.MayContainTable(_model, parseOtsl: true, parseHtml: false)) return;
             string h;
             try { h = TableText.OtslToHtmlText(_model); }
             catch (Exception ex) { AppLog.Error("OTSL を HTML の文字にできなかった", ex); return; }
@@ -38,9 +38,10 @@ public partial class AnswerView
             if (atBottom) _body.ScrollToEnd();
             return;
         }
-        if (!TableText.MayContainTable(_model, _convertOtslTable, _convertHtmlTable)) return;
+        bool otsl = _convertOtslTable && !otslAsHtmlText;   // OTSL を HTML の文字で見せる時は OTSL を表にしない
+        if (!TableText.MayContainTable(_model, otsl, _convertHtmlTable, _convertMarkdown)) return;
         List<AnswerPart> parts;
-        try { parts = TableText.Parse(_model, m => AppLog.Info("表: " + m), _convertOtslTable, _convertHtmlTable); }
+        try { parts = TableText.Parse(_model, m => AppLog.Info("表: " + m), otsl, _convertHtmlTable, _convertMarkdown); }
         catch (Exception ex) { AppLog.Error("表の読み取り失敗", ex); return; }
         if (!TableText.HasTable(parts)) return;
         bool wasBottom = AtBottom();
@@ -74,7 +75,14 @@ public partial class AnswerView
         foreach (var part in _tableParts!)
         {
             if (part is TextPart tp)
-                AddSegs(SplitMath(tp.Text), ref curPara);
+            {
+                if (_convertMarkdown)
+                {
+                    curPara = null;
+                    MdAppend(tp.Text);
+                }
+                else AddSegs(SplitMath(tp.Text), ref curPara);
+            }
             else if (part is TablePart tb)
             {
                 curPara = null;

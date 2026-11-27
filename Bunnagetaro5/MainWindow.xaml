@@ -25,6 +25,7 @@
                             Content="範囲ドラッグ"
                             Click="SnipButton_Click"/>
                     <CheckBox x:Name="TopmostCheck" DockPanel.Dock="Left"
+                            Style="{StaticResource ToggleSwitch}"
                             Margin="14,0,0,0" VerticalAlignment="Center"
                             FontFamily="{StaticResource UiFont}" FontSize="14"
                             Foreground="{StaticResource Text}"

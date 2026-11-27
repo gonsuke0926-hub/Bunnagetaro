@@ -176,6 +176,7 @@ internal sealed class CaptureSession : IThrowOps, IQuickOps, IBarActions, IAnswe
             case nameof(AppSettings.ConvertOtslTable):
             case nameof(AppSettings.ConvertHtmlTable):
             case nameof(AppSettings.ConvertLatexMath):
+            case nameof(AppSettings.ConvertMarkdown):
             case nameof(AppSettings.ShowFollowRow):
             case nameof(AppSettings.PromptActive):
             case nameof(AppSettings.Prompt):

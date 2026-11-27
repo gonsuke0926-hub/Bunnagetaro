@@ -23,7 +23,8 @@ public sealed record PanelStyle(
     bool ConvertHtmlTable = true,
     bool ConvertLatexMath = true,
     bool ShowFollowRow = false,
-    bool LayoutTextBg = true)   // 位置の反映の時、文字の所だけ地を敷く（全体の地は透明）
+    bool LayoutTextBg = true,   // 位置の反映の時、文字の所だけ地を敷く（全体の地は透明）
+    bool ConvertMarkdown = false)   // Markdown を見た目にする（設定から作る From の既定は ON。ここの既定は記号のまま）
 {
     public const string DefaultFg = "#f5f5f5";
     public const string DefaultBg = "#202020";
@@ -63,7 +64,8 @@ public sealed record PanelStyle(
                               cfg.EffectiveBool("convert_html_table", true),
                               cfg.EffectiveBool("convert_latex_math", true),
                               cfg.EffectiveBool("show_follow_row", false),
-                              cfg.Settings.LayoutTextBg);
+                              cfg.Settings.LayoutTextBg,
+                              cfg.EffectiveBool("convert_markdown", true));
     }
 
     /// <summary>外窓（枠の外に出す解答欄）の見た目。色と不透明度は外窓の設定、ほかは枠の中と同じ</summary>

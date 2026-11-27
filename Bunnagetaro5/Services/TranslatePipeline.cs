@@ -73,7 +73,7 @@ public static class TranslatePipeline
         return (string.Join("\n", sys).Trim(), string.Join("\n", usr).Trim());
     }
 
-    /// <summary>ぶん投げ方（"ocr" / "image" / "builtin_ocr" / "vlm_ocr"）。
+    /// <summary>ぶん投げ方（"ocr" / "image" / "builtin_ocr" / "vlm_ocr"＝）。
     /// 古い cfg（throw_mode 無し）はモデル名・ocr_split_mode から補う。</summary>
     public static string ThrowModeOf(JsonObject cfg)
     {

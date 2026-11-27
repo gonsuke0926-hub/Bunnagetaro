@@ -14,37 +14,26 @@ public partial class SettingsPage
 
     private void BuildStartupSection()
     {
-        BodyPanel.Children.Add(Section("起動と終了"));
+        var host = Pane(CatSystem);
+        host.Children.Add(Section("起動と終了"));
 
         // ×で閉じた時にトレイへしまうか（既定 OFF）
-        CloseToTrayCheck = new CheckBox
-        {
-            Content = "×で閉じた時はタスクトレイにしまう",
-            IsChecked = _cfg.Settings.CloseToTray,
-            VerticalAlignment = VerticalAlignment.Center,
-            Name = "CloseToTrayChk",
-        };
+        CloseToTrayCheck = MakeSwitch("CloseToTrayChk", _cfg.Settings.CloseToTray);
         CloseToTrayCheck.Checked += (_, _) => { _cfg.Settings.CloseToTray = true; SaveSoon(); };
         CloseToTrayCheck.Unchecked += (_, _) => { _cfg.Settings.CloseToTray = false; SaveSoon(); };
-        var closeToTrayRow = new SettingRow("×で閉じた時",
+        var closeToTrayRow = new SettingRow("×で閉じた時はタスクトレイにしまう",
             "終了はトレイの右クリック「終了」から",
             CloseToTrayCheck);
 
         // Windows の起動時にトレイで起動するか（既定 OFF）。ON の間、現ユーザーの Run に「exe --tray」を入れる
-        StartWithWindowsCheck = new CheckBox
-        {
-            Content = "Windows の起動時にトレイで起動する",
-            IsChecked = _cfg.Settings.StartWithWindows,
-            VerticalAlignment = VerticalAlignment.Center,
-            Name = "StartWithWindowsChk",
-        };
+        StartWithWindowsCheck = MakeSwitch("StartWithWindowsChk", _cfg.Settings.StartWithWindows);
         StartWithWindowsCheck.Checked += (_, _) => SetStartWithWindows(true);
         StartWithWindowsCheck.Unchecked += (_, _) => SetStartWithWindows(false);
-        var startRow = new SettingRow("Windows の起動時",
+        var startRow = new SettingRow("Windows の起動時にトレイで起動する",
             "サインイン時に窓を出さず起動します",
             StartWithWindowsCheck);
 
-        BodyPanel.Children.Add(MakeGroupCard(closeToTrayRow, startRow));
+        host.Children.Add(MakeGroupCard(closeToTrayRow, startRow));
     }
 
     /// <summary>Run への登録／削除をして、うまくいったら設定を保存する。失敗は Warning にしてチェックを元へ戻す（落とさない）</summary>

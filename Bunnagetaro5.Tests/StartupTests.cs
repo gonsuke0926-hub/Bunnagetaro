@@ -139,7 +139,10 @@ public class StartupTests : IDisposable
                 Assert.Equal("起動と終了", ((TextBlock)body.Children[i - 1]).Text);
                 Assert.Equal(body.Children.Count - 1, i);
 
-                Assert.Equal("Windows の起動時にトレイで起動する", start.Content);
+                var startRow = LogicalTreeHelper.GetParent(LogicalTreeHelper.GetParent(start)!) as Bunnagetaro5.Pages.SettingRow;
+                var closeRow = LogicalTreeHelper.GetParent(LogicalTreeHelper.GetParent(close)!) as Bunnagetaro5.Pages.SettingRow;
+                Assert.Equal("Windows の起動時にトレイで起動する", startRow?.NameBox.Text);
+                Assert.Equal("×で閉じた時はタスクトレイにしまう", closeRow?.NameBox.Text);
                 start.IsChecked = true;
                 Assert.True(cfg.Settings.StartWithWindows);
                 Assert.True(StartupRegistration.IsRegisteredFor(Environment.ProcessPath!));

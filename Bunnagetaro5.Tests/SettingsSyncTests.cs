@@ -221,15 +221,15 @@ public class SettingsSyncTests : IDisposable
             win.Show();
             Pump(50);
 
-            var nameBox = FindLogical<TextBox>(page, "PresetNameBox")!;
-            nameBox.Text = "";   // 空（未コミット・拒否されるべき入力）
+            var presetCb = FindLogical<ComboBox>(page, "PresetCombo")!;
+            presetCb.Text = "";   // 空（未コミット・拒否されるべき入力）
             string before = cfg.Settings.PromptActive;
 
             Assert.False(session.BarPresetSelect("OCR"));
             Pump(20);
 
             Assert.Equal(before, cfg.Settings.PromptActive);
-            Assert.Equal("", nameBox.Text);   // 拒否時は RefreshFromBar で書きかけを潰さない
+            Assert.Equal("", presetCb.Text);   // 拒否時は RefreshFromBar で書きかけを潰さない
 
             page.Detach();
             session.Dispose();

@@ -30,7 +30,14 @@ public sealed partial class ConfigStore
     private void ApplyDefaultMigrations(JsonObject saved)
     {
         MigratePresetsV5(saved);
-        SeedVlmGen(saved);
+        SeedVlmGen(saved);   // 
+        // Markdown の変換を足す前の版の設定: 既定の「OCR」プリセットだけ OFF にする（読んだ文字の * # | をそのまま出す）
+        if (!saved.ContainsKey("convert_markdown") && GetRaw(saved, "prompts") is JsonArray mdArr)
+            foreach (var po in mdArr.OfType<JsonObject>())
+                if (NodeToStr(po["name"]) == "OCR" &&
+                    po["use_global"] is JsonValue mdUg && mdUg.GetValueKind() == JsonValueKind.False &&
+                    po["settings"] is JsonObject mdSt && !mdSt.ContainsKey("convert_markdown"))
+                    mdSt["convert_markdown"] = false;
         // 外窓の色が無い（前の版の）設定は、今まで外窓に使っていた枠の中の色を引き継ぐ（見た目を変えない）
         foreach (var (sk, ok) in new[] { ("strip_bg", "overlay_bg"), ("strip_fg", "overlay_fg") })
             if (GetRaw(saved, sk) is null && NodeToStr(GetRaw(saved, ok)) is { Length: > 0 } ov && ColorUtil.IsHexColor(ov))

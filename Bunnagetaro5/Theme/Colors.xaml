@@ -3,8 +3,12 @@
 
     <!-- 色トークン。ここ以外で色を直接書かない（例外: overlay_bg / overlay_fg） -->
     <Color x:Key="BgColor">#F3F3F3</Color>
+    <Color x:Key="NavBgColor">#EAEAEA</Color>
     <Color x:Key="SurfaceColor">#FFFFFF</Color>
+    <Color x:Key="SubtleSurfaceColor">#F8F8F8</Color>
+    <Color x:Key="SegTrackColor">#EFEFEF</Color>
     <Color x:Key="SurfaceHoverColor">#F5F5F5</Color>
+    <Color x:Key="DividerColor">#ECECEC</Color>
     <Color x:Key="BorderColor">#E3E3E3</Color>
     <Color x:Key="BorderStrongColor">#CFCFCF</Color>
     <Color x:Key="TextColor">#1B1B1B</Color>
@@ -20,13 +24,20 @@
     <Color x:Key="AccentSoftBorderColor">#A8CBEE</Color>
     <Color x:Key="AccentSoftTextColor">#00467F</Color>
     <Color x:Key="DangerColor">#C42B1C</Color>
+    <Color x:Key="DangerSoftColor">#FDE7E9</Color>
+    <Color x:Key="DangerSoftHoverColor">#FAD4D8</Color>
+    <Color x:Key="DangerSoftBorderColor">#F1B8BE</Color>
     <Color x:Key="WarningColor">#9D5D00</Color>
     <Color x:Key="BarBgColor">#F9F9F9</Color>
     <Color x:Key="ScrimColor">#33000000</Color>
 
     <SolidColorBrush x:Key="Bg" Color="{StaticResource BgColor}"/>
+    <SolidColorBrush x:Key="NavBg" Color="{StaticResource NavBgColor}"/>
     <SolidColorBrush x:Key="Surface" Color="{StaticResource SurfaceColor}"/>
+    <SolidColorBrush x:Key="SubtleSurface" Color="{StaticResource SubtleSurfaceColor}"/>
+    <SolidColorBrush x:Key="SegTrack" Color="{StaticResource SegTrackColor}"/>
     <SolidColorBrush x:Key="SurfaceHover" Color="{StaticResource SurfaceHoverColor}"/>
+    <SolidColorBrush x:Key="Divider" Color="{StaticResource DividerColor}"/>
     <SolidColorBrush x:Key="Border" Color="{StaticResource BorderColor}"/>
     <SolidColorBrush x:Key="BorderStrong" Color="{StaticResource BorderStrongColor}"/>
     <SolidColorBrush x:Key="Text" Color="{StaticResource TextColor}"/>
@@ -41,6 +52,9 @@
     <SolidColorBrush x:Key="AccentSoftBorder" Color="{StaticResource AccentSoftBorderColor}"/>
     <SolidColorBrush x:Key="AccentSoftText" Color="{StaticResource AccentSoftTextColor}"/>
     <SolidColorBrush x:Key="Danger" Color="{StaticResource DangerColor}"/>
+    <SolidColorBrush x:Key="DangerSoft" Color="{StaticResource DangerSoftColor}"/>
+    <SolidColorBrush x:Key="DangerSoftHover" Color="{StaticResource DangerSoftHoverColor}"/>
+    <SolidColorBrush x:Key="DangerSoftBorder" Color="{StaticResource DangerSoftBorderColor}"/>
     <SolidColorBrush x:Key="Warning" Color="{StaticResource WarningColor}"/>
     <SolidColorBrush x:Key="BarBg" Color="{StaticResource BarBgColor}"/>
     <SolidColorBrush x:Key="Scrim" Color="{StaticResource ScrimColor}"/>

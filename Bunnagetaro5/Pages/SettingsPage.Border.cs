@@ -49,7 +49,7 @@ public partial class SettingsPage
         var resetRow = new SettingRow("枠を既定に戻す", "既定: #0067C0・0.70・4px", reset);
 
         sec.Children.Add(MakeGroupCard(_borderColorRow, alphaRow, _borderPxNum.Row, resetRow));
-        BodyPanel.Children.Add(MakeExpertWrap(sec));
+        Pane(CatDisplay).Children.Add(MakeExpertWrap(sec));
     }
 
     /// <summary>3つだけ既定へ戻す（欄も書き換えて即反映）</summary>

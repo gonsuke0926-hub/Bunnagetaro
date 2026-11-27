@@ -131,6 +131,8 @@ public sealed class AppSettings : INotifyPropertyChanged
     public bool ConvertHtmlTable { get => B("convert_html_table", true); set => W("convert_html_table", value); }
     /// <summary>LaTeX 数式をレンダリングするか</summary>
     public bool ConvertLatexMath { get => B("convert_latex_math", true); set => W("convert_latex_math", value); }
+    /// <summary>Markdown（見出し・太字・箇条書き・コード・表など）を見た目にして表示するか（プリセットごと。既定 ON、既定の OCR は OFF）</summary>
+    public bool ConvertMarkdown { get => B("convert_markdown", true); set => W("convert_markdown", value); }
     /// <summary>外の解答欄の下に「たずねる」入力欄を表示するか</summary>
     public bool ShowFollowRow { get => B("show_follow_row", false); set => W("show_follow_row", value); }
     // 位置の反映の時、文字の所だけ地を敷く（上級者。全体で1つ）

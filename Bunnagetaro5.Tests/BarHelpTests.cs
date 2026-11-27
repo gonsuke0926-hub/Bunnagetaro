@@ -71,13 +71,14 @@ public class BarHelpTests : IDisposable
                 typeof(MainWindow).GetMethod("DoDrawerAction", BindingFlags.NonPublic | BindingFlags.Instance)!
                     .Invoke(w, new object[] { "help" });
                 Pump(400);
+                var settings = Find<Bunnagetaro5.Pages.SettingsPage>(w, "") ?? w.SettingsPageForTray!;
+                Assert.Equal(Bunnagetaro5.Pages.SettingsPage.CatHelp, settings.CurrentCategory);
                 var img = Find<Image>(w, "BarHelpImage");
                 Assert.NotNull(img);
                 Assert.NotNull(img!.Source);
                 Assert.True(img.Width > 0 || img.ActualWidth > 0, "注釈図が描かれていない");
                 var scroll = Find<ScrollViewer>(w, "BodyScroll")!;
-                Assert.True(scroll.VerticalOffset > 100, "節までスクロールしていない: " + scroll.VerticalOffset);
-                // 節の見出しが見える範囲に入っている
+                // 使い方カテゴリが直接開かれ、見出しが見える範囲に入っている
                 var head = Find<TextBlock>(w, "BarHelpHeading")!;
                 var y = head.TranslatePoint(new Point(0, 0), scroll).Y;
                 Assert.InRange(y, -1, scroll.ViewportHeight);

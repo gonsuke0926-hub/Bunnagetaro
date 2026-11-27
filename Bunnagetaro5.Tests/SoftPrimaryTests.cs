@@ -82,14 +82,33 @@ public class SoftPrimaryTests : IDisposable
                 w.Session.OpenCapture();
                 Pump(250);
                 var bar = (Window)Fld(w.Session, "_bar")!;
+                Assert.Equal(Colors.Transparent, ((SolidColorBrush)bar.Background).Color);
                 // バーから「文字起こし」「画像そのまま」ラジオボタンが削除されている
                 Assert.Null(bar.GetType().GetField("_ocrOn", BindingFlags.NonPublic | BindingFlags.Instance));
                 Assert.Null(bar.GetType().GetField("_ocrOff", BindingFlags.NonPublic | BindingFlags.Instance));
                 var btn = (Button)Fld(bar, "_translateBtn")!;
                 Assert.Equal(Tok("AccentSoftColor"), ((SolidColorBrush)btn.Background).Color);
                 Assert.Equal(Tok("AccentSoftBorderColor"), ((SolidColorBrush)btn.BorderBrush).Color);
-                var label = (TextBlock)Fld(bar, "_translateLabel")!;
-                Assert.Equal(Tok("AccentSoftTextColor"), ((SolidColorBrush)label.Foreground).Color);
+                Assert.Equal(Tok("AccentSoftTextColor"), ((SolidColorBrush)btn.Foreground).Color);
+                Assert.True(btn.Width >= 50, "横長の押しやすい幅");
+                Assert.Equal("ぶん投げる", btn.ToolTip as string);
+
+                // トグル3種にもマウスオーバー説明（ToolTip）が付いている（かっこ説明なし）
+                var linkTgl = (System.Windows.Controls.Primitives.ToggleButton)Fld(bar, "_linkTgl")!;
+                var autoTgl = (System.Windows.Controls.Primitives.ToggleButton)Fld(bar, "_autoTgl")!;
+                var passTgl = (System.Windows.Controls.Primitives.ToggleButton)Fld(bar, "_passTgl")!;
+                Assert.DoesNotContain("（", linkTgl.ToolTip as string ?? "");
+                Assert.DoesNotContain("（", autoTgl.ToolTip as string ?? "");
+                Assert.DoesNotContain("（", passTgl.ToolTip as string ?? "");
+                Assert.StartsWith("くっつける:", linkTgl.ToolTip as string ?? "");
+                Assert.StartsWith("自動トリガ:", autoTgl.ToolTip as string ?? "");
+                Assert.StartsWith("透過:", passTgl.ToolTip as string ?? "");
+
+                // 実行中は停止アイコン用の busy 状態＋「やめる」説明に変わる
+                ((ChromeBar)bar).SetBusy(true, false);
+                TestUtil.Pump(20);
+                Assert.Equal("やめる", btn.ToolTip as string);
+                Assert.Equal(Tok("DangerColor"), ((SolidColorBrush)btn.Foreground).Color);
             }
             finally { w.Close(); }
         });

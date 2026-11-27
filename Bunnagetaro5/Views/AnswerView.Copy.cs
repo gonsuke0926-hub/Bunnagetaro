@@ -165,24 +165,20 @@ public partial class AnswerView
     private (string Text, string? Html) FullCopy()
     {
         string all = _target.Trim();
+        // 表の外の文字: Markdown が ON なら記号を外し（式の中は触らない）、LaTeX のコピーの形にする
+        string Xform(string s) => ApplyCopyFormIfEnabled(MdPlainIfEnabled(s));
         // 見えている形でコピーする: HTML の表の変換が OFF なら OTSL は HTML の文字にして（表は組まない）
-        if (_convertOtslTable && !_convertHtmlTable)
-            return (ApplyCopyFormIfEnabled(TableText.OtslToHtmlText(all).Trim()), null);
-        if (TableText.MayContainTable(all, _convertOtslTable, _convertHtmlTable))
+        bool otslAsHtmlText = _convertOtslTable && !_convertHtmlTable;
+        if (otslAsHtmlText && TableText.MayContainTable(all, parseOtsl: true, parseHtml: false))
+            return (Xform(TableText.OtslToHtmlText(all).Trim()), null);
+        bool otsl = _convertOtslTable && !otslAsHtmlText;
+        if (TableText.MayContainTable(all, otsl, _convertHtmlTable, _convertMarkdown))
         {
-            var parts = TableText.Parse(all, null, _convertOtslTable, _convertHtmlTable);
+            var parts = TableText.Parse(all, null, otsl, _convertHtmlTable, _convertMarkdown);
             if (TableText.HasTable(parts))
-                return TableText.ToClipboard(parts, ApplyCopyFormIfEnabled, _convertLatexMath);
+                return TableText.ToClipboard(parts, Xform, _convertLatexMath);
         }
-        return (FullTextPlain(), null);
-    }
-
-    private string FullTextPlain()
-    {
-        // 式は文書のTextにlatexの文字として出てこない（InlineUIContainerの中は
-        // 空扱い）。全文コピーは $ 付きの元の文そのもの（「普通に
-        // コピー=LaTeXの文字列」の仕様もこれで満たす）
-        return ApplyCopyFormIfEnabled(_target.Trim());
+        return (Xform(all), null);
     }
 
     private void CopyAnswer((string Text, string? Html) c) => CopyText(c.Text, c.Html);

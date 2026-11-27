@@ -12,21 +12,37 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Bunnagetaro5.Services;
 
 namespace Bunnagetaro5.Pages;
 
 /// <summary>
-/// 設定ページ。見出し行は「← 設定」（ログへ戻る）。
-/// 節: AI接続・プリセット/生成・答えの表示・自動トリガ・クイックぶん投げ・ホットキー・バーの使い方・記録。
-/// 値は変えたらその場でsettingsへ書き、保存は300ms間引く。
+/// 設定ページ。見出し行は「← 設定」（ログへ戻る）＋右端に「上級者モード」トグルスイッチ。
+/// 左サイドメニューでカテゴリ（AI接続・プリセット・表示・枠・操作・ホットキー・記録・起動 ／ 最下部に使い方）を切り替える。
+/// 値は変えたらその場で settings へ書き、保存は 300ms 間引く。
 /// </summary>
 public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields, Bunnagetaro5.Session.IModelListView, Bunnagetaro5.Session.IBarSettingsView
 {
+    public const string CatAi = "ai";
+    public const string CatPresets = "presets";
+    public const string CatDisplay = "display";
+    public const string CatInput = "input";
+    public const string CatSystem = "system";
+    public const string CatHelp = "help";
+
     private readonly Action _showLog;
     private readonly ConfigStore _cfg;
     private readonly Action<string> _setStatus;
+    private readonly bool _hasIconFont;
+
+    // ---- 左メニューとカテゴリ別パネル ----
+    private readonly Dictionary<string, StackPanel> _catPanels = new();
+    private readonly Dictionary<string, NavEntry> _navEntries = new();
+    public string CurrentCategory { get; private set; } = CatAi;
+
+    private sealed record NavEntry(Border Root, Rectangle Mark, TextBlock? Icon, TextBlock Label);
 
     // ---- AI接続 ----
     private SettingRow _connRow = null!;
@@ -73,13 +89,9 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     private bool _suppressLineSpacing;
 
     // ---- プリセット・生成 ----
-    /// <summary>使うプリセットではなく、共通の設定を編集するための入口。
-    /// 括弧つきなので普通に付けた名前とはぶつからない。</summary>
-    // ［グローバル設定］の項目は無くした
-
     private List<JsonObject> _pitems = new();   // prompts の作業コピー
     private int _pcur;                          // 選んでいる位置＝使っているプリセット
-    private bool _filling;                      // 欄を programme 側で書き換えている（commit を止める）
+    private bool _filling;                      // 欄をプログラム側で書き換えている（commit を止める）
     private bool _presetRejected;               // 欄を直すところがあり切り替えを取り消した
     private string _lastNote = "";              // Note() が最後に出した文言（バーからの拒否理由取り出し用）
     private int _selfWriteDepth;                // 設定ページ自身の書き込み中は PropertyChanged での再読込を止める
@@ -91,11 +103,10 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
 
     private ComboBox _presetCb = null!;
     private Button _addBtn = null!, _delBtn = null!, _resetBtn = null!;
-    private TextBox _nameBox = null!, _instrBox = null!;
+    private TextBox _instrBox = null!;
 
     private SettingRow _rowPreset = null!;
     private StackPanel _genBox = null!;
-    private TextBlock _genHeading = null!;
     private ComboBox _modelCb = null!, _thinkCb = null!;
     private ComboBox _builtinSizeCb = null!;
     private ComboBox _ocrVlmModelCb = null!;
@@ -124,10 +135,12 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         _showLog = showLog;
         _setStatus = setStatus;
         InitializeComponent();
-        // アイコンフォントが無い環境では「←」の文字に戻す
-        if (!HasIconFont())
+        _hasIconFont = HasIconFont();
+        if (!_hasIconFont)
             BackButton.Content = "←";
+        BuildNavAndPanes();
         BuildBody();
+        SelectCategory(CatAi);
         ApplyPreview();
         InitExpertToggle();
         _cfg.Settings.PropertyChanged += OnSettingsPropertyChanged;
@@ -215,20 +228,149 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         return false;
     }
 
+    // ================= 左サイドメニューとカテゴリ切り替え =================
+
+    private void BuildNavAndPanes()
+    {
+        var specs = new (string Key, string Title, string Glyph, bool Bottom)[]
+        {
+            (CatAi,      "AI接続",         "\uE774", false),
+            (CatPresets, "プリセット",     "\uE8FD", false),
+            (CatDisplay, "表示・枠",       "\uE790", false),
+            (CatInput,   "操作・ホットキー", "\uE765", false),
+            (CatSystem,  "記録・起動",     "\uE74E", false),
+            (CatHelp,    "使い方",         "\uE897", true),
+        };
+
+        foreach (var (key, title, glyph, bottom) in specs)
+        {
+            var pane = new StackPanel { Name = "Pane_" + key, Visibility = Visibility.Collapsed };
+            _catPanels[key] = pane;
+            BodyPanel.Children.Add(pane);
+
+            var nav = MakeNavItem(key, title, glyph);
+            _navEntries[key] = nav;
+            if (bottom) NavBottomPanel.Children.Add(nav.Root);
+            else NavTopPanel.Children.Add(nav.Root);
+        }
+    }
+
+    private NavEntry MakeNavItem(string key, string title, string glyph)
+    {
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var mark = new Rectangle
+        {
+            Width = 3,
+            RadiusX = 1.5,
+            RadiusY = 1.5,
+            Margin = new Thickness(0, 6, 0, 6),
+            Fill = SettingRow.AccentBrush(),
+            Visibility = Visibility.Collapsed,
+        };
+        Grid.SetColumn(mark, 0);
+        grid.Children.Add(mark);
+
+        TextBlock? icon = null;
+        if (_hasIconFont)
+        {
+            icon = new TextBlock
+            {
+                Text = glyph,
+                FontSize = 14,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(7, 0, 7, 0),
+                TextWrapping = TextWrapping.NoWrap,
+            };
+            if (Application.Current?.TryFindResource("IconFont") is FontFamily icf)
+                icon.FontFamily = icf;
+            Grid.SetColumn(icon, 1);
+            grid.Children.Add(icon);
+        }
+
+        var label = new TextBlock
+        {
+            Text = title,
+            FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(_hasIconFont ? 0 : 10, 0, 8, 0),
+            TextWrapping = TextWrapping.NoWrap,
+        };
+        Grid.SetColumn(label, 2);
+        grid.Children.Add(label);
+
+        var root = new Border
+        {
+            Name = "Nav_" + key,
+            Height = 36,
+            CornerRadius = new CornerRadius(6),
+            Margin = new Thickness(0, 0, 0, 2),
+            Background = Brushes.Transparent,
+            Cursor = Cursors.Hand,
+            Child = grid,
+        };
+        root.MouseEnter += (_, _) =>
+        {
+            if (CurrentCategory != key)
+                root.Background = Application.Current?.TryFindResource("SurfaceHover") as Brush ?? Brushes.WhiteSmoke;
+        };
+        root.MouseLeave += (_, _) =>
+        {
+            if (CurrentCategory != key)
+                root.Background = Brushes.Transparent;
+        };
+        root.MouseLeftButtonUp += (_, _) => SelectCategory(key);
+        return new NavEntry(root, mark, icon, label);
+    }
+
+    /// <summary>左サイドメニューのカテゴリを切り替える</summary>
+    public void SelectCategory(string key)
+    {
+        if (!_catPanels.ContainsKey(key)) return;
+        CurrentCategory = key;
+        foreach (var (k, pane) in _catPanels)
+            pane.Visibility = k == key ? Visibility.Visible : Visibility.Collapsed;
+
+        var activeBg = Application.Current?.TryFindResource("AccentSoft") as Brush
+                       ?? new SolidColorBrush(Color.FromRgb(0xD6, 0xE8, 0xF8));
+        var activeFg = Application.Current?.TryFindResource("AccentSoftText") as Brush
+                       ?? new SolidColorBrush(Color.FromRgb(0x00, 0x46, 0x7F));
+        var normalFg = Application.Current?.TryFindResource("Text") as Brush
+                       ?? new SolidColorBrush(Color.FromRgb(0x1B, 0x1B, 0x1B));
+        var subtleFg = SettingRow.SubtleBrush();
+
+        foreach (var (k, entry) in _navEntries)
+        {
+            bool active = k == key;
+            entry.Root.Background = active ? activeBg : Brushes.Transparent;
+            entry.Mark.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+            entry.Label.Foreground = active ? activeFg : normalFg;
+            entry.Label.FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal;
+            if (entry.Icon is not null)
+                entry.Icon.Foreground = active ? SettingRow.AccentBrush() : subtleFg;
+        }
+        BodyScroll.ScrollToVerticalOffset(0);
+    }
+
+    private StackPanel Pane(string key) => _catPanels[key];
+
     // ================= 組み立て =================
 
     private void BuildBody()
     {
         BuildAiSection();
-        BuildPresetSection();     // プリセット＋生成（1組の欄でスコープを切り替える）
-        BuildCaptureBorderSection();   // キャプチャ窓の枠
+        BuildPresetSection();
         BuildAnswerSection();
-        BuildTrigSection();
+        BuildCaptureBorderSection();
         BuildQuickSection();
         BuildHotkeySection();
-        BuildBarHelpSection();    // バーの使い方（注釈図。☰メニューの「バーの使い方」がここへ飛ぶ）
+        BuildTrigSection();
         BuildRecordSection();
-        BuildStartupSection();    // 起動と終了（いちばん下）
+        BuildStartupSection();
+        BuildBarHelpSection();
     }
 
     // ---------------- バーの使い方 ----------------
@@ -238,10 +380,11 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
 
     private void BuildBarHelpSection()
     {
-        _barHelpHeading = Section("使い方");
+        var host = Pane(CatHelp);
+        _barHelpHeading = Section("バーの使い方", first: true);
         _barHelpHeading.Name = "BarHelpHeading";
-        BodyPanel.Children.Add(_barHelpHeading);
-        var col = new StackPanel { Margin = new Thickness(14, 12, 14, 12) };
+        host.Children.Add(_barHelpHeading);
+        var col = new StackPanel { Margin = new Thickness(16, 14, 16, 14) };
         try
         {
             var bmp = new System.Windows.Media.Imaging.BitmapImage();
@@ -255,12 +398,12 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
                 Source = bmp,
                 Stretch = Stretch.Uniform,
                 StretchDirection = StretchDirection.DownOnly,
-                MaxWidth = 780,
+                MaxWidth = 680,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Name = "BarHelpImage",
             };
             RenderOptions.SetBitmapScalingMode(_barHelpImage, BitmapScalingMode.HighQuality);
-            col.Children.Add(_barHelpImage);   // 図だけで分かるので下の説明文は置かない
+            col.Children.Add(_barHelpImage);
         }
         catch (Exception ex)
         {
@@ -268,15 +411,15 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
             _barHelpImage = new Image { Name = "BarHelpImage" };
             col.Children.Add(new TextBlock { Text = "注釈図（bar_help.png）を読み込めませんでした" });
         }
-        BodyPanel.Children.Add(MakeGroupCard(col));
+        host.Children.Add(MakeGroupCard(col));
     }
 
-    /// <summary>☰メニューの「バーの使い方」: 設定ページのこの節の頭までスクロールする</summary>
+    /// <summary>☰メニューの「使い方」: 左メニューの「使い方」カテゴリを直接開いて先頭を表示する</summary>
     internal void ScrollToBarHelp()
     {
+        SelectCategory(CatHelp);
         BodyScroll.UpdateLayout();
-        var p = _barHelpHeading.TranslatePoint(new Point(0, 0), BodyPanel);
-        BodyScroll.ScrollToVerticalOffset(Math.Max(0, p.Y - 8));
+        BodyScroll.ScrollToVerticalOffset(0);
     }
 
     // ================= グループカード・上級者モード =================
@@ -380,22 +523,22 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     private static Border MakeDivider() => new()
     {
         Height = 1,
-        Background = SettingRow.NormalBorderBrush(),
+        Background = SettingRow.DividerBrush(),
         Margin = new Thickness(14, 0, 14, 0),
         SnapsToDevicePixels = true,
     };
 
     private Border MakeGroupCard(params UIElement[] items)
     {
-        var card = new Border { Margin = new Thickness(0, 0, 0, 10) };
+        var card = new Border { Margin = new Thickness(0, 0, 0, 12) };
         if (Application.Current?.TryFindResource("Card") is Style st)
             card.Style = st;
         else
         {
             card.Background = Brushes.White;
-            card.BorderBrush = SettingRow.NormalBorderBrush();
+            card.BorderBrush = SettingRow.CardBorderBrush();
             card.BorderThickness = new Thickness(1);
-            card.CornerRadius = new CornerRadius(6);
+            card.CornerRadius = new CornerRadius(8);
         }
         card.Padding = new Thickness(0);
 
@@ -408,16 +551,15 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
             if (!isExpert && needDividerBeforeNext)
                 stack.Children.Add(MakeDivider());
             stack.Children.Add(item);
-            // 欄の中の小見出しの直後には区切り線を入れない
             if (!isExpert) needDividerBeforeNext = !(item is Border hb && Equals(hb.Tag, GroupHeadingTag));
         }
         card.Child = stack;
         return card;
     }
 
-    private TextBlock Section(string title)
+    private TextBlock Section(string title, bool first = false)
     {
-        var tb = new TextBlock { Text = title, Margin = new Thickness(0, 14, 0, 6) };
+        var tb = new TextBlock { Text = title, Margin = new Thickness(2, first ? 2 : 14, 0, 8) };
         if (Application.Current?.TryFindResource("SectionHeading") is Style st)
             tb.Style = st;
         else
@@ -426,6 +568,54 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
             tb.FontWeight = FontWeights.SemiBold;
         }
         return tb;
+    }
+
+    /// <summary>ON/OFF トグルスイッチ（実体は CheckBox なので既存の IsChecked / Checked / Unchecked がそのまま動く）</summary>
+    private static CheckBox MakeSwitch(string name, bool isChecked = false)
+    {
+        var chk = new CheckBox
+        {
+            Name = name,
+            IsChecked = isChecked,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        if (Application.Current?.TryFindResource("ToggleSwitch") is Style st)
+            chk.Style = st;
+        return chk;
+    }
+
+    /// <summary>セグメント選択ピル内の1項目（実体は RadioButton）</summary>
+    private static RadioButton MakeSegRadio(string? name, string label, string group, bool isChecked = false)
+    {
+        var rb = new RadioButton
+        {
+            Content = label,
+            GroupName = group,
+            IsChecked = isChecked,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        if (!string.IsNullOrEmpty(name)) rb.Name = name;
+        if (Application.Current?.TryFindResource("SegmentedRadio") is Style st)
+            rb.Style = st;
+        return rb;
+    }
+
+    /// <summary>セグメント選択ピルの入れ物</summary>
+    private static Border MakeSegGroup(params RadioButton[] buttons)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        foreach (var b in buttons) row.Children.Add(b);
+        return new Border
+        {
+            Background = SettingRow.SegTrackBrush(),
+            BorderBrush = SettingRow.CardBorderBrush(),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(2),
+            VerticalAlignment = VerticalAlignment.Center,
+            SnapsToDevicePixels = true,
+            Child = row,
+        };
     }
 
     // ================= 共通の小さな部品 =================
@@ -473,8 +663,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         };
     }
 
-    /// <summary>数値欄（範囲外は保存せず Danger 縁＋「○〜○の数値」）。
-    /// 書き込み先は Root（グローバル）か presets の settings（プリセット専用）。</summary>
+    /// <summary>数値欄（範囲外は保存せず Danger 縁＋「○〜○の数値」）。</summary>
     private sealed class NumCtl
     {
         public TextBox Box = null!;
@@ -566,7 +755,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         string range = isInt
             ? ((long)lo).ToString(CultureInfo.InvariantCulture) + "〜" + ((long)hi).ToString(CultureInfo.InvariantCulture)
             : lo.ToString(CultureInfo.InvariantCulture) + "〜" + hi.ToString(CultureInfo.InvariantCulture);
-        var box = new TextBox { Width = 110 };
+        var box = new TextBox { Width = 104, HorizontalContentAlignment = HorizontalAlignment.Right };
         if (boxName is not null) box.Name = boxName;
         var n = new NumCtl { Box = box, Key = key, Lo = lo, Hi = hi, IsInt = isInt, RangeText = range, Scope = scope, AfterWrite = afterWrite };
         var row = new SettingRow(name, range, box);
@@ -574,7 +763,7 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         n.Row = row;
         n.Def = def;
         var s0 = scope();
-        if (s0 is not null) n.Load(s0);   // 生成の欄はShowPrompt→FillGenで埋まる
+        if (s0 is not null) n.Load(s0);
         box.KeyDown += (_, e) => { if (e.Key == Key.Enter) n.Commit(this); };
         BindCommitOnFocusLoss(box, () => n.Commit(this));
         if (into is not null) into.Children.Add(row);
@@ -582,8 +771,6 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     }
 
     // ================= 入力まわりの即反映 =================
-    // クイックぶん投げのON/OFF・起動ボタン・最小四角の変更は AppSettings.PropertyChanged 経由で
-    // QuickThrowController.Apply(fromUi: true) へ伝わる。ここでは登録まわりの通知文だけ消す。
     private void NotifyInputChanged() => SetBindNotice("", "");
 
     // ================= 保存の間引き =================

@@ -462,7 +462,20 @@ internal sealed partial class ThrowController
                     {
                         try
                         {
-                            Clipboard.SetText(text);
+                            // Markdown の変換が ON なら、見えている形（記号を外した文字・表はタブ区切り）でコピーする
+                            if (CfgBool(cfg, "convert_markdown", true))
+                            {
+                                var (mdText, mdHtml) = MarkdownText.ForCopy(text, CfgBool(cfg, "convert_latex_math", true));
+                                if (mdHtml is null) Clipboard.SetText(mdText);
+                                else
+                                {
+                                    var data = new DataObject();
+                                    data.SetText(mdText, TextDataFormat.UnicodeText);
+                                    data.SetData(DataFormats.Html, TableText.CfHtml(mdHtml));
+                                    Clipboard.SetDataObject(data, true);
+                                }
+                            }
+                            else Clipboard.SetText(text);
                             AppLog.Info("clip_answer: 答えを自動でクリップボードへ");
                         }
                         catch (Exception ex) { AppLog.Error("clip_answer 自動コピー失敗", ex); }

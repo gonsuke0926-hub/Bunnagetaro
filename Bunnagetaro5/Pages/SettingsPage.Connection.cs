@@ -23,25 +23,52 @@ public partial class SettingsPage
 
     private void BuildAiSection()
     {
-        BodyPanel.Children.Add(Section("AI接続"));
+        var host = Pane(CatAi);
+        host.Children.Add(Section("AI接続", first: true));
 
         var urlRow = new SettingRow("Ollama URL", "例: http://localhost:11434", MakeUrlBox());
 
         var connCtl = new StackPanel { Orientation = Orientation.Horizontal };
         _testBtn = new Button { Content = "接続テスト", Margin = new Thickness(0, 0, 6, 0), Name = "ConnTestButton" };
         _fetchBtn = new Button { Content = "モデル一覧を取得", Name = "FetchModelsButton" };
+        if (Application.Current?.TryFindResource("PrimaryButton") is Style pst)
+            _fetchBtn.Style = pst;
         _testBtn.Click += TestConn_Click;
         _fetchBtn.Click += FetchModels_Click;
         connCtl.Children.Add(_testBtn);
         connCtl.Children.Add(_fetchBtn);
-        _connRow = new SettingRow("接続", "", connCtl);
-        BodyPanel.Children.Add(MakeGroupCard(urlRow, _connRow));
-        BodyPanel.Children.Add(Subtle(
-            "既定プリセットの想定モデル：\n" +
-            "・翻訳：pfnet/plamo-3-translate（サイズ・量子化はPCに合わせて選択／GGUF）\n" +
-            "・OCR・数式：glm-ocr\n" +
-            "・表：PaddlePaddle/PaddleOCR-VL-1.6（GGUF）\n" +
-            "※ 別のモデルを使う場合は、プリセット欄の「モデル」と「名前／指示（プロンプト）」を合わせて変更してください。"));
+        _connRow = new SettingRow("接続確認・モデル取得", "", connCtl);
+        host.Children.Add(MakeGroupCard(urlRow, _connRow));
+
+        var guide = new StackPanel();
+        guide.Children.Add(new TextBlock
+        {
+            Text = "既定プリセットの想定モデル",
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = SettingRow.SubtleBrush(),
+            Margin = new Thickness(0, 0, 0, 4),
+        });
+        guide.Children.Add(new TextBlock
+        {
+            Text = "・翻訳：pfnet/plamo-3-translate（サイズ・量子化はPCに合わせて選択／GGUF）\n" +
+                   "・OCR・数式：glm-ocr\n" +
+                   "・表：PaddlePaddle/PaddleOCR-VL-1.6（GGUF）\n" +
+                   "※ 別のモデルを使う場合は、「プリセット」のモデル欄と指示（プロンプト）を合わせて変更してください。",
+            FontSize = 12,
+            Foreground = SettingRow.SubtleBrush(),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        host.Children.Add(new Border
+        {
+            Background = SettingRow.SubtleSurfaceBrush(),
+            BorderBrush = SettingRow.DividerBrush(),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(14, 10, 14, 10),
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = guide,
+        });
     }
 
     private sealed class UrlDeletableConverter : System.Windows.Data.IValueConverter
@@ -61,7 +88,8 @@ public partial class SettingsPage
             HorizontalAlignment = HorizontalAlignment.Right,
             Name = "UrlBox",
         };
-        var itemStyle = new Style(typeof(ComboBoxItem));
+        var baseItemStyle = Application.Current?.TryFindResource(typeof(ComboBoxItem)) as Style;
+        var itemStyle = new Style(typeof(ComboBoxItem), baseItemStyle);
         itemStyle.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch));
         _urlBox.ItemContainerStyle = itemStyle;
         _urlBox.ItemTemplate = MakeUrlItemTemplate();

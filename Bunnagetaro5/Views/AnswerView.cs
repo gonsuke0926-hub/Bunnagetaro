@@ -193,6 +193,7 @@ public partial class AnswerView : UserControl
         _convertOtslTable = st.ConvertOtslTable;
         _convertHtmlTable = st.ConvertHtmlTable;
         _convertLatexMath = st.ConvertLatexMath;
+        _convertMarkdown = st.ConvertMarkdown;
         _body.FontSize = st.FontSize;
         _paraSpacingPx = st.ParaMarginPx;
         _displayMathMarginPx = st.DisplayMathMarginPx;
@@ -217,6 +218,7 @@ public partial class AnswerView : UserControl
     private void NewDocGen()
     {
         _tailMark = null;   // 組み直したら前の文書の印は使えない
+        _mdRendered = null;
         _mathImgs.Clear();
         var old = _docCts;
         _docCts = new CancellationTokenSource();
@@ -435,10 +437,12 @@ public partial class AnswerView : UserControl
         _copyForm = MathText.ParseCopyForm(st.LatexCopy);
         bool convChanged = _convertOtslTable != st.ConvertOtslTable
             || _convertHtmlTable != st.ConvertHtmlTable
-            || _convertLatexMath != st.ConvertLatexMath;
+            || _convertLatexMath != st.ConvertLatexMath
+            || _convertMarkdown != st.ConvertMarkdown;
         _convertOtslTable = st.ConvertOtslTable;
         _convertHtmlTable = st.ConvertHtmlTable;
         _convertLatexMath = st.ConvertLatexMath;
+        _convertMarkdown = st.ConvertMarkdown;
         if (!_logMode && !_layoutItemMode)
             _followRow.Visibility = st.ShowFollowRow ? Visibility.Visible : Visibility.Collapsed;
         Color bgc = ColorOf(st.Bg, 0x20, 0x20, 0x20);
@@ -505,7 +509,7 @@ public partial class AnswerView : UserControl
             ReplaceDoc(_model);
             ApplyTables();
         }
-        else if (lookChanged && (_docMath || _tablesShown))
+        else if (lookChanged && (_docMath || _tablesShown || (_convertMarkdown && _model.Length > 0)))
         {
             RebuildCurrent();
             StyleRebuilds++;
@@ -737,6 +741,11 @@ public partial class AnswerView : UserControl
         // 式が載った文書だけ、埋め込みUI（FormulaControl）への入力を生かす。
         // 式の右クリックメニューに必要。無い間は従来通り完全に文字扱い
         _body.IsDocumentEnabled = _docMath;
+        if (_convertMarkdown)
+        {
+            MdRender(text, _segs);
+            return;
+        }
         if (!_docMath)
         {
             AppendPlainText(text);
@@ -754,6 +763,11 @@ public partial class AnswerView : UserControl
         if (_tablesShown)
         {
             ReplaceDoc(_model);   // 表に組み替えた後に続きが来たら文字の文書へ戻す（_model は全文）
+            return;
+        }
+        if (_convertMarkdown)
+        {
+            MdRender(_model, SplitMath(_model));   // 変わった塊から後ろだけ組み直す
             return;
         }
         var ns = SplitMath(_model);
@@ -841,6 +855,11 @@ public partial class AnswerView : UserControl
                 continue;
             }
             if (b is not Paragraph p) continue;
+            if (p.Tag is MdTag mt)
+            {
+                p.Margin = MdMargin(mt, b);
+                continue;
+            }
             if (p.Tag is string tag && tag == DisplayMathTag)
             {
                 p.Margin = new Thickness(0, _displayMathMarginPx, 0, _displayMathMarginPx);

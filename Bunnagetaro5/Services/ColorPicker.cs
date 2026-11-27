@@ -9,22 +9,27 @@ namespace Bunnagetaro5.Services;
 /// </summary>
 public static class ColorPicker
 {
+    internal delegate IntPtr CcHookProc(IntPtr hdlg, uint uiMsg, IntPtr wParam, IntPtr lParam);
+
+    // Win32 tagCHOOSECOLORW の並び順（rgbResult → lpCustColors → Flags）。
+    // 順序が異なると x64 で構造体サイズが 72 にならず CDERR_STRUCTSIZE で開かない。
     [StructLayout(LayoutKind.Sequential)]
     private struct CHOOSECOLOR
     {
         public uint lStructSize;
         public IntPtr hwndOwner;
         public IntPtr hInstance;
+        public uint rgbResult;
         public IntPtr lpCustColors;
         public uint Flags;
-        public uint rgbResult;
         public IntPtr lCustData;
-        public IntPtr lpfnHook;
+        public CcHookProc? lpfnHook;
         public IntPtr lpTemplateName;
     }
 
-    private const uint CC_RGBINIT = 0x00000001;   // 今の色から始める
-    private const uint CC_FULLOPEN = 0x00000002;  // 詳細パレットを開いたまま
+    private const uint CC_RGBINIT = 0x00000001;    // 今の色から始める
+    private const uint CC_FULLOPEN = 0x00000002;   // 詳細パレットを開いたまま
+    private const uint CC_ENABLEHOOK = 0x00000010; // フック有効化（自動テスト用）
     private const uint CC_ANYCOLOR = 0x00000100;
 
     // 「定義色」16枠はアプリの起動中ずっと同じ物を使う（Windows標準の挙動）
@@ -34,20 +39,31 @@ public static class ColorPicker
                EntryPoint = "ChooseColorW")]
     private static extern bool ChooseColorW(ref CHOOSECOLOR lpcc);
 
-    public static string? Pick(IntPtr owner, string? initial)
+    [DllImport("comdlg32.dll")]
+    internal static extern uint CommDlgExtendedError();
+
+    public static string? Pick(IntPtr owner, string? initial) => Pick(owner, initial, null);
+
+    internal static string? Pick(IntPtr owner, string? initial, CcHookProc? hook)
     {
         var handle = GCHandle.Alloc(CustomColors, GCHandleType.Pinned);
         try
         {
+            uint flags = CC_RGBINIT | CC_FULLOPEN | CC_ANYCOLOR;
+            if (hook is not null) flags |= CC_ENABLEHOOK;
+
             var cc = new CHOOSECOLOR
             {
                 lStructSize = (uint)Marshal.SizeOf<CHOOSECOLOR>(),
                 hwndOwner = owner,
                 lpCustColors = handle.AddrOfPinnedObject(),
-                Flags = CC_RGBINIT | CC_FULLOPEN | CC_ANYCOLOR,
+                Flags = flags,
                 rgbResult = ColorUtil.ToColorRef(initial) ?? 0u,
+                lpfnHook = hook,
             };
-            if (!ChooseColorW(ref cc)) return null;
+            bool ok = ChooseColorW(ref cc);
+            GC.KeepAlive(hook);
+            if (!ok) return null;
             return ColorUtil.FromColorRef(cc.rgbResult);
         }
         finally

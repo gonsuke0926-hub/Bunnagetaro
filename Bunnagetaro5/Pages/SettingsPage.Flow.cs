@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using Bunnagetaro5.Services;
 
@@ -13,55 +14,57 @@ namespace Bunnagetaro5.Pages;
 
 /// <summary>
 /// 設定ページのプリセットの「処理の流れ」（SettingsPage の partial class）。
-/// 上から 1 レイアウト判定 → 2 前処理 → 3 AI処理 の3つの箱で選ぶ。
-/// 保存の形（throw_mode・ocr_engine・builtin_ocr_layout）は変えず、読み書きの時に箱と相互に変える:
-///   前処理 内蔵OCR ＋ AI する → ocr ＋ builtin / VLM ＋ する → ocr ＋ vlm / しない ＋ する → image
-///   内蔵OCR ＋ AI しない → builtin_ocr / VLM ＋ しない → vlm_ocr / しない ＋ しない → 選べない
-/// 使わない段は箱ごと薄くする（する／しないのボタンだけは押せる）。
+/// 上から 1 レイアウト判定 → 2 前処理 → 3 AI処理 の3つの独立ステップカードで選ぶ。
+/// スイッチを OFF にした段は中身を畳んで短くし、保存値はそのまま保つ。
 /// </summary>
 public partial class SettingsPage
 {
-    private const double DimOpacity = 0.45;
+    private const double DimOpacity = 0.55;
 
-    /// <summary>各段の「使用する」（する／しないの丸ボタンから1つのチェックにした）</summary>
     private CheckBox _layUse = null!, _preUse = null!, _aiUse = null!;
     private RadioButton _preBuiltin = null!, _preVlm = null!;
-    private SettingRow _layHead = null!, _preHead = null!, _aiHead = null!;
+    private StepCardParts _layStep = null!, _preStep = null!, _aiStep = null!;
     private StackPanel _layBody = null!, _preBody = null!, _aiBody = null!;
     private TextBlock _aiNote = null!;
+    private TextBlock? _flowSummaryText;
     private StackPanel _builtinSizePanel = null!, _ocrVlmPanel = null!;
-    /// <summary>AI処理を「しない」の時に効かない、流れの外の項目（「たずねる」欄）</summary>
+    /// <summary>AI処理を OFF にしている時に効かない、流れの外の項目（「たずねる」欄）</summary>
     private readonly List<FrameworkElement> _aiOffUnused = new();
     /// <summary>レイアウト判定の細かい値（全体で1つ。cfg の root に書く）</summary>
     private readonly List<NumCtl> _layoutNums = new();
     private CheckBox _layoutTextBgChk = null!;
 
-    /// <summary>処理の流れの3つの箱と、その間の矢印を作る。</summary>
+    private sealed record StepCardParts(
+        Border Card,
+        Border Badge,
+        TextBlock Title,
+        TextBlock Desc,
+        Border BodyDivider,
+        StackPanel Body);
+
+    /// <summary>処理の流れの3つのステップカードと、その間の矢印を作る。</summary>
     private StackPanel BuildFlow(FrameworkElement instrHost, SettingRow resetRow, IEnumerable<UIElement> aiExpert)
     {
-        var flow = new StackPanel { Name = "FlowPanel", Margin = new Thickness(0, 0, 0, 8) };
+        var flow = new StackPanel { Name = "FlowPanel", Margin = new Thickness(0, 0, 0, 6) };
 
         // ---- 1 レイアウト判定 ----
-        _layUse = FlowUse("LayoutUse");
+        _layUse = MakeSwitch("LayoutUse");
         _layUse.Checked += (_, _) => { if (!_filling) { CommitGenBool("builtin_ocr_layout", true); UpdateFlowDim(); } };
         _layUse.Unchecked += (_, _) => { if (!_filling) { CommitGenBool("builtin_ocr_layout", false); UpdateFlowDim(); } };
-        _layHead = FlowHead("1 レイアウト判定", "画面の区画を探して、読んだ文を元の位置に並べます", _layUse);
         _layBody = new StackPanel { Name = "FlowLayoutBody" };
         _layBody.Children.Add(new SettingRow("モデル", "", ModelLabel("PP-DocLayoutV3（内蔵）", "LayoutModelLabel")).AsGrouped());
 
         var layExp = new StackPanel();
-        _layoutTextBgChk = new CheckBox { Content = "区画の所だけに背景を付ける", VerticalAlignment = VerticalAlignment.Center, Name = "LayoutTextBgChk" };
-        _layoutTextBgChk.IsChecked = _cfg.Settings.LayoutTextBg;
+        _layoutTextBgChk = MakeSwitch("LayoutTextBgChk", _cfg.Settings.LayoutTextBg);
         _layoutTextBgChk.Checked += (_, _) => { _cfg.Settings.LayoutTextBg = true; SaveSoon(); };
         _layoutTextBgChk.Unchecked += (_, _) => { _cfg.Settings.LayoutTextBg = false; SaveSoon(); };
-        layExp.Children.Add(new SettingRow("背景の範囲", "切ると解答欄全体に背景", _layoutTextBgChk).AsGrouped());
+        layExp.Children.Add(new SettingRow("区画の所だけに背景を付ける", "OFF にすると解答欄全体に背景を敷きます", _layoutTextBgChk).AsGrouped());
         _layoutNums.Clear();
         for (int i = 0; i < LayoutParams.Specs.Length; i++)
         {
             var s = LayoutParams.Specs[i];
             _layoutNums.Add(AddNum(null, s.Name, s.Key, s.Lo, s.Hi, s.IsInt, s.Def, () => _cfg.Root, null, "Layout" + i + "Box"));
         }
-        // 区画を見つける時のしきい値は 1 の箱、区画をまとめて頼む値は AI に頼む時の物なので 3 の箱
         layExp.Children.Add(MakeDivider());
         layExp.Children.Add(_layoutNums[0].Row.AsGrouped());
         var layReset = new Button { Content = "既定に戻す", Name = "LayoutReset" };
@@ -70,29 +73,26 @@ public partial class SettingsPage
         layExp.Children.Add(MakeDivider());
         layExp.Children.Add(new SettingRow("既定に戻す", $"既定: 区画の所だけ / {d.ScoreThresh:0.##}", layReset).AsGrouped());
         _layBody.Children.Add(MakeExpertWrap(layExp, withTopDivider: true));
+        _layStep = MakeStepCard("FlowLayoutBox", "1", "レイアウト判定", "画面の区画を探して、読んだ文を元の位置に並べます", _layUse, null, _layBody);
 
         // ---- 2 前処理 ----
-        _preUse = FlowUse("PreUse");
+        _preUse = MakeSwitch("PreUse");
         _preUse.Checked += (_, _) => FlowChanged();
         _preUse.Unchecked += (_, _) =>
         {
             if (_filling) return;
-            if (_aiUse.IsChecked != true) SetChecked(_aiUse);   // 2 しない ＋ 3 しない は選べない
+            if (_aiUse.IsChecked != true) SetChecked(_aiUse);   // 両方 OFF は選べない
             FlowChanged();
         };
-        _preHead = FlowHead("2 前処理", "AI処理の前に、画像から文字を読みます", _preUse);
 
         _preBody = new StackPanel { Name = "FlowPreBody" };
-        _preBuiltin = FlowRadio("PreBuiltin", "内蔵OCR", "flowpreeng");
-        _preVlm = FlowRadio("PreVlm", "VLM", "flowpreeng");
+        _preBuiltin = MakeSegRadio("PreBuiltin", "内蔵OCR", "flowpreeng");
+        _preVlm = MakeSegRadio("PreVlm", "VLM", "flowpreeng");
         _preBuiltin.Checked += (_, _) => FlowChanged();
         _preVlm.Checked += (_, _) => FlowChanged();
-        var engPanel = new StackPanel { Orientation = Orientation.Horizontal };
-        engPanel.Children.Add(_preBuiltin);
-        engPanel.Children.Add(_preVlm);
-        _preBody.Children.Add(new SettingRow("読み方", "", engPanel).AsGrouped());
+        _preBody.Children.Add(new SettingRow("読み方", "", MakeSegGroup(_preBuiltin, _preVlm)).AsGrouped());
 
-        _builtinSizeCb = new ComboBox { Width = 240, Name = "BuiltinSizeCombo", VerticalAlignment = VerticalAlignment.Center };
+        _builtinSizeCb = new ComboBox { Width = 230, Name = "BuiltinSizeCombo", VerticalAlignment = VerticalAlignment.Center };
         _builtinSizeCb.ItemsSource = new[] { "PP-OCRv6 small（内蔵）", "PP-OCRv6 medium（内蔵）" };
         _builtinSizeCb.SelectedIndex = 0;
         _builtinSizeCb.SelectionChanged += (_, _) =>
@@ -104,7 +104,7 @@ public partial class SettingsPage
         _builtinSizePanel.Children.Add(MakeDivider());
         _builtinSizePanel.Children.Add(new SettingRow("モデル", "small は速く、medium はよく読めます", _builtinSizeCb).AsGrouped());
 
-        _ocrVlmModelCb = new ComboBox { IsEditable = true, Width = 260, Name = "OcrVlmModelCombo" };
+        _ocrVlmModelCb = new ComboBox { IsEditable = true, Width = 250, Name = "OcrVlmModelCombo" };
         _ocrVlmModelCb.KeyDown += (_, e) => { if (e.Key == Key.Enter) { CommitOcrVlmModel(); _ocrVlmModelCb.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)); } };
         BindCommitOnFocusLoss(_ocrVlmModelCb, CommitOcrVlmModel);
         _ocrVlmModelCb.SelectionChanged += (_, _) => { if (!_filling) CommitOcrVlmModel(); };
@@ -154,18 +154,18 @@ public partial class SettingsPage
 
         _preBody.Children.Add(_builtinSizePanel);
         _preBody.Children.Add(_ocrVlmPanel);
+        _preStep = MakeStepCard("FlowPreBox", "2", "前処理", "AI処理の前に、画像から文字を読みます", _preUse, null, _preBody);
 
         // ---- 3 AI処理 ----
-        _aiUse = FlowUse("AiUse");
+        _aiUse = MakeSwitch("AiUse");
         _aiUse.Checked += (_, _) => FlowChanged();
         _aiUse.Unchecked += (_, _) =>
         {
             if (_filling) return;
-            if (_preUse.IsChecked != true) SetChecked(_preUse);   // 2 しない ＋ 3 しない は選べない
+            if (_preUse.IsChecked != true) SetChecked(_preUse);   // 両方 OFF は選べない
             FlowChanged();
         };
-        _aiHead = FlowHead("3 AI処理", "読んだ文や画像を、指示に合わせて AI に頼みます", _aiUse);
-        _aiNote = FlowNote("前処理で読んだ文をそのまま出します", "AiNote");
+        _aiNote = FlowNote("↳ 前処理で読んだ文をそのまま出します", "AiNote");
 
         _aiBody = new StackPanel { Name = "FlowAiBody" };
         _aiBody.Children.Add(_modelRow);
@@ -189,39 +189,21 @@ public partial class SettingsPage
         aiExp.Children.Add(new SettingRow("区画の頼み方を既定に戻す",
             $"既定: {d.BatchChars} / {d.LabelWords} / {d.LabelChars}", batchReset).AsGrouped());
         _aiBody.Children.Add(MakeExpertWrap(aiExp, withTopDivider: true));
+        _aiStep = MakeStepCard("FlowAiBox", "3", "AI処理", "読んだ文や画像を、指示に合わせて AI に頼みます", _aiUse, _aiNote, _aiBody);
 
-        flow.Children.Add(FlowBox("FlowLayoutBox", _layHead, null, _layBody));
+        flow.Children.Add(_layStep.Card);
         flow.Children.Add(FlowArrow());
-        flow.Children.Add(FlowBox("FlowPreBox", _preHead, null, _preBody));
+        flow.Children.Add(_preStep.Card);
         flow.Children.Add(FlowArrow());
-        flow.Children.Add(FlowBox("FlowAiBox", _aiHead, _aiNote, _aiBody));
+        flow.Children.Add(_aiStep.Card);
         return flow;
     }
-
-    private RadioButton FlowRadio(string name, string label, string group) => new()
-    {
-        Name = name,
-        Content = label,
-        GroupName = group,
-        Margin = new Thickness(0, 0, 12, 0),
-        VerticalAlignment = VerticalAlignment.Center,
-    };
-
-    private static CheckBox FlowUse(string name) => new()
-    {
-        Name = name,
-        Content = "使用する",
-        VerticalAlignment = VerticalAlignment.Center,
-    };
-
-    private static SettingRow FlowHead(string title, string desc, CheckBox use) =>
-        new SettingRow(title, desc, use).AsGrouped();
 
     private TextBlock FlowNote(string text, string name)
     {
         var tb = Subtle(text);
         tb.Name = name;
-        tb.Margin = new Thickness(14, 0, 14, 10);
+        tb.Margin = new Thickness(48, 0, 16, 10);
         return tb;
     }
 
@@ -229,41 +211,109 @@ public partial class SettingsPage
     {
         Name = name,
         Text = text,
+        FontSize = 13,
+        Foreground = SettingRow.SubtleBrush(),
         VerticalAlignment = VerticalAlignment.Center,
     };
 
-    private static Border FlowBox(string name, SettingRow head, TextBlock? note, StackPanel body)
+    private StepCardParts MakeStepCard(string name, string number, string title, string desc, CheckBox useSwitch, TextBlock? note, StackPanel body)
     {
+        var headGrid = new Grid { Margin = new Thickness(14, 9, 14, 9) };
+        headGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        headGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var badge = new Border
+        {
+            Width = 22,
+            Height = 22,
+            CornerRadius = new CornerRadius(11),
+            Background = SettingRow.AccentBrush(),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 10, 0),
+            Child = new TextBlock
+            {
+                Text = number,
+                FontSize = 12,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.White,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            },
+        };
+        Grid.SetColumn(badge, 0);
+
+        var textCol = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
+        var titleTb = new TextBlock
+        {
+            Text = title,
+            FontSize = 14,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+        };
+        var descTb = new TextBlock
+        {
+            Text = desc,
+            FontSize = 12,
+            Foreground = SettingRow.SubtleBrush(),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 2, 0, 0),
+        };
+        textCol.Children.Add(titleTb);
+        textCol.Children.Add(descTb);
+        Grid.SetColumn(textCol, 1);
+
+        Grid.SetColumn(useSwitch, 2);
+        headGrid.Children.Add(badge);
+        headGrid.Children.Add(textCol);
+        headGrid.Children.Add(useSwitch);
+
+        var bodyDivider = MakeDivider();
+
         var sp = new StackPanel();
-        sp.Children.Add(head);
+        sp.Children.Add(headGrid);
         if (note is not null) sp.Children.Add(note);
+        sp.Children.Add(bodyDivider);
         sp.Children.Add(body);
-        return new Border
+
+        var card = new Border
         {
             Name = name,
             Child = sp,
-            BorderBrush = SettingRow.NormalBorderBrush(),
+            Background = Brushes.White,
+            BorderBrush = SettingRow.CardBorderBrush(),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Margin = new Thickness(14, 0, 14, 0),
-        };
-    }
-
-    /// <summary>箱と箱の間の太めの下向き三角（真ん中に置く）</summary>
-    private static FrameworkElement FlowArrow()
-    {
-        var brush = SettingRow.SubtleBrush();
-        return new System.Windows.Shapes.Path
-        {
-            Data = Geometry.Parse("M 0,0 L 36,0 L 18,16 Z"),
-            Fill = brush,
-            Width = 36,
-            Height = 16,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 6, 0, 6),
-            Opacity = 1.0,
+            CornerRadius = new CornerRadius(8),
             SnapsToDevicePixels = true,
         };
+        return new StepCardParts(card, badge, titleTb, descTb, bodyDivider, body);
+    }
+
+    /// <summary>ステップカード同士をつなぐ縦線＋下向き矢印（Border 以外の要素にして FlowPanel 直下の Border が3箱だけになるようにする）</summary>
+    private static FrameworkElement FlowArrow()
+    {
+        var sp = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 3, 0, 3),
+            SnapsToDevicePixels = true,
+        };
+        sp.Children.Add(new Rectangle
+        {
+            Width = 2,
+            Height = 6,
+            Fill = SettingRow.NormalBorderBrush(),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+        sp.Children.Add(new Path
+        {
+            Data = Geometry.Parse("M 0,0 L 14,0 L 7,7 Z"),
+            Fill = SettingRow.SubtleBrush(),
+            Width = 14,
+            Height = 7,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+        return sp;
     }
 
     private void SetChecked(CheckBox chk)
@@ -289,7 +339,7 @@ public partial class SettingsPage
             || (mode != ConfigStore.ThrowModeBuiltinOcr && S(src["ocr_engine"]).Trim() == ConfigStore.OcrEngineVlm);
         bool pre = mode != ConfigStore.ThrowModeImage;
         bool ai = mode != ConfigStore.ThrowModeBuiltinOcr && mode != ConfigStore.ThrowModeVlmOcr;
-        bool lay = src["builtin_ocr_layout"] is JsonValue lv && lv.GetValueKind() == JsonValueKind.True;   // 既定 OFF
+        bool lay = src["builtin_ocr_layout"] is JsonValue lv && lv.GetValueKind() == JsonValueKind.True;
         _layUse.IsChecked = lay;
         _preUse.IsChecked = pre;
         _preBuiltin.IsChecked = !vlm;
@@ -329,7 +379,7 @@ public partial class SettingsPage
         DoneGen();
     }
 
-    /// <summary>使わない段を箱ごと薄くし、前処理の読み方に合わせて欄を出し分ける</summary>
+    /// <summary>OFF の段は中身を畳んで見出しを控えめにし、前処理の読み方に合わせて欄を出し分ける</summary>
     private void UpdateFlowDim()
     {
         bool lay = _layUse.IsChecked == true;
@@ -337,11 +387,11 @@ public partial class SettingsPage
         bool ai = _aiUse.IsChecked == true;
         bool vlm = _preVlm.IsChecked == true;
 
-        DimBox(_layHead, _layBody, !lay);
-        DimBox(_preHead, _preBody, !pre);
-        DimBox(_aiHead, _aiBody, !ai);
+        ApplyStepState(_layStep, !lay);
+        ApplyStepState(_preStep, !pre);
+        ApplyStepState(_aiStep, !ai);
         _aiNote.Visibility = ai ? Visibility.Collapsed : Visibility.Visible;
-        // 2 しない ＋ 3 しない は出す物が無いので、片方を使わないならもう片方のチェックは外せない
+        // 前処理とAI処理の両方 OFF は出す物が無いので、片方を使わないならもう片方のスイッチは切れない
         _aiUse.IsEnabled = pre;
         _preUse.IsEnabled = ai;
 
@@ -353,15 +403,28 @@ public partial class SettingsPage
             el.IsEnabled = ai;
             el.Opacity = ai ? 1.0 : DimOpacity;
         }
+
+        if (_flowSummaryText is not null)
+        {
+            var parts = new List<string>(3);
+            if (lay) parts.Add("レイアウト判定");
+            if (pre) parts.Add(vlm ? "前処理(VLM)" : "内蔵OCR");
+            if (ai) parts.Add("AI処理");
+            _flowSummaryText.Text = string.Join(" → ", parts);
+        }
     }
 
-    private static void DimBox(SettingRow head, FrameworkElement body, bool off)
+    private static void ApplyStepState(StepCardParts step, bool off)
     {
+        var activeCardBg = Application.Current?.TryFindResource("Surface") as Brush ?? Brushes.White;
+        step.Card.Background = off ? SettingRow.SubtleSurfaceBrush() : activeCardBg;
+        step.Badge.Background = off ? SettingRow.DisabledBrush() : SettingRow.AccentBrush();
         double op = off ? DimOpacity : 1.0;
-        head.NameBox.Opacity = op;
-        head.DescBox.Opacity = op;
-        body.IsEnabled = !off;
-        body.Opacity = op;
+        step.Title.Opacity = op;
+        step.Desc.Opacity = op;
+        step.BodyDivider.Visibility = off ? Visibility.Collapsed : Visibility.Visible;
+        step.Body.IsEnabled = !off;
+        step.Body.Visibility = off ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>レイアウト判定の細かい値を既定へ（1 の箱はしきい値と背景、3 の箱は区画の頼み方）</summary>

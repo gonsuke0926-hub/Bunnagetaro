@@ -93,29 +93,54 @@ public sealed class SettingsPageUxTests : IDisposable
                 Assert.NotNull(expChk);
                 Assert.False(expChk!.IsChecked);
 
-                // Normal items are visible when ExpertMode == false
-                foreach (var name in new[]
+                // 左メニューの並び: 上段は AI接続 → プリセット → 表示・枠 → 操作・ホットキー → 記録・起動、下段に 使い方
+                Assert.Equal(SettingsPage.CatAi, page.CurrentCategory);
+                var topNav = FindLogical<StackPanel>(page, "NavTopPanel")!;
+                Assert.Equal(
+                    new[] { "Nav_ai", "Nav_presets", "Nav_display", "Nav_input", "Nav_system" },
+                    topNav.Children.OfType<Border>().Select(b => b.Name).ToArray());
+                var bottomNav = FindLogical<StackPanel>(page, "NavBottomPanel")!;
+                Assert.Contains("Nav_help", bottomNav.Children.OfType<Border>().Select(b => b.Name));
+
+                var normalByCat = new (string Cat, string[] Names)[]
                 {
-                    "UrlBox", "PresetCombo", "ModelCombo", "BgBox", "FgBox", "FontCombo",
-                    "ModeChk", "QuickOnChk", "QuickBtnCombo", "HotkeyBox", "SaveShotsChk",
-                })
+                    (SettingsPage.CatAi, new[] { "UrlBox", "ConnTestButton", "FetchModelsButton" }),
+                    (SettingsPage.CatPresets, new[] { "PresetCombo", "ModelCombo" }),
+                    (SettingsPage.CatDisplay, new[] { "BgBox", "FgBox", "FontCombo" }),
+                    (SettingsPage.CatInput, new[] { "ModeChk", "QuickOnChk", "QuickBtnCombo", "HotkeyBox" }),
+                    (SettingsPage.CatSystem, new[] { "SaveShotsChk", "CloseToTrayChk", "StartWithWindowsChk" }),
+                };
+                var expertByCat = new (string Cat, string[] Names)[]
                 {
-                    var el = FindLogical<FrameworkElement>(page, name);
-                    Assert.NotNull(el);
-                    Assert.True(IsEffectivelyVisible(el!), $"{name} should be visible in normal mode");
+                    (SettingsPage.CatPresets, new[] { "ConvertOtslChk", "ConvertHtmlChk", "ConvertLatexChk", "ShowFollowChk", "CtxBox", "ClipChk" }),
+                    (SettingsPage.CatDisplay, new[] { "BorderColorBox", "AlphaSlider", "FontSizeBox", "ParaSpacingSlider" }),
+                    (SettingsPage.CatInput, new[] { "QuickKeyBox" }),
+                };
+
+                // 選んだカテゴリだけが見え、通常モードでは通常項目が見えて上級者項目は畳まれている
+                foreach (var (cat, names) in normalByCat)
+                {
+                    page.SelectCategory(cat);
+                    foreach (var name in names)
+                    {
+                        var el = FindLogical<FrameworkElement>(page, name);
+                        Assert.NotNull(el);
+                        Assert.True(IsEffectivelyVisible(el!), $"{name} should be visible in normal mode ({cat})");
+                    }
+                    // 別カテゴリの項目は非表示になっている
+                    string other = cat == SettingsPage.CatAi ? "PresetCombo" : "UrlBox";
+                    Assert.False(IsEffectivelyVisible(FindLogical<FrameworkElement>(page, other)!));
                 }
 
-                // Expert items are collapsed when ExpertMode == false
-                foreach (var name in new[]
+                foreach (var (cat, names) in expertByCat)
                 {
-                    "BorderColorBox", "AlphaSlider", "FontSizeBox", "ParaSpacingSlider",
-                    "ConvertOtslChk", "ConvertHtmlChk", "ConvertLatexChk", "ShowFollowChk",
-                    "QuickKeyBox", "CtxBox", "ClipChk",
-                })
-                {
-                    var el = FindLogical<FrameworkElement>(page, name);
-                    Assert.NotNull(el);
-                    Assert.False(IsEffectivelyVisible(el!), $"{name} should be collapsed in normal mode");
+                    page.SelectCategory(cat);
+                    foreach (var name in names)
+                    {
+                        var el = FindLogical<FrameworkElement>(page, name);
+                        Assert.NotNull(el);
+                        Assert.False(IsEffectivelyVisible(el!), $"{name} should be collapsed in normal mode ({cat})");
+                    }
                 }
 
                 // Turn ExpertMode ON
@@ -123,15 +148,15 @@ public sealed class SettingsPageUxTests : IDisposable
                 Assert.True(cfg.Settings.ExpertMode);
                 cfg.Save();
 
-                foreach (var name in new[]
+                foreach (var (cat, names) in expertByCat)
                 {
-                    "BorderColorBox", "AlphaSlider", "FontSizeBox", "ConvertOtslChk",
-                    "ConvertHtmlChk", "ConvertLatexChk", "ShowFollowChk", "QuickKeyBox", "CtxBox", "ClipChk",
-                })
-                {
-                    var el = FindLogical<FrameworkElement>(page, name);
-                    Assert.NotNull(el);
-                    Assert.True(IsEffectivelyVisible(el!), $"{name} should be visible in expert mode");
+                    page.SelectCategory(cat);
+                    foreach (var name in names)
+                    {
+                        var el = FindLogical<FrameworkElement>(page, name);
+                        Assert.NotNull(el);
+                        Assert.True(IsEffectivelyVisible(el!), $"{name} should be visible in expert mode ({cat})");
+                    }
                 }
             }
             finally
@@ -142,6 +167,35 @@ public sealed class SettingsPageUxTests : IDisposable
             var cfg2 = new ConfigStore(_paths);
             cfg2.Load();
             Assert.True(cfg2.Settings.ExpertMode);
+        });
+    }
+
+    [Fact]
+    public void NarrowWindow_WrapsWideSettingRowControlsWithoutClipping()
+    {
+        OnSta(() =>
+        {
+            var cfg = new ConfigStore(_paths);
+            cfg.Load();
+            var page = new SettingsPage(cfg, () => { }, _ => { });
+            // MainWindow の最小幅（640px）に置いても「使うプリセット」が切れない
+            var win = new Window { Content = page, Width = 612, Height = 500, Left = -10000, ShowInTaskbar = false, ShowActivated = false };
+            try
+            {
+                win.Show();
+                page.SelectCategory(SettingsPage.CatPresets);
+                win.UpdateLayout();
+                var row = FindLogical<SettingRow>(page, "PresetRow")!;
+                var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
+                var ctlPanel = (FrameworkElement)LogicalTreeHelper.GetParent(cb)!;
+                Assert.Equal(1, Grid.GetRow(ctlPanel));
+                Assert.True(ctlPanel.ActualWidth <= row.ActualWidth + 0.5, $"ctl={ctlPanel.ActualWidth} row={row.ActualWidth}");
+            }
+            finally
+            {
+                page.Detach();
+                win.Close();
+            }
         });
     }
 
