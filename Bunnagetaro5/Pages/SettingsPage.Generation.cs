@@ -53,10 +53,12 @@ public partial class SettingsPage
     /// <summary>拒否が出たとき、ぶん投げ方の欄だけ新しい値に合わせる</summary>
     public void SyncOcrOnly(bool enabled)
     {
+        // 文字起こし＝前処理する・AI処理する、画像そのまま＝前処理しない・AI処理する
         _filling = true;
-        _ocrOn.IsChecked = enabled;
-        _ocrOff.IsChecked = !enabled;
+        _preUse.IsChecked = enabled;
+        _aiUse.IsChecked = true;
         _filling = false;
+        UpdateFlowDim();
     }
 
     private void ShowPrompt()
@@ -65,47 +67,23 @@ public partial class SettingsPage
         try
         {
             var names = _pitems.Select(p => S(p["name"])).ToList();
-            _presetCb.ItemsSource = new List<string> { GlobalEntry }.Concat(names).ToList();
-            _presetCb.SelectedIndex = _editingGlobal ? 0 : Math.Clamp(_pcur, 0, _pitems.Count - 1) + 1;
+            _presetCb.ItemsSource = names;   // ［グローバル設定］は無くした
+            _presetCb.SelectedIndex = Math.Clamp(_pcur, 0, _pitems.Count - 1);
 
             string name = "";
             bool have = TryCurPreset(out var item);
-            bool useGlobal = true;
-            if (!_editingGlobal && have)
+            if (have)
             {
                 name = S(item["name"]);
                 _nameBox.Text = name;
                 _instrBox.Text = S(item["text"]);
                 _modelCb.Text = ConfigStore.PresetModel(item);
-                useGlobal = item["use_global"] is not JsonValue v || v.GetValueKind() != JsonValueKind.False;
-                _useGlobalChk.IsChecked = useGlobal;
-            }
-            else
-            {
-                // 共通の設定を編集する画面。プリセットの名前・指示は空けて触れなくする
-                _nameBox.Text = "";
-                _instrBox.Text = "";
-                _modelCb.Text = "";
-                _useGlobalChk.IsChecked = true;
             }
 
-            JsonObject src = _editingGlobal ? _cfg.Root
-                : (useGlobal || !have || item["settings"] is not JsonObject st)
-                    ? ConfigStore.PresetSettingsFrom(_cfg.Root, null)
-                    : st;
-            FillGen(src);
+            // プリセットはいつも自分の設定を持つ（足りないキーは今の値で埋める）
+            FillGen(ConfigStore.PresetSettingsFrom(_cfg.Root, have ? item["settings"] : null));
 
-            bool editPreset = !_editingGlobal;
-            _nameBox.IsEnabled = editPreset;
-            _instrBox.IsEnabled = editPreset;
-            _addBtn.IsEnabled = editPreset;
-            _delBtn.IsEnabled = editPreset;
-            _useGlobalChk.IsEnabled = editPreset;
-            // モデルはプリセットごと。［グローバル設定］にはモデルが無いので欄ごと隠す
-            _modelRow.Visibility = editPreset ? Visibility.Visible : Visibility.Collapsed;
-            _nameRow.Opacity = editPreset ? 1.0 : 0.45;
-            _rowUseGlobal.Opacity = editPreset ? 1.0 : 0.45;
-            _resetBtn.IsEnabled = editPreset && ConfigStore.DefaultPresets()
+            _resetBtn.IsEnabled = ConfigStore.DefaultPresets()
                 .OfType<JsonObject>().Any(p => S(p["name"]) == name);
             _resetBtn.Opacity = _resetBtn.IsEnabled ? 1.0 : 0.45;
         }
@@ -115,32 +93,10 @@ public partial class SettingsPage
 
     private void UpdateScope()
     {
-        string msg;
-        bool genEditable, presetScope;
-        if (_editingGlobal)
-        {
-            msg = "共通のグローバル設定を編集中（「グローバル設定を使う」プリセットに反映）";
-            genEditable = true;
-            presetScope = false;
-        }
-        else if (_useGlobalChk.IsChecked == true)
-        {
-            msg = "グローバル設定を使用中（変更は上の「" + GlobalEntry + "」またはチェックOFF）";
-            genEditable = false;
-            presetScope = false;
-        }
-        else
-        {
-            msg = "このプリセットだけの個別設定を編集しています";
-            genEditable = true;
-            presetScope = true;
-        }
-        _genHeading.Text = presetScope ? "生成（このプリセットだけ）" : "生成（グローバル設定を参照中）";
-        if (_editingGlobal) _genHeading.Text = "生成（グローバル設定を編集中）";
-        _genBox.IsEnabled = genEditable;
-        _genBox.Opacity = genEditable ? 1.0 : 0.45;
-        _rowUseGlobal.SetDesc(msg);
-        UpdateBuiltinDim();
+        // グローバル設定を無くしたので、生成の欄はいつも選んでいるプリセットの設定
+        _genBox.IsEnabled = true;
+        _genBox.Opacity = 1.0;
+        UpdateFlowDim();
     }
 
     private void FillGen(JsonObject src)
@@ -156,20 +112,10 @@ public partial class SettingsPage
         string vlmPrompt = S(src["ocr_vlm_prompt"]);
         _ocrVlmPromptBox.Text = vlmPrompt.Trim().Length > 0 ? vlmPrompt : ConfigStore.OcrPresetText;
 
-        string mode = TranslatePipeline.ThrowModeOf(src);
-        _ocrOn.IsChecked = mode == ConfigStore.ThrowModeOcr;
-        _ocrOff.IsChecked = mode == ConfigStore.ThrowModeImage;
-        _ocrBuiltinOnly.IsChecked = mode == ConfigStore.ThrowModeBuiltinOcr;
-
-        string eng = S(src["ocr_engine"]).Trim();
-        bool isVlm = eng == ConfigStore.OcrEngineVlm;
-        _ocrEngBuiltin.IsChecked = !isVlm;
-        _ocrEngVlm.IsChecked = isVlm;
+        FillFlow(src);   // 1 レイアウト判定・2 前処理・3 AI処理 の箱
 
         string sz = S(src["builtin_ocr_size"]).Trim();
         _builtinSizeCb.SelectedIndex = sz == BuiltinOcr.SizeMedium ? 1 : 0;
-        _layoutChk.IsChecked = src["builtin_ocr_layout"] is JsonValue lv && lv.GetValueKind() == JsonValueKind.True;   // 既定 OFF
-        UpdateOcrSubVisibility();
 
         bool isOutside = S(src["result_place"]) == "outside";
         _placeInside.IsChecked = !isOutside;
@@ -185,14 +131,12 @@ public partial class SettingsPage
         foreach (var n in _genNums) n.Load(src);
     }
 
-    /// <summary>生成の欄が今どこへ書く場所か。Root（グローバル）か、プリセットの settings。
-    /// グローバルを使うプリセットを選んでいる時は null（欄は触れない）。</summary>
+    /// <summary>生成の欄が書く場所（選んでいるプリセットの settings。いつもこれ）</summary>
     private JsonObject? GenScope()
     {
         if (_filling) return null;
-        if (_editingGlobal) return _cfg.Root;
         if (!TryCurPreset(out var item)) return null;
-        if (item["use_global"] is not JsonValue v || v.GetValueKind() != JsonValueKind.False) return null;
+        item["use_global"] = false;
         if (item["settings"] is not JsonObject st)
         {
             st = new JsonObject();
@@ -204,26 +148,24 @@ public partial class SettingsPage
     private void PresetAfter()
     {
         // プリセット専用の設定を変えた → 一覧ごと書き戻す
-        if (!_editingGlobal) WritePresets();
+        WritePresets();
     }
 
     private void DoneGen()
     {
-        if (_editingGlobal) SaveSoon();
-        else WritePresets();
+        WritePresets();
     }
 
     /// <summary>モデルはいつもプリセットごと。「グローバル設定を使う」に関係なく、選んでいるプリセットへ書く</summary>
     private void CommitModel()
     {
-        if (_filling || _editingGlobal) return;
+        if (_filling) return;
         if (!TryCurPreset(out var item)) return;
         string m = _modelCb.Text.Trim();
         if (m == "") return;   // 空なら今のまま
         if (ConfigStore.PresetModel(item) == m) return;
         item["model"] = m;
         WritePresets();
-        UpdateBuiltinDim();
     }
 
     private void CommitThink()
@@ -271,25 +213,18 @@ public partial class SettingsPage
     {
         place = place == "outside" ? "outside" : "inside";
         if (!TryCurPreset(out var item)) return false;
-        bool own = item["use_global"] is JsonValue ug && ug.GetValueKind() == JsonValueKind.False;
         bool ok = true;
-        if (own)
+        // プリセットはいつも自分の設定を持つ
+        item["use_global"] = false;
+        if (item["settings"] is not JsonObject st)
         {
-            if (item["settings"] is not JsonObject st)
-            {
-                st = new JsonObject();
-                item["settings"] = st;
-            }
-            if (S(st["result_place"]) != place)
-            {
-                st["result_place"] = place;
-                ok = WritePresets();
-            }
+            st = new JsonObject();
+            item["settings"] = st;
         }
-        else if (_cfg.Settings.ResultPlace != place)
+        if (S(st["result_place"]) != place)
         {
-            _cfg.Settings.ResultPlace = place;   // 自分では握らず、解答欄側の聞き手にも届ける
-            SaveSoon();
+            st["result_place"] = place;
+            ok = WritePresets();
         }
         ShowPrompt();   // 欄の radio を cfg の値へ合わせ直す
         return ok;
@@ -304,44 +239,6 @@ public partial class SettingsPage
             _cfg.Settings.QuickEnabled = on;
             SaveSoon();
         }
-    }
-
-    private string CurrentThrowMode() =>
-        _ocrBuiltinOnly.IsChecked == true ? ConfigStore.ThrowModeBuiltinOcr
-        : _ocrOff.IsChecked == true ? ConfigStore.ThrowModeImage
-        : ConfigStore.ThrowModeOcr;
-
-    private void CommitThrowMode(string mode)
-    {
-        var scope = GenScope();
-        if (scope is null) return;
-        bool split = mode == ConfigStore.ThrowModeOcr;
-        bool changed = S(scope["throw_mode"]) != mode
-            || scope["ocr_split_mode"] is not JsonValue jv || jv.GetValueKind() != (split ? JsonValueKind.True : JsonValueKind.False);
-        if (changed)
-        {
-            if (ReferenceEquals(scope, _cfg.Root))
-            {
-                WriteSelf(() =>
-                {
-                    _cfg.Settings.WriteNode("throw_mode", JsonValue.Create(mode));
-                    _cfg.Settings.WriteNode("ocr_split_mode", JsonValue.Create(split));
-                });
-            }
-            else
-            {
-                scope["throw_mode"] = mode;
-                scope["ocr_split_mode"] = split;
-            }
-            DoneGen();
-        }
-        UpdateBuiltinDim();
-    }
-
-    private void CommitOcrEngine(string eng)
-    {
-        CommitGenStr("ocr_engine", eng);
-        UpdateOcrSubVisibility();
     }
 
     private void CommitBuiltinSize(string sz) => CommitGenStr("builtin_ocr_size", sz);
@@ -372,15 +269,14 @@ public partial class SettingsPage
     private void CommitAllVisible()
     {
         _presetRejected = false;
-        if (!_editingGlobal) CommitNameText();
-        if (!_editingGlobal) CommitModel();
+        CommitNameText();
+        CommitModel();
         if (_genBox.IsEnabled)
         {
             CommitThink();
-            CommitThrowMode(CurrentThrowMode());
-            CommitGenStr("ocr_engine", _ocrEngVlm.IsChecked == true ? ConfigStore.OcrEngineVlm : ConfigStore.OcrEngineBuiltin);
+            CommitFlow();
             CommitGenStr("builtin_ocr_size", _builtinSizeCb.SelectedIndex == 1 ? BuiltinOcr.SizeMedium : BuiltinOcr.SizeSmall);
-            CommitGenBool("builtin_ocr_layout", _layoutChk.IsChecked == true);
+            CommitGenBool("builtin_ocr_layout", _layUse.IsChecked == true);
             CommitOcrVlmModel();
             CommitOcrVlmPrompt();
             CommitGenStr("result_place", _placeOutside.IsChecked == true ? "outside" : "inside");
@@ -395,11 +291,10 @@ public partial class SettingsPage
 
     private void StoreCur()
     {
-        if (_editingGlobal) return;
         if (!TryCurPreset(out var item)) return;
         item["name"] = _nameBox.Text;
         item["text"] = _instrBox.Text;
-        item["use_global"] = _useGlobalChk.IsChecked == true;
+        item["use_global"] = false;
     }
 
     private void OnInstrDebounceTick(object? sender, EventArgs e)
@@ -412,7 +307,7 @@ public partial class SettingsPage
     {
         _instrTimer?.Stop();
         _presetRejected = false;
-        if (_filling || _editingGlobal) return;
+        if (_filling) return;
         if (!TryCurPreset(out var item)) return;
         if (S(item["name"]) == _nameBox.Text && S(item["text"]) == _instrBox.Text) return;
         item["name"] = _nameBox.Text;
@@ -440,10 +335,9 @@ public partial class SettingsPage
             if (name == "") { Note("名前が空です。名前の欄を直してください"); return false; }
             if (text == "") { Note("「" + name + "」の指示が空です。空の指示ではぶん投げられません"); return false; }
             if (!used.Add(name)) { Note("名前が重複しています（" + name + "）"); return false; }
-            if (name == GlobalEntry) { Note("「" + GlobalEntry + "」はプリセットの名前に使えません"); return false; }
-            bool ug = p["use_global"] is not JsonValue v || v.GetValueKind() != JsonValueKind.False;
-            var it = new JsonObject { ["name"] = name, ["text"] = text, ["use_global"] = ug, ["model"] = ConfigStore.PresetModel(p) };
-            if (!ug && p["settings"] is JsonObject st) it["settings"] = (JsonObject)st.DeepClone();
+            // プリセットはいつも自分の設定を持つ（use_global は前の版との行き来のため false で書く）
+            var it = new JsonObject { ["name"] = name, ["text"] = text, ["use_global"] = false, ["model"] = ConfigStore.PresetModel(p) };
+            it["settings"] = ConfigStore.PresetSettingsFrom(_cfg.Root, p["settings"]);
             items.Add(it);
         }
         if (items.Count == 0) { Note("プリセットが1件もありません"); return false; }
@@ -462,13 +356,13 @@ public partial class SettingsPage
         SaveSoon();
 
         // 整えた名前だけを欄へ映す（設定の欄は描き直さない）
-        if (!_editingGlobal)
+        // 前はグローバルの画面の時は映さなかった
         {
             _filling = true;
             try
             {
-                _presetCb.ItemsSource = new List<string> { GlobalEntry }.Concat(_pitems.Select(p => S(p["name"]))).ToList();
-                _presetCb.SelectedIndex = _pcur + 1;
+                _presetCb.ItemsSource = _pitems.Select(p => S(p["name"])).ToList();
+                _presetCb.SelectedIndex = _pcur;
                 _nameBox.Text = active;
             }
             finally { _filling = false; }
@@ -478,7 +372,7 @@ public partial class SettingsPage
 
     private void AddPreset_Click()
     {
-        if (_editingGlobal || !TryCurPreset(out var cur)) return;
+        if (!TryCurPreset(out var cur)) return;
         StoreCur();
         string base0 = S(cur["name"]) + " のコピー";
         string nm = base0;
@@ -504,7 +398,7 @@ public partial class SettingsPage
 
     private void DelPreset_Click()
     {
-        if (_editingGlobal || !TryCurPreset(out var cur)) return;
+        if (!TryCurPreset(out var cur)) return;
         StoreCur();
         if (_pitems.Count <= 1) { Note("最後の1件は消せません"); return; }
         string gone = S(cur["name"]);
@@ -518,7 +412,7 @@ public partial class SettingsPage
 
     private void ResetText_Click()
     {
-        if (_editingGlobal || !TryCurPreset(out var cur)) return;
+        if (!TryCurPreset(out var cur)) return;
         StoreCur();
         string name = S(cur["name"]);
         var def = ConfigStore.DefaultPresets().OfType<JsonObject>().FirstOrDefault(p => S(p["name"]) == name);
@@ -529,61 +423,4 @@ public partial class SettingsPage
         Note("「" + name + "」の指示を既定に戻しました");
     }
 
-    private void UseGlobal_Changed()
-    {
-        if (_filling || _editingGlobal) return;
-        if (!TryCurPreset(out var item)) return;
-        StoreCur();
-        bool on = _useGlobalChk.IsChecked == true;
-        item["use_global"] = on;
-        if (on)
-        {
-            // 共通の値を使うプリセットは自分の値を持たない
-            item.Remove("settings");
-        }
-        else
-        {
-            // 外した瞬間、欄に出ている共通の値がこのプリセットだけの値になる
-            item["settings"] = ReadGenSettings(ConfigStore.PresetSettingsFrom(_cfg.Root, null));
-        }
-        WritePresets();
-        ShowPrompt();
-    }
-
-    /// <summary>今欄に出ている生成設定の値を読む（数字が不正な欄は fallback の値で）。
-    /// 「グローバル設定を使う」を外した瞬間に settings を作るために使う。</summary>
-    private JsonObject ReadGenSettings(JsonObject fallback)
-    {
-        string tm = CurrentThrowMode();
-        string vm = _ocrVlmModelCb.Text.Trim();
-        string vp = _ocrVlmPromptBox.Text.Trim();
-        var s = new JsonObject
-        {
-            ["throw_mode"] = tm,
-            ["ocr_split_mode"] = tm == ConfigStore.ThrowModeOcr,
-            ["ocr_engine"] = _ocrEngVlm.IsChecked == true ? ConfigStore.OcrEngineVlm : ConfigStore.OcrEngineBuiltin,
-            ["builtin_ocr_size"] = _builtinSizeCb.SelectedIndex == 1 ? BuiltinOcr.SizeMedium : BuiltinOcr.SizeSmall,
-            ["builtin_ocr_layout"] = _layoutChk.IsChecked == true,
-            ["ocr_vlm_model"] = vm.Length > 0 ? vm : S(fallback["ocr_vlm_model"]),
-            ["ocr_vlm_prompt"] = vp.Length > 0 ? vp : S(fallback["ocr_vlm_prompt"]),
-            ["result_place"] = _placeOutside.IsChecked == true ? "outside" : "inside",
-            ["clip_answer"] = _clipChk.IsChecked == true,
-            ["convert_otsl_table"] = _otslChk.IsChecked == true,
-            ["convert_html_table"] = _htmlChk.IsChecked == true,
-            ["convert_latex_math"] = _latexChk.IsChecked == true,
-            ["show_follow_row"] = _followChk.IsChecked == true,
-        };
-        int ti = _thinkCb.SelectedIndex;
-        s["ollama_think"] = ti >= 0 && ti < ThinkChoices.Length ? ThinkChoices[ti].Val : S(fallback["ollama_think"]);
-        foreach (var n in _genNums)
-        {
-            string t = n.Box.Text.Trim();
-            if (double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out double v) && v >= n.Lo && v <= n.Hi)
-                s[n.Key] = n.IsInt ? (int)Math.Round(v, MidpointRounding.AwayFromZero) : v;
-            else if (fallback.TryGetPropertyValue(n.Key, out var f))
-                s[n.Key] = f?.DeepClone();
-        }
-        return s;
-    }
 }
-

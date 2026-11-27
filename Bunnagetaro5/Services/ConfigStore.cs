@@ -52,6 +52,22 @@ public sealed partial class ConfigStore
     public const string ThrowModeOcr = "ocr";
     public const string ThrowModeImage = "image";
     public const string ThrowModeBuiltinOcr = "builtin_ocr";
+    /// <summary>前処理を VLM でして、AI処理はしない（VLM で読んだ文をそのまま出す）</summary>
+    public const string ThrowModeVlmOcr = "vlm_ocr";
+
+    /// <summary>前処理（VLM）の生成の値のキーと、AI処理の同じ意味のキー</summary>
+    public static readonly (string Vlm, string Ai)[] VlmGenKeys =
+    {
+        ("ocr_vlm_num_ctx", "ollama_num_ctx"), ("ocr_vlm_num_predict", "ollama_num_predict"),
+        ("ocr_vlm_temperature", "ollama_temperature"), ("ocr_vlm_keep_alive_min", "ollama_keep_alive_min"),
+    };
+
+    /// <summary>VLM で読む時の設定にする（前処理の生成の値を ollama_* へ写す）</summary>
+    public static void ApplyVlmGen(JsonObject target, JsonObject src)
+    {
+        foreach (var (v, a) in VlmGenKeys)
+            if (src.TryGetPropertyValue(v, out var n) && n is not null) target[a] = n.DeepClone();
+    }
     /// <summary>文字起こしの方法（内蔵OCR / VLM）</summary>
     public const string OcrEngineBuiltin = "builtin";
     public const string OcrEngineVlm = "vlm";
@@ -65,6 +81,7 @@ public sealed partial class ConfigStore
     {
         "throw_mode", "ocr_split_mode", "ocr_engine", "builtin_ocr_size", "builtin_ocr_layout",
         "ocr_vlm_model", "ocr_vlm_prompt", "clip_answer",
+        "ocr_vlm_num_ctx", "ocr_vlm_num_predict", "ocr_vlm_temperature", "ocr_vlm_keep_alive_min",
         "ollama_num_ctx", "ollama_num_predict", "ollama_temperature",
         "ollama_keep_alive_min", "ollama_think",
         "result_place", "convert_otsl_table", "convert_html_table",
@@ -217,6 +234,11 @@ public sealed partial class ConfigStore
             ["ollama_num_predict"] = 4096,
             ["ollama_temperature"] = 0.0,
             ["ollama_keep_alive_min"] = 30,
+            // 前処理（VLM で読む）の生成の値。AI処理（ollama_*）とは別
+            ["ocr_vlm_num_ctx"] = 8192,
+            ["ocr_vlm_num_predict"] = 4096,
+            ["ocr_vlm_temperature"] = 0.0,
+            ["ocr_vlm_keep_alive_min"] = 30,
             ["ollama_think"] = "auto",
             ["allow_capture_overlay"] = false,
             ["close_to_tray"] = false,
@@ -350,6 +372,7 @@ public sealed partial class ConfigStore
 
         NormalizeBaseUrlList();
         NormalizePrompts(HadSaved);
+        DropGlobalSettings(Root);   // グローバル設定をなくす（今の値をプリセットへ写す。プリセットの引っ越しの後に）
 
         // 引っ越しを実施したら一度ディスクへ書き戻す
         // （忘れると直したつもりが次回また引っ越しになるのでここでやる）
@@ -437,6 +460,34 @@ public sealed partial class ConfigStore
         return NodeToStr(cfg["model"]).Trim();
     }
 
+    /// <summary>
+    /// プリセットはいつも自分の設定を持つ。「グローバル設定を使う」だったプリセットは、今のグローバルの値を写してから外す
+    /// （動きは変わらない・値は消さない）。専用の設定を持つプリセットも、足りないキーをグローバルの値で埋める</summary>
+    internal static bool DropGlobalSettings(JsonObject root)
+    {
+        if (root["prompts"] is not JsonArray arr) return false;
+        bool changed = false;
+        foreach (var n in arr)
+        {
+            if (n is not JsonObject p) continue;
+            bool own = p["use_global"] is JsonValue ug && ug.GetValueKind() == JsonValueKind.False;
+            var raw = own ? p["settings"] : null;
+            var st = PresetSettingsFrom(root, raw);
+            if (!own || p["settings"] is not JsonObject old || old.ToJsonString() != st.ToJsonString())
+            {
+                p["settings"] = st;
+                changed = true;
+            }
+            if (!own)
+            {
+                p["use_global"] = false;
+                changed = true;
+            }
+        }
+        if (changed) AppLog.Info("グローバル設定をなくした: グローバルを使っていたプリセットへ今の値を写した");
+        return changed;
+    }
+
     /// <summary>プリセット専用の設定を PresetKeys だけの形にそろえる。無いキーは
     /// グローバル（cfg）の今の値で埋める。</summary>
     public static JsonObject PresetSettingsFrom(JsonObject cfg, JsonNode? raw)
@@ -519,8 +570,19 @@ public sealed partial class ConfigStore
                 vlm["model"] = vlmModel;
                 string vp = NodeToStr(outObj["ocr_vlm_prompt"]).Trim();
                 vlm["prompt"] = vp.Length > 0 ? vp : OcrPresetText;
+                ApplyVlmGen(vlm, outObj);   // 前処理の生成の値
                 outObj[OcrStageKey] = vlm;
             }
+        }
+        // 前処理を VLM でして AI処理はしない時は、VLM のモデル・指示・前処理の生成の値をそのまま使う
+        // （ぶん投げ・前提チェック・温めは、この写しの "model" を見る）
+        if (TranslatePipeline.ThrowModeOf(outObj) == ThrowModeVlmOcr)
+        {
+            string vm = NodeToStr(outObj["ocr_vlm_model"]).Trim();
+            outObj["model"] = vm.Length > 0 ? vm : OcrPresetModel;
+            string vp = NodeToStr(outObj["ocr_vlm_prompt"]).Trim();
+            outObj["prompt"] = vp.Length > 0 ? vp : OcrPresetText;
+            ApplyVlmGen(outObj, (JsonObject)outObj.DeepClone());
         }
         return outObj;
     }

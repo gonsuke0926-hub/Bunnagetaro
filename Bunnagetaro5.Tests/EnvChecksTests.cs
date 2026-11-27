@@ -384,7 +384,7 @@ public class EnvChecksTests : IDisposable
             Pump(w.Dispatcher, 200);
             var pc = FindCombo(w, "PresetCombo");
             Assert.NotNull(pc);
-            pc!.SelectedIndex = 1;              // 「翻訳」を編集（モデルはいつもプリセットごと）
+            pc!.SelectedItem = "翻訳";          // 「翻訳」を編集（モデルはいつもプリセットごと。［グローバル設定］は無くした）
             Pump(w.Dispatcher, 100);
             var cb = FindCombo(w, "ModelCombo");
             Assert.NotNull(cb);

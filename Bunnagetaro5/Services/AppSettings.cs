@@ -63,6 +63,11 @@ public sealed class AppSettings : INotifyPropertyChanged
     public int OllamaNumPredict { get => I("ollama_num_predict", 4096); set => W("ollama_num_predict", value); }
     public double OllamaTemperature { get => D("ollama_temperature", 0.0); set => W("ollama_temperature", value); }
     public int OllamaKeepAliveMin { get => I("ollama_keep_alive_min", 30); set => W("ollama_keep_alive_min", value); }
+    // 前処理（VLM）の生成の値
+    public int OcrVlmNumCtx { get => I("ocr_vlm_num_ctx", 8192); set => W("ocr_vlm_num_ctx", value); }
+    public int OcrVlmNumPredict { get => I("ocr_vlm_num_predict", 4096); set => W("ocr_vlm_num_predict", value); }
+    public double OcrVlmTemperature { get => D("ocr_vlm_temperature", 0.0); set => W("ocr_vlm_temperature", value); }
+    public int OcrVlmKeepAliveMin { get => I("ocr_vlm_keep_alive_min", 30); set => W("ocr_vlm_keep_alive_min", value); }
     public string OllamaThink { get => S("ollama_think", "auto"); set => W("ollama_think", value); }
 
     // ---- ぶん投げ・プリセット ----

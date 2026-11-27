@@ -828,4 +828,21 @@ public class BuiltinOcrTests : IDisposable
         Assert.False(called);
         Assert.Single(stub.Bodies);
     }
+
+    [Fact]
+    public async Task J122_VLMで読んでそのまま出す時は_1回だけ頼み_訳さず_画像の文字は信用しないの行も足さない()
+    {
+        var stub = UseStub();   // いつも「訳文。」
+        var cfg = Cfg("glm-ocr:latest", false);
+        cfg["throw_mode"] = ConfigStore.ThrowModeVlmOcr;
+        cfg["prompt"] = "OCR:";
+        var diag = new Dictionary<string, object?>();
+        var text = await TranslatePipeline.TranslateImageAsync(cfg, Png(Wrapped), null, null, default, 0, diag);
+        Assert.Equal("訳文。", text);
+        var body = JsonDocument.Parse(Assert.Single(stub.Bodies)).RootElement;
+        var msgs = body.GetProperty("messages").EnumerateArray().ToList();
+        Assert.Single(msgs);                                         // system の行は足さない（OCR の決まった短い指示だけ）
+        Assert.Equal("OCR:", msgs[0].GetProperty("content").GetString());
+        Assert.Equal("vlm_ocr", diag["pipeline"]);
+    }
 }

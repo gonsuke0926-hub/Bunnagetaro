@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json.Nodes;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -121,13 +122,13 @@ public class SettingsPagePresetTests : IDisposable
     // ---- tests ----
 
     [Fact]
-    public void PresetComboStartsWithGlobalAndSwitchSyncsPrompt()
+    public void PresetComboHasNoGlobalAndSwitchSyncsPrompt()   // ［グローバル設定］は無くした
     {
         OnSta(() =>
         {
             var page = MakePage(out var cfg);
             var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
-            Assert.Equal(SettingsPage.GlobalEntry, (string)cb.Items[0]!);
+            Assert.DoesNotContain("［グローバル設定］", cb.Items.Cast<object>().Select(o => o.ToString()));
             Assert.True(IndexOfItem(cb, "OCR") >= 0);
             cb.SelectedIndex = IndexOfItem(cb, "OCR");
             Pump(50);
@@ -221,49 +222,41 @@ public class SettingsPagePresetTests : IDisposable
     }
 
     [Fact]
-    public void UseGlobalToggleMovesSettingsInAndOut()
+    public void J121_グローバル設定の欄は無く_プリセットはいつも自分の設定を持つ()
     {
         OnSta(() =>
         {
             var page = MakePage(out var cfg);
-            var chk = FindLogical<CheckBox>(page, "UseGlobalChk")!;
-            string active = cfg.GetStr("prompt_active");
-            Assert.False(chk.IsChecked);                    // 既定の翻訳は推奨モデル個別設定
-            chk.IsChecked = true;
-            Pump(50);
-            chk.IsChecked = false;
-            Pump(50);
-            var p = Preset(cfg, active)!;
-            Assert.False(p["use_global"]!.GetValue<bool>());
-            Assert.NotNull(p["settings"] as JsonObject);    // 外した瞬間に欄の値が settings へ
-            chk.IsChecked = true;
-            Pump(50);
-            p = Preset(cfg, active)!;
-            Assert.True(p["use_global"]!.GetValue<bool>());
-            Assert.Null(p["settings"]);                     // 使う形に戻せば settings は持たない
+            Assert.Null(FindLogical<CheckBox>(page, "UseGlobalChk"));
+            foreach (var p in PresetsOf(cfg))
+            {
+                Assert.False(p["use_global"]!.GetValue<bool>());
+                Assert.NotNull(p["settings"] as JsonObject);
+            }
             return true;
         });
     }
 
+    private static int Eff(ConfigStore cfg, string key) => cfg.EffectiveConfig()[key]!.GetValue<int>();
+
     [Fact]
-    public void GlobalEditWritesRootAndOutOfRangeNotSaved()
+    public void J121_生成の値は選んでいるプリセットへ書き_範囲外は保存しない()
     {
         OnSta(() =>
         {
             var page = MakePage(out var cfg);
-            var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
-            cb.SelectedIndex = 0;   // ［グローバル設定］
-            Pump(50);
+            string active = cfg.GetStr("prompt_active");
             var ctx = FindLogical<TextBox>(page, "CtxBox")!;
             ctx.Text = "1024";
             PressEnter(ctx);
             Pump(50);
-            Assert.Equal(1024, cfg.GetInt("ollama_num_ctx", 0));
+            Assert.Equal(1024, Eff(cfg, "ollama_num_ctx"));
+            Assert.Equal(1024, Preset(cfg, active)!["settings"]!["ollama_num_ctx"]!.GetValue<int>());
 
             ctx.Text = "100";       // 範囲外（512〜131072）
             PressEnter(ctx);
             Pump(50);
-            Assert.Equal(1024, cfg.GetInt("ollama_num_ctx", 0));
+            Assert.Equal(1024, Eff(cfg, "ollama_num_ctx"));
             Assert.Contains("512〜131072の数値", FindLogical<SettingRow>(page, "CtxBoxRow")!.DescBox.Text);
 
             page.FlushPendingSave();
@@ -286,12 +279,12 @@ public class SettingsPagePresetTests : IDisposable
             PressEnter(box);
             Pump(50);
             Assert.Equal("256", box.Text);
-            Assert.Equal(256, cfg.GetInt("ollama_num_predict", 0));
+            Assert.Equal(256, Eff(cfg, "ollama_num_predict"));
             box.Text = "99999";
             PressEnter(box);
             Pump(50);
             Assert.Equal("65536", box.Text);
-            Assert.Equal(65536, cfg.GetInt("ollama_num_predict", 0));
+            Assert.Equal(65536, Eff(cfg, "ollama_num_predict"));
             Assert.Contains("256〜65536", FindLogical<SettingRow>(page, "PredictBoxRow")!.DescBox.Text);
             return true;
         });
@@ -338,7 +331,7 @@ public class SettingsPagePresetTests : IDisposable
     }
 
     [Fact]
-    public void J7_グローバル設定を使うプリセットでもモデルは灰色にならずそのプリセットへ書く()
+    public void J7_モデルはそのプリセットへ書く()
     {
         OnSta(() =>
         {
@@ -346,33 +339,24 @@ public class SettingsPagePresetTests : IDisposable
             var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
             cb.SelectedIndex = cb.Items.IndexOf("OCR");
             Pump(50);
-            var chk = FindLogical<CheckBox>(page, "UseGlobalChk")!;
-            chk.IsChecked = true;                    // OCR をグローバル設定を使う形にする
-            Pump(50);
-            Assert.True(Preset(cfg, "OCR")!["use_global"]!.GetValue<bool>());
             var model = FindLogical<ComboBox>(page, "ModelCombo")!;
-            Assert.True(model.IsEnabled);            // 生成の欄は灰色でも、モデルは触れる
-            Assert.Equal(ConfigStore.OcrPresetDefaultModel, model.Text);   // チェックを入れてもプリセットのモデルのまま
+            Assert.Equal(ConfigStore.OcrPresetDefaultModel, model.Text);
             model.Text = "other-ocr";
             PressEnter(model);
             Pump(50);
             Assert.Equal("other-ocr", Preset(cfg, "OCR")!["model"]!.GetValue<string>());
-            Assert.Equal("", cfg.GetStr("model"));   // グローバルの model は触らない
+            Assert.Equal("", cfg.GetStr("model"));   // 前のグローバルの model は触らない
             cfg.SetStr("prompt_active", "OCR");
             Assert.Equal("other-ocr", cfg.EffectiveConfig()["model"]!.GetValue<string>());
-
-            cb.SelectedIndex = 0;                    // ［グローバル設定］にはモデルの欄が無い
-            Pump(50);
-            DependencyObject? row = model;
-            while (row is not null and not SettingRow) row = LogicalTreeHelper.GetParent(row);
-            Assert.NotNull(row);
-            Assert.Equal(Visibility.Collapsed, ((SettingRow)row!).Visibility);
             return true;
         });
     }
 
+    private static string St(ConfigStore cfg, string preset, string key) =>
+        Preset(cfg, preset)!["settings"]![key]!.GetValue<string>();
+
     [Fact]
-    public void J22_内蔵OCRのみなら使わない項目だけ薄くして触れない()
+    public void J123_AI処理をしないにすると3の箱ごと薄くなり触れない()
     {
         OnSta(() =>
         {
@@ -380,30 +364,31 @@ public class SettingsPagePresetTests : IDisposable
             var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
             cb.SelectedIndex = cb.Items.IndexOf("OCR");
             Pump(50);
-            FindLogical<CheckBox>(page, "UseGlobalChk")!.IsChecked = false;   // 生成の欄を触れる形にして、内蔵の分だけを見る
-            Pump(50);
-            var builtinOnly = FindLogical<RadioButton>(page, "ThrowModeBuiltin")!;
-            var imageMode = FindLogical<RadioButton>(page, "ThrowModeImage")!;
-            Assert.True(builtinOnly.IsChecked);                                // 新しい設定の OCR は内蔵OCRのみ
+            var aiUse = FindLogical<CheckBox>(page, "AiUse")!;
+            Assert.False(aiUse.IsChecked);                                        // 新しい設定の OCR は内蔵OCRのみ＝AI処理しない
 
             string[] unused = { "ModelCombo", "PresetTextBox", "PresetReset", "ThinkCombo", "ShowFollowChk", "CtxBox", "PredictBox", "TempBox", "KeepBox" };
-            string[] used = { "PresetNameBox", "ThrowModeBuiltin", "BuiltinSizeCombo", "UseGlobalChk", "ClipChk", "ConvertOtslChk", "ConvertHtmlChk", "ConvertLatexChk" };
-            void Expect(bool builtin)
+            string[] used = { "PresetNameBox", "AiUse", "BuiltinSizeCombo", "ClipChk", "ConvertOtslChk", "ConvertHtmlChk", "ConvertLatexChk" };
+            void Expect(bool off)
             {
                 foreach (var n in unused)
-                    Assert.True(FindLogical<FrameworkElement>(page, n)!.IsEnabled == !builtin, n + " の IsEnabled");
+                    Assert.True(FindLogical<FrameworkElement>(page, n)!.IsEnabled == !off, n + " の IsEnabled");
                 foreach (var n in used)
                     Assert.True(FindLogical<FrameworkElement>(page, n)!.IsEnabled, n + " は触れる");
+                Assert.Equal(off ? 0.45 : 1.0, FindLogical<FrameworkElement>(page, "FlowAiBody")!.Opacity, 3);
+                Assert.True(FindLogical<CheckBox>(page, "PreUse")!.IsEnabled == !off, "AI処理しないなら前処理のチェックは外せない");
             }
-            Expect(builtin: true);
+            Expect(off: true);
 
-            imageMode.IsChecked = true;                                        // 画像そのままにすると戻る
+            aiUse.IsChecked = true;
             Pump(50);
-            Expect(builtin: false);
+            Expect(off: false);
+            Assert.Equal(ConfigStore.ThrowModeOcr, St(cfg, "OCR", "throw_mode"));
 
-            builtinOnly.IsChecked = true;                                      // 内蔵OCRのみに戻すと再び薄くなる
+            aiUse.IsChecked = false;
             Pump(50);
-            Expect(builtin: true);
+            Expect(off: true);
+            Assert.Equal(ConfigStore.ThrowModeBuiltinOcr, St(cfg, "OCR", "throw_mode"));
 
             cb.SelectedIndex = cb.Items.IndexOf("翻訳");                        // ほかのプリセットへ移ると戻る
             Pump(50);
@@ -414,7 +399,7 @@ public class SettingsPagePresetTests : IDisposable
     }
 
     [Fact]
-    public void J27_ぶん投げ方の切替で内蔵サイズとVLM欄が切り替わり設定へ保存される()
+    public void J123_流れの箱の選びが保存の形に変わり読み方の欄が切り替わる()
     {
         OnSta(() =>
         {
@@ -422,36 +407,37 @@ public class SettingsPagePresetTests : IDisposable
             var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
             cb.SelectedIndex = cb.Items.IndexOf("翻訳");
             Pump(50);
-            FindLogical<CheckBox>(page, "UseGlobalChk")!.IsChecked = false;
-            Pump(50);
 
-            var rOcr = FindLogical<RadioButton>(page, "ThrowModeOcr")!;
-            var rImg = FindLogical<RadioButton>(page, "ThrowModeImage")!;
-            var rBuilt = FindLogical<RadioButton>(page, "ThrowModeBuiltin")!;
-            var engBuilt = FindLogical<RadioButton>(page, "OcrEngBuiltin")!;
-            var engVlm = FindLogical<RadioButton>(page, "OcrEngVlm")!;
+            var preUse = FindLogical<CheckBox>(page, "PreUse")!;
+            var preBuilt = FindLogical<RadioButton>(page, "PreBuiltin")!;
+            var preVlm = FindLogical<RadioButton>(page, "PreVlm")!;
+            var aiUse = FindLogical<CheckBox>(page, "AiUse")!;
             var sizeCb = FindLogical<ComboBox>(page, "BuiltinSizeCombo")!;
+            var sizePanel = FindLogical<FrameworkElement>(page, "BuiltinSizePanel")!;
+            var vlmPanel = FindLogical<FrameworkElement>(page, "OcrVlmPanel")!;
             var vlmModel = FindLogical<ComboBox>(page, "OcrVlmModelCombo")!;
             var vlmPrompt = FindLogical<TextBox>(page, "OcrVlmPromptBox")!;
+            Assert.Contains("PP-OCRv6 small（内蔵）", sizeCb.Items.Cast<string>());
 
-            // 初期: 翻訳は 文字起こし → 内蔵OCR → small
-            Assert.True(rOcr.IsChecked);
-            Assert.True(engBuilt.IsChecked);
+            // 初期: 翻訳は 前処理する（内蔵OCR small）→ AI処理する
+            Assert.True(preUse.IsChecked);
+            Assert.True(preBuilt.IsChecked);
+            Assert.True(aiUse.IsChecked);
             Assert.Equal(0, sizeCb.SelectedIndex);
-            Assert.Equal(Visibility.Visible, ((FrameworkElement)sizeCb.Parent).Visibility);
-            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)vlmPrompt.Parent).Visibility);
+            Assert.Equal(Visibility.Visible, sizePanel.Visibility);
+            Assert.Equal(Visibility.Collapsed, vlmPanel.Visibility);
 
-            // medium に変更
             sizeCb.SelectedIndex = 1;
             Pump(50);
-            Assert.Equal(BuiltinOcr.SizeMedium, Preset(cfg, "翻訳")!["settings"]!["builtin_ocr_size"]!.GetValue<string>());
+            Assert.Equal(BuiltinOcr.SizeMedium, St(cfg, "翻訳", "builtin_ocr_size"));
 
-            // VLM に切替 → VLM欄が表示され、サイズ欄は閉じる
-            engVlm.IsChecked = true;
+            // VLM → ocr ＋ vlm。VLM の欄が出て、内蔵のモデルの欄は閉じる
+            preVlm.IsChecked = true;
             Pump(50);
-            Assert.Equal(ConfigStore.OcrEngineVlm, Preset(cfg, "翻訳")!["settings"]!["ocr_engine"]!.GetValue<string>());
-            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)sizeCb.Parent).Visibility);
-            Assert.Equal(Visibility.Visible, ((FrameworkElement)vlmPrompt.Parent).Visibility);
+            Assert.Equal(ConfigStore.ThrowModeOcr, St(cfg, "翻訳", "throw_mode"));
+            Assert.Equal(ConfigStore.OcrEngineVlm, St(cfg, "翻訳", "ocr_engine"));
+            Assert.Equal(Visibility.Collapsed, sizePanel.Visibility);
+            Assert.Equal(Visibility.Visible, vlmPanel.Visibility);
 
             vlmModel.Text = "glm-ocr:latest";
             PressEnter(vlmModel);
@@ -461,24 +447,64 @@ public class SettingsPagePresetTests : IDisposable
                 RoutedEvent = UIElement.LostKeyboardFocusEvent,
             });
             Pump(50);
-            Assert.Equal("glm-ocr:latest", Preset(cfg, "翻訳")!["settings"]!["ocr_vlm_model"]!.GetValue<string>());
-            Assert.Equal("Read text:", Preset(cfg, "翻訳")!["settings"]!["ocr_vlm_prompt"]!.GetValue<string>());
+            Assert.Equal("glm-ocr:latest", St(cfg, "翻訳", "ocr_vlm_model"));
+            Assert.Equal("Read text:", St(cfg, "翻訳", "ocr_vlm_prompt"));
 
-            // 画像そのまま → サブ欄ごと隠れる
-            rImg.IsChecked = true;
+            // VLM ＋ AI処理しない → vlm_ocr
+            aiUse.IsChecked = false;
             Pump(50);
-            Assert.Equal(ConfigStore.ThrowModeImage, Preset(cfg, "翻訳")!["settings"]!["throw_mode"]!.GetValue<string>());
-            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)engBuilt.Parent).Visibility);
-            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)sizeCb.Parent).Visibility);
-            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)vlmPrompt.Parent).Visibility);
+            Assert.Equal(ConfigStore.ThrowModeVlmOcr, St(cfg, "翻訳", "throw_mode"));
+            Assert.False(cfg.EffectiveBool("ocr_split_mode", true));
 
-            // 内蔵OCRのみ → サイズ欄だけ出る
-            rBuilt.IsChecked = true;
+            // 内蔵OCR ＋ AI処理しない → builtin_ocr
+            preBuilt.IsChecked = true;
             Pump(50);
-            Assert.Equal(ConfigStore.ThrowModeBuiltinOcr, Preset(cfg, "翻訳")!["settings"]!["throw_mode"]!.GetValue<string>());
-            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)engBuilt.Parent).Visibility);
-            Assert.Equal(Visibility.Visible, ((FrameworkElement)sizeCb.Parent).Visibility);
-            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)vlmPrompt.Parent).Visibility);
+            Assert.Equal(ConfigStore.ThrowModeBuiltinOcr, St(cfg, "翻訳", "throw_mode"));
+            Assert.Equal(ConfigStore.OcrEngineBuiltin, St(cfg, "翻訳", "ocr_engine"));
+
+            // 前処理しない ＋ AI処理する → image。2 の箱ごと薄く、AI処理の「しない」は押せない
+            aiUse.IsChecked = true;
+            preUse.IsChecked = false;
+            Pump(50);
+            Assert.Equal(ConfigStore.ThrowModeImage, St(cfg, "翻訳", "throw_mode"));
+            Assert.False(FindLogical<FrameworkElement>(page, "FlowPreBody")!.IsEnabled);
+            Assert.False(sizeCb.IsEnabled);
+            Assert.False(aiUse.IsEnabled);
+            Assert.True(preUse.IsEnabled);
+            Assert.Null(FindLogical<FrameworkElement>(page, "PreNote"));   // 前処理を使わない時の説明の行は出さない
+
+            // 2 しない のまま 3 しない を入れられても、2 を「する」に戻して選べない組み合わせにしない
+            aiUse.IsChecked = false;
+            Pump(50);
+            Assert.True(preUse.IsChecked);
+            Assert.Equal(ConfigStore.ThrowModeBuiltinOcr, St(cfg, "翻訳", "throw_mode"));
+
+            // 読み込み直しても同じ選びに戻る
+            cb.SelectedIndex = cb.Items.IndexOf("OCR");
+            Pump(50);
+            cb.SelectedIndex = cb.Items.IndexOf("翻訳");
+            Pump(50);
+            Assert.True(preUse.IsChecked);
+            Assert.True(preBuilt.IsChecked);
+            Assert.False(aiUse.IsChecked);
+            return true;
+        });
+    }
+
+    [Fact]
+    public void J123_前処理のVLMの生成の値はocr_vlmのキーへ書く()
+    {
+        OnSta(() =>
+        {
+            var page = MakePage(out var cfg);
+            string active = cfg.GetStr("prompt_active");
+            var box = FindLogical<TextBox>(page, "VlmCtxBox")!;
+            box.Text = "2048";
+            PressEnter(box);
+            Pump(50);
+            var st = (JsonObject)Preset(cfg, active)!["settings"]!;
+            Assert.Equal(2048, st["ocr_vlm_num_ctx"]!.GetValue<int>());
+            Assert.NotEqual(2048, st["ollama_num_ctx"]!.GetValue<int>());   // AI処理の値は別
             return true;
         });
     }
@@ -609,7 +635,7 @@ public class SettingsPagePresetTests : IDisposable
             var nameBox = FindLogical<TextBox>(page, "PresetNameBox")!;
             var instr = FindLogical<TextBox>(page, "PresetTextBox")!;
             var reset = FindLogical<Button>(page, "PresetReset")!;
-            var useGlobal = FindLogical<CheckBox>(page, "UseGlobalChk")!;
+
 
             // 各部品の Focusable / IsTabStop を確認
             Assert.True(cb.Focusable && cb.IsTabStop);
@@ -618,7 +644,7 @@ public class SettingsPagePresetTests : IDisposable
             Assert.True(nameBox.Focusable && nameBox.IsTabStop);
             Assert.True(instr.Focusable && instr.IsTabStop);
             Assert.True(reset.Focusable && reset.IsTabStop);
-            Assert.True(useGlobal.Focusable && useGlobal.IsTabStop);
+
 
             // ComboBox から Tab (Next) で順に PresetReset・UseGlobalChk まで到達できること
             // （モデル欄は名前・指示の下、「グローバル設定を使う」は「指示を既定に戻す」の下に配置されている）
@@ -632,14 +658,14 @@ public class SettingsPagePresetTests : IDisposable
                     visited.Add(cur.Name);
                 else
                     visited.Add(cur?.GetType().Name ?? "(null)");
-                if (ReferenceEquals(cur, useGlobal)) break;
+                if (ReferenceEquals(cur, reset)) break;
                 cur?.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
                 Pump(10);
             }
             w.Close();
             Assert.Contains("PresetReset", visited);
-            Assert.Contains("UseGlobalChk", visited);
-            Assert.True(visited.IndexOf("PresetReset") < visited.IndexOf("UseGlobalChk"), string.Join(" > ", visited));
+
+            Assert.True(visited.IndexOf("PresetCombo") < visited.IndexOf("PresetReset"), string.Join(" > ", visited));   // 「グローバル設定を使う」は無くした
             return true;
         });
     }
@@ -658,11 +684,10 @@ public class SettingsPagePresetTests : IDisposable
             var nameBox = FindLogical<TextBox>(page, "PresetNameBox")!;
             var instr = FindLogical<TextBox>(page, "PresetTextBox")!;
 
-            cb.SelectedIndex = 0;   // ［グローバル設定］
+            // 前は［グローバル設定］を選ぶと無効になった。今は欄を無効にして同じ見た目を確かめる
+            nameBox.IsEnabled = false;
+            instr.IsEnabled = false;
             Pump(30);
-
-            Assert.False(nameBox.IsEnabled);
-            Assert.False(instr.IsEnabled);
 
             var disabled = Application.Current!.Resources["Disabled"];
             var border = Application.Current.Resources["Border"];
@@ -728,50 +753,62 @@ public class SettingsPagePresetTests : IDisposable
     }
 
     [Fact]
-    public void J28_名前とモデルと指示が1ブロックにまとまり上から名前_モデル_指示の順になる()
+    public void J123_流れは上から1レイアウト判定_2前処理_3AI処理でモデルと指示は3の箱にある()
     {
         OnSta(() =>
         {
             var page = MakePage(out _);
-            static SettingRow RowOf(DependencyObject? d)
+            static FrameworkElement Up(DependencyObject? d, string name)
             {
-                while (d is not null and not SettingRow) d = LogicalTreeHelper.GetParent(d);
-                return (SettingRow)d!;
+                while (d is not null && !(d is FrameworkElement fe && fe.Name == name)) d = LogicalTreeHelper.GetParent(d);
+                return (FrameworkElement)d!;
             }
-            var presetRow = RowOf(FindLogical<ComboBox>(page, "PresetCombo"));
-            var nameRow = RowOf(FindLogical<TextBox>(page, "PresetNameBox"));
-            var modelRow = RowOf(FindLogical<ComboBox>(page, "ModelCombo"));
-            var instrBox = FindLogical<TextBox>(page, "PresetTextBox")!;
-            var detailBox = (Panel)LogicalTreeHelper.GetParent(modelRow)!;
-            var instrHost = (FrameworkElement)LogicalTreeHelper.GetParent(instrBox)!;
-            // detailBox は nameRow の下段にあり、先頭がモデル・次が指示
-            Assert.Same(nameRow, RowOf(detailBox));
-            Assert.True(detailBox.Children.IndexOf(modelRow) < detailBox.Children.IndexOf(instrHost));
-            // カード内では使うプリセットの直下に nameRow（名前＋モデル＋指示のまとまり）がある
-            var card = (Panel)LogicalTreeHelper.GetParent(presetRow)!;
-            Assert.True(card.Children.IndexOf(nameRow) > card.Children.IndexOf(presetRow));
+            var flow = FindLogical<StackPanel>(page, "FlowPanel")!;
+            var boxes = flow.Children.OfType<Border>().Select(b => b.Name).ToList();
+            Assert.Equal(new[] { "FlowLayoutBox", "FlowPreBox", "FlowAiBox" }, boxes);
+            Assert.NotNull(Up(FindLogical<ComboBox>(page, "ModelCombo"), "FlowAiBox"));
+            Assert.NotNull(Up(FindLogical<TextBox>(page, "PresetTextBox"), "FlowAiBox"));
+            Assert.NotNull(Up(FindLogical<Button>(page, "PresetReset"), "FlowAiBox"));
+            Assert.NotNull(Up(FindLogical<ComboBox>(page, "BuiltinSizeCombo"), "FlowPreBox"));
+            Assert.NotNull(Up(FindLogical<TextBox>(page, "OcrVlmPromptBox"), "FlowPreBox"));
+            Assert.NotNull(Up(FindLogical<TextBox>(page, "CtxBox"), "FlowAiBox"));
+            Assert.NotNull(Up(FindLogical<TextBox>(page, "VlmCtxBox"), "FlowPreBox"));
+            Assert.NotNull(Up(FindLogical<CheckBox>(page, "LayoutTextBgChk"), "FlowLayoutBox"));
+            Assert.NotNull(Up(FindLogical<TextBox>(page, "Layout0Box"), "FlowLayoutBox"));
+            Assert.NotNull(Up(FindLogical<TextBox>(page, "Layout1Box"), "FlowAiBox"));
+            // 「表示する場所」などの出す設定は流れの外
+            Assert.Null(Up(FindLogical<CheckBox>(page, "ClipChk"), "FlowPanel"));
             return true;
         });
     }
 
     [Fact]
-    public void J119_位置の反映チェックに区画モデル名PP_DocLayoutV3が載っており翻訳とOCRは既定ON()
+    public void J123_レイアウト判定の箱にPP_DocLayoutV3内蔵が載り翻訳とOCRは既定でする()
     {
         OnSta(() =>
         {
-            var page = MakePage(out _);
-            var chk = FindLogical<CheckBox>(page, "BuiltinLayoutChk")!;
-            Assert.Contains("PP-DocLayoutV3", chk.Content?.ToString() ?? "");
-            Assert.True(chk.IsChecked);   // 初期選択「翻訳」は位置の反映 ON
+            var page = MakePage(out var cfg);
+            Assert.Equal("PP-DocLayoutV3（内蔵）", FindLogical<TextBlock>(page, "LayoutModelLabel")!.Text);
+            var use = FindLogical<CheckBox>(page, "LayoutUse")!;
+            var body = FindLogical<FrameworkElement>(page, "FlowLayoutBody")!;
+            Assert.True(use.IsChecked);   // 初期選択「翻訳」はする
+            Assert.True(body.IsEnabled);
 
             var cb = FindLogical<ComboBox>(page, "PresetCombo")!;
             cb.SelectedItem = "OCR";
             Pump(50);
-            Assert.True(chk.IsChecked);   // 既定「OCR」も位置の反映 ON
+            Assert.True(use.IsChecked);   // 既定「OCR」もする
 
             cb.SelectedItem = "数式";
             Pump(50);
-            Assert.False(chk.IsChecked);  // 既定「数式」は OFF
+            Assert.False(use.IsChecked);  // 既定「数式」はしない
+            Assert.False(body.IsEnabled);
+            Assert.True(use.IsEnabled);   // 「使用する」のチェックは押せる
+
+            use.IsChecked = true;
+            Pump(50);
+            Assert.True(Preset(cfg, "数式")!["settings"]!["builtin_ocr_layout"]!.GetValue<bool>());
+            Assert.True(body.IsEnabled);
             return true;
         });
     }

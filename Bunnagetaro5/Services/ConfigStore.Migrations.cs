@@ -11,10 +11,26 @@ namespace Bunnagetaro5.Services;
 public sealed partial class ConfigStore
 {
     /// <summary>「既定値そのものが入っていた項目」だけを新しい既定へ寄せる
+    /// <summary>前処理（VLM）の生成の値が無い（前の版の）設定は、今まで VLM にも使っていた AI処理の値を写して始める
+    /// （動きを変えない）。グローバルとプリセットの専用の設定の両方</summary>
+    private static void SeedVlmGen(JsonObject saved)
+    {
+        void Seed(JsonObject o)
+        {
+            foreach (var (v, a) in VlmGenKeys)
+                if (!o.ContainsKey(v) && o.TryGetPropertyValue(a, out var n) && n is not null) o[v] = n.DeepClone();
+        }
+        Seed(saved);
+        if (saved["prompts"] is JsonArray arr)
+            foreach (var p in arr.OfType<JsonObject>())
+                if (p["settings"] is JsonObject st) Seed(st);
+    }
+
     /// （自分で選んだ値は触らない）。</summary>
     private void ApplyDefaultMigrations(JsonObject saved)
     {
         MigratePresetsV5(saved);
+        SeedVlmGen(saved);
         // 外窓の色が無い（前の版の）設定は、今まで外窓に使っていた枠の中の色を引き継ぐ（見た目を変えない）
         foreach (var (sk, ok) in new[] { ("strip_bg", "overlay_bg"), ("strip_fg", "overlay_fg") })
             if (GetRaw(saved, sk) is null && NodeToStr(GetRaw(saved, ok)) is { Length: > 0 } ov && ColorUtil.IsHexColor(ov))

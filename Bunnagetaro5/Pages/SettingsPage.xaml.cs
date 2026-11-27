@@ -75,11 +75,10 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     // ---- プリセット・生成 ----
     /// <summary>使うプリセットではなく、共通の設定を編集するための入口。
     /// 括弧つきなので普通に付けた名前とはぶつからない。</summary>
-    public const string GlobalEntry = "［グローバル設定］";
+    // ［グローバル設定］の項目は無くした
 
     private List<JsonObject> _pitems = new();   // prompts の作業コピー
     private int _pcur;                          // 選んでいる位置＝使っているプリセット
-    private bool _editingGlobal;                // 「［グローバル設定］」の画面か
     private bool _filling;                      // 欄を programme 側で書き換えている（commit を止める）
     private bool _presetRejected;               // 欄を直すところがあり切り替えを取り消した
     private string _lastNote = "";              // Note() が最後に出した文言（バーからの拒否理由取り出し用）
@@ -93,17 +92,12 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
     private ComboBox _presetCb = null!;
     private Button _addBtn = null!, _delBtn = null!, _resetBtn = null!;
     private TextBox _nameBox = null!, _instrBox = null!;
-    private CheckBox _useGlobalChk = null!;
-    private SettingRow _rowPreset = null!, _rowUseGlobal = null!;
+
+    private SettingRow _rowPreset = null!;
     private StackPanel _genBox = null!;
     private TextBlock _genHeading = null!;
     private ComboBox _modelCb = null!, _thinkCb = null!;
-    private RadioButton _ocrOn = null!, _ocrOff = null!, _ocrBuiltinOnly = null!;
-    private StackPanel _ocrSubBox = null!, _ocrEnginePanel = null!, _builtinSizePanel = null!, _ocrVlmPanel = null!;
-    private RadioButton _ocrEngBuiltin = null!, _ocrEngVlm = null!;
     private ComboBox _builtinSizeCb = null!;
-    /// <summary>内蔵 OCR の時「読み取った位置に並べる」（プリセットごと builtin_ocr_layout）</summary>
-    private CheckBox _layoutChk = null!;
     private ComboBox _ocrVlmModelCb = null!;
     private TextBox _ocrVlmPromptBox = null!;
     private DispatcherTimer? _ocrVlmPromptTimer;
@@ -229,7 +223,6 @@ public partial class SettingsPage : UserControl, Bunnagetaro5.Input.IBindFields,
         BuildPresetSection();     // プリセット＋生成（1組の欄でスコープを切り替える）
         BuildCaptureBorderSection();   // キャプチャ窓の枠
         BuildAnswerSection();
-        BuildLayoutParamsSection();   // 位置の反映（内蔵OCR）の細かい値（上級者モードだけ）
         BuildTrigSection();
         BuildQuickSection();
         BuildHotkeySection();

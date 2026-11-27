@@ -26,8 +26,6 @@ public partial class SettingsPage
     private CheckBox _latexChk = null!;
     private CheckBox _followChk = null!;
     private DispatcherTimer? _instrTimer;
-    /// <summary>プリセットのモデルが内蔵の OCR の時に使わない項目（薄くして触れなくする）</summary>
-    private readonly List<FrameworkElement> _builtinUnused = new();
     // ================= プリセット＋生成 =================
 
     private void BuildPresetSection()
@@ -68,7 +66,7 @@ public partial class SettingsPage
         BindCommitOnFocusLoss(_instrBox, CommitNameText);
         _instrBox.TextChanged += (_, _) =>
         {
-            if (_filling || _editingGlobal) return;
+            if (_filling) return;
             if (_instrBox.Text.Trim().Length == 0) { _instrTimer?.Stop(); return; }
             _instrTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
             _instrTimer.Stop();
@@ -78,29 +76,19 @@ public partial class SettingsPage
         };
         var nameRow = new SettingRow("名前", "", _nameBox);
         _nameRow = nameRow;
-        var instrHost = new StackPanel();
-        instrHost.Children.Add(Subtle("指示（[system] / [user] 行で役割を分けられます）"));
-        instrHost.Children.Add(_instrBox);
 
         _resetBtn = new Button { Content = "指示を既定に戻す", Name = "PresetReset", Focusable = true, IsTabStop = true };
         _resetBtn.Click += (_, _) => ResetText_Click();
         var resetRow = new SettingRow("指示を既定に戻す", "既定プリセットの指示だけ戻します", _resetBtn);
 
-        _useGlobalChk = new CheckBox { VerticalAlignment = VerticalAlignment.Center, Name = "UseGlobalChk", Focusable = true, IsTabStop = true };
-        _useGlobalChk.Checked += (_, _) => UseGlobal_Changed();
-        _useGlobalChk.Unchecked += (_, _) => UseGlobal_Changed();
-        _rowUseGlobal = new SettingRow("グローバル設定を使う", "", _useGlobalChk);
-        _rowUseGlobal.DescBox.MinHeight = 34;   // 状態文言が1〜2行に変わっても下の項目が上下にズレないよう高さを確保
-
-        // 生成：プリセットカードの中にまとめる。「［グローバル設定］」なら共通の設定へ、
-        // チェックを外せばそのプリセットの settings へ書く
+        // プリセットの中身は「処理の流れ」（1 レイアウト判定 → 2 前処理 → 3 AI処理）の箱で選ぶ
         _genHeading = new TextBlock
         {
-            Text = "生成",
+            Text = "処理の流れ",
             FontSize = 12,
             FontWeight = FontWeights.SemiBold,
             Foreground = SettingRow.SubtleBrush(),
-            Margin = new Thickness(14, 10, 14, 0),
+            Margin = new Thickness(14, 10, 14, 6),
         };
         _genBox = new StackPanel();
 
@@ -108,98 +96,14 @@ public partial class SettingsPage
         _modelCb.KeyDown += (_, e) => { if (e.Key == Key.Enter) { CommitModel(); _modelCb.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)); } };
         BindCommitOnFocusLoss(_modelCb, CommitModel);
         _modelCb.SelectionChanged += (_, _) => { if (!_filling) CommitModel(); };
-        _modelRow = new SettingRow("モデル", "画像そのままは vision 対応モデル（文字起こし時はテキスト専用も可）", _modelCb);
+        _modelRow = new SettingRow("モデル", "", _modelCb);
         _modelRow.AsGrouped();
-        _modelRow.Padding = new Thickness(0, 0, 0, 10);
 
-        // 名前・モデル・指示（プロンプト）を仕切り線なしの1ブロックにまとめる（上が名前、次がモデル、下が指示）
-        var detailBox = new StackPanel();
-        detailBox.Children.Add(_modelRow);
-        detailBox.Children.Add(instrHost);
-        nameRow.SetBottom(detailBox);
+        var instrHost = new StackPanel { Name = "PresetTextHost", Margin = new Thickness(14, 0, 14, 10) };
+        instrHost.Children.Add(Subtle("指示　[system] / [user] 行で役割を分けられます"));
+        instrHost.Children.Add(_instrBox);
 
-        _ocrOn = new RadioButton { Content = "文字起こし", GroupName = "genmode", IsChecked = true, Margin = new Thickness(0, 0, 10, 0), Name = "ThrowModeOcr", VerticalAlignment = VerticalAlignment.Center };
-        _ocrOff = new RadioButton { Content = "画像そのまま", GroupName = "genmode", Margin = new Thickness(0, 0, 10, 0), Name = "ThrowModeImage", VerticalAlignment = VerticalAlignment.Center };
-        _ocrBuiltinOnly = new RadioButton { Content = "内蔵OCRのみ", GroupName = "genmode", Name = "ThrowModeBuiltin", VerticalAlignment = VerticalAlignment.Center };
-        _ocrOn.Checked += (_, _) => { if (!_filling) CommitThrowMode(ConfigStore.ThrowModeOcr); };
-        _ocrOff.Checked += (_, _) => { if (!_filling) CommitThrowMode(ConfigStore.ThrowModeImage); };
-        _ocrBuiltinOnly.Checked += (_, _) => { if (!_filling) CommitThrowMode(ConfigStore.ThrowModeBuiltinOcr); };
-        var ocrPanel = new StackPanel { Orientation = Orientation.Horizontal };
-        ocrPanel.Children.Add(_ocrOn);
-        ocrPanel.Children.Add(_ocrOff);
-        ocrPanel.Children.Add(_ocrBuiltinOnly);
-        var ocrRow = new SettingRow("ぶん投げ方", "文字起こし後にAIへ渡す／画像をそのまま渡す／AI無しで内蔵OCRのみ", ocrPanel);
-
-        // 「文字起こし」「内蔵OCRのみ」の下に出るサブ設定（内蔵OCR small/medium または VLM モデル＋プロンプト）
-        _ocrSubBox = new StackPanel { Margin = new Thickness(0, 6, 0, 0) };
-
-        _ocrEngBuiltin = new RadioButton { Content = "内蔵OCR", GroupName = "ocreng", IsChecked = true, Margin = new Thickness(0, 0, 10, 0), Name = "OcrEngBuiltin", VerticalAlignment = VerticalAlignment.Center };
-        _ocrEngVlm = new RadioButton { Content = "VLM", GroupName = "ocreng", Name = "OcrEngVlm", VerticalAlignment = VerticalAlignment.Center };
-        _ocrEngBuiltin.Checked += (_, _) => { if (!_filling) CommitOcrEngine(ConfigStore.OcrEngineBuiltin); };
-        _ocrEngVlm.Checked += (_, _) => { if (!_filling) CommitOcrEngine(ConfigStore.OcrEngineVlm); };
-        _ocrEnginePanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
-        _ocrEnginePanel.Children.Add(new TextBlock { Text = "文字起こし方法:", Foreground = SettingRow.SubtleBrush(), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), FontSize = 12 });
-        _ocrEnginePanel.Children.Add(_ocrEngBuiltin);
-        _ocrEnginePanel.Children.Add(_ocrEngVlm);
-
-        _builtinSizeCb = new ComboBox { Width = 230, Name = "BuiltinSizeCombo", VerticalAlignment = VerticalAlignment.Center };
-        _builtinSizeCb.ItemsSource = new[] { "PP-OCRv6 small（高速）", "PP-OCRv6 medium（高精度）" };
-        _builtinSizeCb.SelectedIndex = 0;
-        _builtinSizeCb.SelectionChanged += (_, _) =>
-        {
-            if (_filling) return;
-            CommitBuiltinSize(_builtinSizeCb.SelectedIndex == 1 ? BuiltinOcr.SizeMedium : BuiltinOcr.SizeSmall);
-        };
-        _builtinSizePanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
-        _builtinSizePanel.Children.Add(new TextBlock { Text = "内蔵OCRモデル:", Foreground = SettingRow.SubtleBrush(), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), FontSize = 12 });
-        _builtinSizePanel.Children.Add(_builtinSizeCb);
-        // 「読み取った位置に並べる」（既定 OFF）。ぶん投げ方によらずいつも出す（VLM でも区画ごとに頼んで並べる）
-        _layoutChk = MakePresetBoolChk("BuiltinLayoutChk", "読み取った位置に並べる（PP-DocLayoutV3）", "builtin_ocr_layout");
-        _layoutChk.Margin = new Thickness(0, 6, 0, 2);
-        _layoutChk.ToolTip = "PP-DocLayoutV3 で区画（段落・見出しなど）を見つけて、読んだ文・答えを元の画面での位置に並べます（区画ごとに頼むので遅くなります）";
-
-        _ocrVlmModelCb = new ComboBox { IsEditable = true, Width = 240, Name = "OcrVlmModelCombo" };
-        _ocrVlmModelCb.KeyDown += (_, e) => { if (e.Key == Key.Enter) { CommitOcrVlmModel(); _ocrVlmModelCb.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)); } };
-        BindCommitOnFocusLoss(_ocrVlmModelCb, CommitOcrVlmModel);
-        _ocrVlmModelCb.SelectionChanged += (_, _) => { if (!_filling) CommitOcrVlmModel(); };
-        var vlmModelRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 4) };
-        vlmModelRow.Children.Add(new TextBlock { Text = "VLMモデル:", Foreground = SettingRow.SubtleBrush(), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), FontSize = 12 });
-        vlmModelRow.Children.Add(_ocrVlmModelCb);
-
-        _ocrVlmPromptBox = new TextBox
-        {
-            AcceptsReturn = true,
-            TextWrapping = TextWrapping.Wrap,
-            Height = 48,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalContentAlignment = VerticalAlignment.Top,
-            Name = "OcrVlmPromptBox",
-        };
-        BindCommitOnFocusLoss(_ocrVlmPromptBox, CommitOcrVlmPrompt);
-        _ocrVlmPromptBox.TextChanged += (_, _) =>
-        {
-            if (_filling) return;
-            if (_ocrVlmPromptBox.Text.Trim().Length == 0) { _ocrVlmPromptTimer?.Stop(); return; }
-            _ocrVlmPromptTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
-            _ocrVlmPromptTimer.Stop();
-            _ocrVlmPromptTimer.Tick -= OnOcrVlmPromptDebounceTick;
-            _ocrVlmPromptTimer.Tick += OnOcrVlmPromptDebounceTick;
-            _ocrVlmPromptTimer.Start();
-        };
-        _ocrVlmPanel = new StackPanel { Margin = new Thickness(0, 2, 0, 0) };
-        _ocrVlmPanel.Children.Add(vlmModelRow);
-        _ocrVlmPanel.Children.Add(Subtle("VLMプロンプト"));
-        _ocrVlmPanel.Children.Add(_ocrVlmPromptBox);
-
-        _ocrSubBox.Children.Add(_ocrEnginePanel);
-        _ocrSubBox.Children.Add(_builtinSizePanel);
-        _ocrSubBox.Children.Add(_ocrVlmPanel);
-        var ocrBottom = new StackPanel();
-        ocrBottom.Children.Add(_layoutChk);   // 区画が一番最初のレイヤーなので「ぶん投げ方」内の一番上に出す
-        ocrBottom.Children.Add(_ocrSubBox);
-        ocrRow.SetBottom(ocrBottom);
-
-        // 表示する場所（案B: プリセット単位で持てる通常項目）
+        // 表示する場所（流れの外。プリセットごと）
         var placePanel = new StackPanel { Orientation = Orientation.Horizontal };
         _placeInside = new RadioButton
         {
@@ -246,68 +150,34 @@ public partial class SettingsPage
         var gKeep = AddNum(null, "モデルを置いておく時間（分）", "ollama_keep_alive_min", 0, 1440, true, 30, GenScope, PresetAfter, "KeepBox");
         _genNums.AddRange([gCtx, gPred, gTemp, gKeep]);
 
-        var genExp = new StackPanel();
-        genExp.Children.Add(clipRow.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(otslRow.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(htmlRow.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(latexRow.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(followRow.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(thinkRow.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(gCtx.Row.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(gPred.Row.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(gTemp.Row.AsGrouped());
-        genExp.Children.Add(MakeDivider());
-        genExp.Children.Add(gKeep.Row.AsGrouped());
+        var flow = BuildFlow(instrHost, resetRow, new UIElement[]
+            { thinkRow.AsGrouped(), gCtx.Row.AsGrouped(), gPred.Row.AsGrouped(), gTemp.Row.AsGrouped(), gKeep.Row.AsGrouped() });
+
+        var outExp = new StackPanel();
+        outExp.Children.Add(clipRow.AsGrouped());
+        outExp.Children.Add(MakeDivider());
+        outExp.Children.Add(otslRow.AsGrouped());
+        outExp.Children.Add(MakeDivider());
+        outExp.Children.Add(htmlRow.AsGrouped());
+        outExp.Children.Add(MakeDivider());
+        outExp.Children.Add(latexRow.AsGrouped());
+        outExp.Children.Add(MakeDivider());
+        outExp.Children.Add(followRow.AsGrouped());
 
         _genBox.Children.Add(_genHeading);
-        _genBox.Children.Add(ocrRow.AsGrouped());
+        _genBox.Children.Add(flow);
         _genBox.Children.Add(MakeDivider());
         _genBox.Children.Add(placeRow.AsGrouped());
-        _genBox.Children.Add(MakeExpertWrap(genExp, withTopDivider: true));
+        _genBox.Children.Add(MakeExpertWrap(outExp, withTopDivider: true));
 
-        // モデルはいつもプリセットごとなので、名前・指示の並びに置き、「グローバル設定を使う」はその下の生成の欄だけに効く
-        // 「内蔵OCRのみ」の時は AI のモデル・指示・思考・生成の数字を使わず、追加の問いもできない。
-        // ぶん投げ方（モード切替・small/medium）・表示する場所・自動でコピー・表や式の変換は使う
-        _builtinUnused.Clear();
-        _builtinUnused.AddRange(new FrameworkElement[]
-            { instrHost, _modelRow, resetRow, followRow, thinkRow, gCtx.Row, gPred.Row, gTemp.Row, gKeep.Row });
+        // AI処理を「しない」時は「たずねる」欄も効かない（流れの外なので箱とは別に薄くする）
+        _aiOffUnused.Clear();
+        _aiOffUnused.Add(followRow);
 
-        BodyPanel.Children.Add(MakeGroupCard(_rowPreset, nameRow, resetRow, _rowUseGlobal, _genBox));
+        BodyPanel.Children.Add(MakeGroupCard(_rowPreset, nameRow, _genBox));   // 「グローバル設定を使う」は無くした
         BodyPanel.Children.Add(MakeExpertWrap(Subtle("既定: 8192 / 4096 / 0 / 30分 / モデル任せ")));
 
         ShowPrompt();
-    }
-
-    /// <summary>「内蔵OCRのみ」の時は AI 用の項目を薄くして触れなくし、ぶん投げ方のサブ欄の表示も整える</summary>
-    private void UpdateBuiltinDim()
-    {
-        bool builtin = !_editingGlobal && _ocrBuiltinOnly.IsChecked == true;
-        foreach (var el in _builtinUnused)
-        {
-            el.IsEnabled = !builtin;
-            el.Opacity = builtin ? 0.45 : 1.0;
-        }
-        UpdateOcrSubVisibility();
-    }
-
-    private void UpdateOcrSubVisibility()
-    {
-        bool isOcr = _ocrOn.IsChecked == true;
-        bool isBuiltinOnly = _ocrBuiltinOnly.IsChecked == true;
-        bool isVlm = isOcr && _ocrEngVlm.IsChecked == true;
-        bool showBuiltinSize = isBuiltinOnly || (isOcr && !isVlm);
-        _ocrEnginePanel.Visibility = isOcr ? Visibility.Visible : Visibility.Collapsed;
-        _builtinSizePanel.Visibility = showBuiltinSize ? Visibility.Visible : Visibility.Collapsed;
-        _ocrVlmPanel.Visibility = isVlm ? Visibility.Visible : Visibility.Collapsed;
-        _ocrSubBox.Visibility = (isOcr || isBuiltinOnly) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private CheckBox MakePresetBoolChk(string name, string label, string key)
@@ -349,27 +219,12 @@ public partial class SettingsPage
         if (_presetRejected)
         {
             _filling = true;
-            _presetCb.SelectedIndex = _editingGlobal ? 0 : Math.Clamp(_pcur, 0, _pitems.Count - 1) + 1;
+            _presetCb.SelectedIndex = Math.Clamp(_pcur, 0, _pitems.Count - 1);
             _filling = false;
-            return;
-        }
-        if (sel == GlobalEntry)
-        {
-            // 共通の設定を編集する画面へ。使っているプリセットは変えない
-            if (_editingGlobal) return;
-            _editingGlobal = true;
-            ShowPrompt();
             return;
         }
         int idx = _pitems.FindIndex(p => S(p["name"]) == sel);
         if (idx < 0) { ShowPrompt(); return; }   // 一覧に無い名前にはしない
-        if (_editingGlobal)
-        {
-            // 共通の設定の書きかけを反映してから、プリセットの画面へ戻す（まだ切り替えない）
-            _editingGlobal = false;
-            ShowPrompt();
-            if (sel == ActiveName()) return;
-        }
         if (_pcur == idx) return;
         _pcur = idx;
         WriteSelf(() =>

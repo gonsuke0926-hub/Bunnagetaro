@@ -156,10 +156,7 @@ public sealed class SettingsPageUxTests : IDisposable
             var page = new SettingsPage(cfg, () => { }, _ => { });
             try
             {
-                // Select [グローバル設定] (index 0) to edit global conversion settings
-                var presetCb = FindLogical<ComboBox>(page, "PresetCombo")!;
-                presetCb.SelectedIndex = 0;
-
+                // グローバル設定は無くした。変換の欄は選んでいるプリセットの設定へ書く
                 var otsl = FindLogical<CheckBox>(page, "ConvertOtslChk")!;
                 var html = FindLogical<CheckBox>(page, "ConvertHtmlChk")!;
                 var latex = FindLogical<CheckBox>(page, "ConvertLatexChk")!;
@@ -168,24 +165,15 @@ public sealed class SettingsPageUxTests : IDisposable
                 otsl.IsChecked = false;
                 html.IsChecked = false;
                 latex.IsChecked = false;
-                follow.IsChecked = false;
+                follow.IsChecked = true;
 
-                Assert.False(cfg.Settings.ConvertOtslTable);
-                Assert.False(cfg.Settings.ConvertHtmlTable);
-                Assert.False(cfg.Settings.ConvertLatexMath);
-                Assert.False(cfg.Settings.ShowFollowRow);
+                Assert.False(cfg.EffectiveBool("convert_otsl_table", true));
+                Assert.False(cfg.EffectiveBool("convert_html_table", true));
+                Assert.False(cfg.EffectiveBool("convert_latex_math", true));
+                Assert.True(cfg.EffectiveBool("show_follow_row", false));
 
-                // Switch back to first preset ("翻訳"), enable UseGlobal, then disable and override per-preset
-                presetCb.SelectedItem = "翻訳";
-                var useGlobal = FindLogical<CheckBox>(page, "UseGlobalChk")!;
-                useGlobal.IsChecked = true;
-                Assert.False(cfg.EffectiveBool("convert_otsl_table", true)); // still global while UseGlobal=true
-
-                useGlobal.IsChecked = false;
-                Assert.False(otsl.IsChecked);
                 otsl.IsChecked = true;
                 Assert.True(cfg.EffectiveBool("convert_otsl_table", false));
-                Assert.False(cfg.Settings.ConvertOtslTable); // global remains false
             }
             finally
             {

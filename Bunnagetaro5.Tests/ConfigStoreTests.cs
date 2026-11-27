@@ -263,7 +263,7 @@ public sealed class ConfigStoreTests : IDisposable
         Assert.Contains(store.Migrations, m => m.Contains("あらゆる言語"));
         var first = store.Root["prompts"]!.AsArray()[0]!.AsObject();
         Assert.Equal(ConfigStore.DefaultImagePrompt, first["text"]!.GetValue<string>());
-        Assert.True(first["use_global"]!.GetValue<bool>());
+        Assert.False(first["use_global"]!.GetValue<bool>());   // グローバルの値を写して自分の設定にした
     }
 
     [Fact]
@@ -551,5 +551,52 @@ public sealed class ConfigStoreTests : IDisposable
         Assert.False(LayoutOf("数式"));
         Assert.False(LayoutOf("表"));
         Assert.False(store.Root["builtin_ocr_layout"]!.GetValue<bool>());
+    }
+
+    // ---- 前処理（VLM）の生成の値・VLM で読んでそのまま出すぶん投げ方 ----
+
+    [Fact]
+    public void J122_前の版の設定は前処理の生成の値にAI処理の値を写して始める()
+    {
+        var store = LoadWith("""
+            {"ollama_num_ctx":2048,"ollama_temperature":0.3,"presets_v5":true,"presets_offered":["翻訳","OCR","数式","表"],
+             "prompt_active":"自作","prompts":[
+                {"name":"自作","text":"mine","use_global":false,"model":"m:1","settings":{"ollama_num_ctx":4096,"ollama_keep_alive_min":5}}]}
+            """);
+        Assert.Equal(2048, store.GetInt("ocr_vlm_num_ctx", 0));
+        var st = store.Root["prompts"]!.AsArray().OfType<JsonObject>().First(p => p["name"]!.GetValue<string>() == "自作")["settings"]!.AsObject();
+        Assert.Equal(4096, st["ocr_vlm_num_ctx"]!.GetValue<int>());
+        Assert.Equal(5, st["ocr_vlm_keep_alive_min"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public void J122_文字起こしVLMの1回目は前処理の生成の値を使い_AI処理は自分の値のまま()
+    {
+        var store = LoadWith("""
+            {"presets_v5":true,"presets_offered":["翻訳","OCR","数式","表"],"prompt_active":"自作","prompts":[
+                {"name":"自作","text":"t","use_global":false,"model":"ai:1","settings":{"throw_mode":"ocr","ocr_engine":"vlm",
+                 "ocr_vlm_model":"vlm:1","ollama_num_ctx":4096,"ocr_vlm_num_ctx":1024,"ocr_vlm_temperature":0.5}}]}
+            """);
+        var eff = store.EffectiveConfig();
+        Assert.Equal(4096, eff["ollama_num_ctx"]!.GetValue<int>());
+        var ocr = eff[ConfigStore.OcrStageKey]!.AsObject();
+        Assert.Equal("vlm:1", ocr["model"]!.GetValue<string>());
+        Assert.Equal(1024, ocr["ollama_num_ctx"]!.GetValue<int>());
+        Assert.Equal(0.5, ocr["ollama_temperature"]!.GetValue<double>());
+    }
+
+    [Fact]
+    public void J122_VLMで読んでそのまま出す時は_モデルと指示と生成の値がVLMの物になる()
+    {
+        var store = LoadWith("""
+            {"presets_v5":true,"presets_offered":["翻訳","OCR","数式","表"],"prompt_active":"自作","prompts":[
+                {"name":"自作","text":"t","use_global":false,"model":"ai:1","settings":{"throw_mode":"vlm_ocr",
+                 "ocr_vlm_model":"vlm:1","ocr_vlm_prompt":"OCR:","ollama_num_ctx":4096,"ocr_vlm_num_ctx":1024}}]}
+            """);
+        var eff = store.EffectiveConfig();
+        Assert.Equal(ConfigStore.ThrowModeVlmOcr, TranslatePipeline.ThrowModeOf(eff));
+        Assert.Equal("vlm:1", eff["model"]!.GetValue<string>());
+        Assert.Equal("OCR:", eff["prompt"]!.GetValue<string>());
+        Assert.Equal(1024, eff["ollama_num_ctx"]!.GetValue<int>());
     }
 }

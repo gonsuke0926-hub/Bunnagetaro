@@ -102,7 +102,9 @@ public sealed class ConfigKeysRoundTripTests : IDisposable
         {
             var na = (JsonArray)v!.DeepClone();
             // プリセットはいつも自分の "model" を持つ（無いと読み込みでグローバルの model を写す）
-            na.Add(new JsonObject { ["name"] = "追加", ["text"] = "てきすと", ["use_global"] = true, ["model"] = "added:1b" });
+            // プリセットはいつも自分の設定を持つ（グローバルを使うプリセットは読み込みで今の値を写して外す）
+            na.Add(new JsonObject { ["name"] = "追加", ["text"] = "てきすと", ["use_global"] = false, ["model"] = "added:1b",
+                ["settings"] = ConfigStore.PresetSettingsFrom(ConfigStore.DefaultConfig(), null) });
             return na;
         }
         switch (v)

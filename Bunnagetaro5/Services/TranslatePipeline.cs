@@ -73,12 +73,12 @@ public static class TranslatePipeline
         return (string.Join("\n", sys).Trim(), string.Join("\n", usr).Trim());
     }
 
-    /// <summary>ぶん投げ方（"ocr" / "image" / "builtin_ocr"）。
+    /// <summary>ぶん投げ方（"ocr" / "image" / "builtin_ocr" / "vlm_ocr"）。
     /// 古い cfg（throw_mode 無し）はモデル名・ocr_split_mode から補う。</summary>
     public static string ThrowModeOf(JsonObject cfg)
     {
         string tm = ConfigStore.NodeToStr(cfg["throw_mode"]).Trim();
-        if (tm is ConfigStore.ThrowModeOcr or ConfigStore.ThrowModeImage or ConfigStore.ThrowModeBuiltinOcr)
+        if (tm is ConfigStore.ThrowModeOcr or ConfigStore.ThrowModeImage or ConfigStore.ThrowModeBuiltinOcr or ConfigStore.ThrowModeVlmOcr)
             return tm;
         if (BuiltinOcr.IsBuiltin(OllamaClient.ModelOf(cfg)))
             return ConfigStore.ThrowModeBuiltinOcr;
@@ -317,6 +317,32 @@ public static class TranslatePipeline
                 onDelta?.Invoke(read);
                 return read;
             }
+            if (mode == ConfigStore.ThrowModeVlmOcr)
+            {
+                // 前処理を VLM でして AI処理はしない。VLM で読んだ文をそのまま返す
+                // （cfg の model・prompt・生成の値は EffectiveConfig が VLM の物にしてある）
+                var swV = Stopwatch.StartNew();
+                int np = (int)OllamaClient.GenSetting(cfg, "ollama_num_predict");
+                if (LayoutOf(cfg))
+                {
+                    var lay = await ReadRegionsWithVlmAsync(cfg, crop => OcrStageMessages(cfg, crop), imageB64,
+                        onDelta, onThinking, ct, deltaMinIntervalSec, diag, calls, np, onLayout);
+                    if (lay is not null)
+                    {
+                        if (diag is not null)
+                        {
+                            diag["pipeline"] = "vlm_ocr_layout";
+                            diag["ocr_sec"] = Sec(swV);
+                        }
+                        return WithTruncationNotice(string.Join("\n", lay.Select(b => b.Text)), calls, diag);
+                    }
+                }
+                if (diag is not null) diag["pipeline"] = "vlm_ocr";
+                var resV = await OllamaClient.StreamChatAsync(cfg, OcrStageMessages(cfg, imageB64),
+                    onDelta, onThinking, ct, np, deltaMinIntervalSec, calls);
+                if (diag is not null) diag["ocr_sec"] = Sec(swV);
+                return WithTruncationNotice(resV, calls, diag);
+            }
             if (mode == ConfigStore.ThrowModeOcr)
                 return WithTruncationNotice(
                     await TranslateTranscribedAsync(cfg, imageB64, onDelta, onThinking,
@@ -382,6 +408,7 @@ public static class TranslatePipeline
                 v["model"] = vm;
                 string vp = ConfigStore.NodeToStr(cfg["ocr_vlm_prompt"]).Trim();
                 v["prompt"] = vp.Length > 0 ? vp : ConfigStore.OcrPresetText;
+                ConfigStore.ApplyVlmGen(v, cfg);   // 前処理の生成の値
                 ocrCfg = v;
             }
         }

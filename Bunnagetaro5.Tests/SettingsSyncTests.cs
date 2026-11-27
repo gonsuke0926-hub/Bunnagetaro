@@ -186,7 +186,7 @@ public class SettingsSyncTests : IDisposable
             foreach (var item in presetCb.Items)
             {
                 string s = item?.ToString() ?? "";
-                if (s != SettingsPage.GlobalEntry && s != cfg.Settings.PromptActive)
+                if (s != cfg.Settings.PromptActive)
                 {
                     targetPreset = s;
                     break;
