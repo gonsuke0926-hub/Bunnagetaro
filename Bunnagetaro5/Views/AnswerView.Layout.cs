@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -25,9 +25,12 @@ public partial class AnswerView
     /// <summary>字の大きさの上限・下限（DIP）</summary>
     internal const double LayoutMaxFont = 48, LayoutMinFont = 8;
 
-    /// <summary>区画の割合を掛ける広さ（DIP）。並べ始めた時の描き板の広さで決めて、窓の大きさを変えても変えない
-    /// （区画は撮った時の画面の位置に残す。広げると枠だけ広がり、縮めると外は切れる）。0 ならまだ決めていない</summary>
+    /// <summary>区画の割合を掛ける広さ（DIP）。縁で窓の大きさを変え始めるまでは今の描き板の広さに付いていき、
+    /// 変え始めたらその時の広さで止める（区画は撮った時の画面の位置に残す。広げると枠だけ広がり、縮めると外は切れる）。
+    /// 並べ始めた時の広さで止めると、描き板がまだ伸びきる前の広さで固まって区画が上へ縮む</summary>
     private double _layoutBaseW, _layoutBaseH;
+    /// <summary>広さを止めた（縁で大きさを変え始めた）。新しい区画を並べると false に戻る</summary>
+    private bool _layoutBasePinned;
     /// <summary>左や上の縁で大きさを変えた分だけ、区画を逆向きにずらす量（DIP）</summary>
     private double _layoutShiftX, _layoutShiftY;
 
@@ -35,14 +38,14 @@ public partial class AnswerView
     {
         Grid.SetRow(_layoutCanvas, 0);
         grid.Children.Add(_layoutCanvas);
-        // 広さを決めた後は、窓の大きさが変わっても区画の位置・大きさは変わらない（測り直しても同じ広さで測る）
+        // 広さを止めた後は、窓の大きさが変わっても区画の位置・大きさは変わらない（測り直しても同じ広さで測る）
         _layoutCanvas.SizeChanged += (_, _) => PlaceLayout();
     }
 
-    /// <summary>区画の割合を掛ける広さ。まだ決めていなければ今の描き板の広さで決める</summary>
+    /// <summary>区画の割合を掛ける広さ。止めていなければ（止めた広さが無ければ）今の描き板の広さ</summary>
     private (double W, double H) LayoutBase()
     {
-        if (_layoutBaseW <= 1 || _layoutBaseH <= 1)
+        if (!_layoutBasePinned || _layoutBaseW <= 1 || _layoutBaseH <= 1)
         {
             double cw = _layoutCanvas.ActualWidth, ch = _layoutCanvas.ActualHeight;
             if (cw <= 1 || ch <= 1) return (0, 0);
@@ -56,11 +59,22 @@ public partial class AnswerView
     /// 区画を逆向きにずらして、撮った時の画面の位置に残す</summary>
     internal void ShiftLayoutOrigin(int dxPx, int dyPx)
     {
+        PinLayoutBase();
         if (_layout is null || _layoutBaseW <= 1) return;
         var dpi = VisualTreeHelper.GetDpi(this);
         _layoutShiftX -= dxPx / dpi.DpiScaleX;
         _layoutShiftY -= dyPx / dpi.DpiScaleY;
         PlaceLayout(remeasure: false);
+    }
+
+    /// <summary>縁で窓の大きさを変え始めた。区画の割合を掛ける広さを、今の描き板の広さで止める
+    /// （もう止めていれば何もしない）</summary>
+    internal void PinLayoutBase()
+    {
+        if (_layout is null || _layoutBasePinned) return;
+        var (w, h) = LayoutBase();
+        if (w <= 1 || h <= 1) return;
+        _layoutBasePinned = true;
     }
 
     /// <summary>区画を置く時のずらし量（テスト用）</summary>
@@ -154,7 +168,8 @@ public partial class AnswerView
         if (_logMode || !LayoutAllowed) blocks = null;
         foreach (var old in _layoutViews) old.ClearBody();   // 描き途中の KaTeX タスク等を確実にキャンセル
         _layout = blocks is { Count: > 0 } ? blocks : null;
-        _layoutBaseW = _layoutBaseH = 0;   // 新しい区画は、並べ始めた時の広さで決め直す
+        _layoutBaseW = _layoutBaseH = 0;   // 新しい区画は、また今の描き板の広さに付いていく
+        _layoutBasePinned = false;
         _layoutShiftX = _layoutShiftY = 0;
         _layoutCanvas.Children.Clear();
         _layoutViews.Clear();

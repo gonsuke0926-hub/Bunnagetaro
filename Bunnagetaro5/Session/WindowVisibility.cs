@@ -434,6 +434,9 @@ internal sealed class WindowVisibility : IDisposable
 
         if (active)
         {
+            // 大きさを変える前の広さで、位置の反映の区画の広さを止める（変えた後も撮った時の画面の位置に残す）
+            try { panel.View.PinLayoutBase(); }
+            catch (Exception ex) { AppLog.Error("panel layout pin", ex); }
             if (!panel.IsVisible) return;
             // 解答欄がアクティブのまま隠すとアクティブが他アプリへ逃げ、窓ごと移動が止まる。先にキャプチャ窓へ移す
             _panelDragWasActive = panel.IsActive;

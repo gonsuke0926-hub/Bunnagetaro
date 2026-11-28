@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -111,6 +111,7 @@ public sealed class LayoutViewTests : IDisposable
             double w1 = v.LayoutBlocks[1].Width;
             Assert.Equal(0.50 * cw, x1, 3);
 
+            v.PinLayoutBase();     // 縁で大きさを変え始めた（キャプチャ窓から）
             Layout(v, 800, 600);   // 広げても枠だけ広がる
             Assert.Equal(x1, Canvas.GetLeft(v.LayoutBlocks[1]), 3);
             Assert.Equal(y1, Canvas.GetTop(v.LayoutBlocks[1]), 3);
@@ -123,6 +124,22 @@ public sealed class LayoutViewTests : IDisposable
             v.SetLayout(Two);      // 新しい区画は、その時の広さで決め直す
             v.ApplyBody("a\nb");
             Layout(v, 250, 201);
+            Assert.Equal(0.50 * v.LayoutCanvas.ActualWidth, Canvas.GetLeft(v.LayoutBlocks[1]), 3);
+        });
+    }
+
+    [Fact]
+    public void J145_縁で大きさを変えるまでは区画は今の描き板の広さに付いていく()
+    {
+        OnSta(() =>
+        {
+            var v = NewView();
+            v.SetLayout(Two);
+            v.ApplyBody("a\nb");
+            Layout(v, 400, 120);   // 並べ始めた時はまだ描き板が伸びきっていない
+            Layout(v, 400, 300);   // 伸びきった広さで置き直す（縦が縮んだまま固まらない）
+            double ch = v.LayoutCanvas.ActualHeight;
+            Assert.Equal(Two[1].Y * ch, Canvas.GetTop(v.LayoutBlocks[1]), 3);
             Assert.Equal(0.50 * v.LayoutCanvas.ActualWidth, Canvas.GetLeft(v.LayoutBlocks[1]), 3);
         });
     }
