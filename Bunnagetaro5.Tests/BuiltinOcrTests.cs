@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -754,6 +754,28 @@ public class BuiltinOcrTests : IDisposable
         Assert.Equal(2, kept.Count);
         Assert.Contains(a, kept);
         Assert.DoesNotContain(b, kept);
+    }
+
+    [Fact]
+    public void J146_大きい区画の中にほぼ入っている小さい区画は捨てる()
+    {
+        var line = new LayoutRegion(Rectangle.FromLTRB(60, 80, 1010, 112), "text", 0.80f, 10);
+        var inl = new LayoutRegion(Rectangle.FromLTRB(150, 82, 245, 118), "inline_formula", 0.90f, 11);   // 下が少しはみ出る
+        var num = new LayoutRegion(Rectangle.FromLTRB(1030, 190, 1070, 215), "formula_number", 0.90f, 20);
+        var next = new LayoutRegion(Rectangle.FromLTRB(60, 105, 600, 140), "text", 0.85f, 30);   // 隣の段落は少し重なるだけ
+        var kept = LayoutModel.Dedupe(new() { line, inl, num, next });
+        Assert.DoesNotContain(inl, kept);
+        Assert.Contains(line, kept);
+        Assert.Contains(num, kept);
+        Assert.Contains(next, kept);
+
+        // 設定で OFF なら今まで通り（ほぼ同じ所だけ除く）
+        var all = LayoutModel.Dedupe(new() { line, inl, num, next }, dropInside: false);
+        Assert.Contains(inl, all);
+        Assert.Equal(4, all.Count);
+        Assert.True(LayoutParams.DropInsideOf(null));
+        Assert.True(LayoutParams.DropInsideOf(new System.Text.Json.Nodes.JsonObject()));
+        Assert.False(LayoutParams.DropInsideOf(new System.Text.Json.Nodes.JsonObject { ["layout_drop_inside"] = false }));
     }
 
     [Fact]

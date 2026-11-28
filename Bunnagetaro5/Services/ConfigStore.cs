@@ -208,6 +208,7 @@ public sealed partial class ConfigStore
             ["builtin_ocr_layout"] = false,   // 内蔵 OCR の時、読み取った位置に並べる
             // 位置の反映の細かい値（全体で1つ。設定ページの「位置の反映（内蔵OCR）」）
             ["layout_text_bg"] = true,   // 区画の所だけに背景（マスク）
+            ["layout_drop_inside"] = true,   // 大きい区画の中にほぼ入っている小さい区画を捨てる
             ["layout_score_thresh"] = LayoutParams.Default.ScoreThresh,   // 区画判定のしきい値
             ["layout_batch_chars"] = LayoutParams.Default.BatchChars,
             ["layout_label_words"] = LayoutParams.Default.LabelWords,

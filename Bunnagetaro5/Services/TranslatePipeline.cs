@@ -307,7 +307,7 @@ public static class TranslatePipeline
                 {
                     // 段落ごとの文と位置。答えは1行＝1段落
                     float scoreThresh = (float)LayoutParams.From(cfg).ScoreThresh;
-                    var blocks = await BuiltinOcr.ReadBlocksAsync(imageB64, ct, diag, model: BuiltinOcrModelOf(cfg), onRegions: onLayout, scoreThreshold: scoreThresh);   // 区画が分かった所でマスクを出す
+                    var blocks = await BuiltinOcr.ReadBlocksAsync(imageB64, ct, diag, model: BuiltinOcrModelOf(cfg), onRegions: onLayout, scoreThreshold: scoreThresh, dropInside: LayoutParams.DropInsideOf(cfg));   // 区画が分かった所でマスクを出す
                     if (diag is not null) diag["layout_blocks"] = blocks.Count;
                     read = string.Join("\n", blocks.Select(b => OneLine(b.Text)));
                     if (blocks.Count > 0) onLayout?.Invoke(blocks);
@@ -424,7 +424,7 @@ public static class TranslatePipeline
                 if (LayoutOf(cfg))
                 {
                     // 段落ごとの文と位置（段落は1行。訳も段落ごとに上書きする）
-                    blocks = await BuiltinOcr.ReadBlocksAsync(imageB64, ct, diag, model: builtinModel, onRegions: onLayout, scoreThreshold: (float)LayoutParams.From(cfg).ScoreThresh);   // 区画が分かった所でマスクを出す
+                    blocks = await BuiltinOcr.ReadBlocksAsync(imageB64, ct, diag, model: builtinModel, onRegions: onLayout, scoreThreshold: (float)LayoutParams.From(cfg).ScoreThresh, dropInside: LayoutParams.DropInsideOf(cfg));   // 区画が分かった所でマスクを出す
                     transcript = string.Join("\n", blocks.Select(b => OneLine(b.Text)));
                     if (blocks.Count > 0) onLayout?.Invoke(blocks);
                 }
@@ -586,7 +586,7 @@ public static class TranslatePipeline
         Dictionary<string, object?>? diag, List<Dictionary<string, object?>> calls, int numPredict,
         Action<IReadOnlyList<OcrBlock>>? onLayout)
     {
-        var (regions, crops) = await BuiltinOcr.DetectRegionCropsAsync(imageB64, ct, diag, (float)LayoutParams.From(reqCfg).ScoreThresh);
+        var (regions, crops) = await BuiltinOcr.DetectRegionCropsAsync(imageB64, ct, diag, (float)LayoutParams.From(reqCfg).ScoreThresh, LayoutParams.DropInsideOf(reqCfg));
         if (regions.Count == 0) return null;
         onLayout?.Invoke(regions);
         var texts = new string[regions.Count];

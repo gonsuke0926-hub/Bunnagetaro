@@ -33,6 +33,7 @@ public partial class SettingsPage
     /// <summary>レイアウト判定の細かい値（全体で1つ。cfg の root に書く）</summary>
     private readonly List<NumCtl> _layoutNums = new();
     private CheckBox _layoutTextBgChk = null!;
+    private CheckBox _layoutDropInsideChk = null!;
 
     private sealed record StepCardParts(
         Border Card,
@@ -59,6 +60,11 @@ public partial class SettingsPage
         _layoutTextBgChk.Checked += (_, _) => { _cfg.Settings.LayoutTextBg = true; SaveSoon(); };
         _layoutTextBgChk.Unchecked += (_, _) => { _cfg.Settings.LayoutTextBg = false; SaveSoon(); };
         layExp.Children.Add(new SettingRow("区画の所だけに背景を付ける", "OFF にすると解答欄全体に背景を敷きます", _layoutTextBgChk).AsGrouped());
+        _layoutDropInsideChk = MakeSwitch("LayoutDropInsideChk", _cfg.Settings.LayoutDropInside);
+        _layoutDropInsideChk.Checked += (_, _) => { _cfg.Settings.LayoutDropInside = true; SaveSoon(); };
+        _layoutDropInsideChk.Unchecked += (_, _) => { _cfg.Settings.LayoutDropInside = false; SaveSoon(); };
+        layExp.Children.Add(MakeDivider());
+        layExp.Children.Add(new SettingRow("重なった区画をまとめる", "大きい区画の中にほぼ入っている小さい区画（文の中の式など）を読まずに、大きい区画で一緒に読みます", _layoutDropInsideChk).AsGrouped());
         _layoutNums.Clear();
         for (int i = 0; i < LayoutParams.Specs.Length; i++)
         {
@@ -71,7 +77,7 @@ public partial class SettingsPage
         layReset.Click += (_, _) => ResetLayoutParams(firstBox: true);
         var d = LayoutParams.Default;
         layExp.Children.Add(MakeDivider());
-        layExp.Children.Add(new SettingRow("既定に戻す", $"既定: 区画の所だけ / {d.ScoreThresh:0.##}", layReset).AsGrouped());
+        layExp.Children.Add(new SettingRow("既定に戻す", $"既定: 区画の所だけ / まとめる / {d.ScoreThresh:0.##}", layReset).AsGrouped());
         _layBody.Children.Add(MakeExpertWrap(layExp, withTopDivider: true));
         _layStep = MakeStepCard("FlowLayoutBox", "1", "レイアウト判定", "画面の区画を探して、読んだ文を元の位置に並べます", _layUse, null, _layBody);
 
@@ -440,7 +446,11 @@ public partial class SettingsPage
             n.Box.BorderBrush = SettingRow.NormalBorderBrush();
             n.Invalid = false;
         }
-        if (firstBox) _layoutTextBgChk.IsChecked = true;
+        if (firstBox)
+        {
+            _layoutTextBgChk.IsChecked = true;
+            _layoutDropInsideChk.IsChecked = true;
+        }
         SaveSoon();
     }
 }

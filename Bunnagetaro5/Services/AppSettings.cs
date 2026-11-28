@@ -137,6 +137,8 @@ public sealed class AppSettings : INotifyPropertyChanged
     public bool ShowFollowRow { get => B("show_follow_row", false); set => W("show_follow_row", value); }
     // 位置の反映の時、文字の所だけ地を敷く（上級者。全体で1つ）
     public bool LayoutTextBg { get => B("layout_text_bg", true); set => W("layout_text_bg", value); }
+    // 位置の反映の時、大きい区画の中にほぼ入っている小さい区画を捨てる（上級者。全体で1つ）
+    public bool LayoutDropInside { get => B("layout_drop_inside", true); set => W("layout_drop_inside", value); }
     /// <summary>設定画面で上級者モード（詳細設定）を表示するか</summary>
     public bool ExpertMode { get => B("expert_mode", false); set => W("expert_mode", value); }
     /// <summary>配信・録画（OBS 等）にキャプチャ枠・バー・解答欄を映すか（既定 false＝WDA_EXCLUDEFROMCAPTURE）</summary>

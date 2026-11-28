@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -61,7 +61,7 @@ public sealed class LayoutModel : IDisposable
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "Models", "pp-doclayoutv3", "layout.onnx");
 
     /// <summary>区画を見つける（bgr は w×h の BGR の画素）。読む順番に並べて返す</summary>
-    public List<LayoutRegion> Detect(byte[] bgr, int w, int h, float scoreThreshold = ScoreThreshold)
+    public List<LayoutRegion> Detect(byte[] bgr, int w, int h, float scoreThreshold = ScoreThreshold, bool dropInside = true)
     {
         var rs = PpOcrPost.ResizeBilinear(bgr, w, h, Size, Size);
         int plane = Size * Size;
@@ -94,16 +94,32 @@ public sealed class LayoutModel : IDisposable
             if (x1 - x0 < 2 || y1 - y0 < 2) continue;
             rows.Add(new LayoutRegion(Rectangle.FromLTRB(x0, y0, x1, y1), label, score, o.Dimensions[1] > 6 ? o[r, 6] : r));
         }
-        return Dedupe(rows).OrderBy(q => q.Order).ToList();
+        return Dedupe(rows, dropInside).OrderBy(q => q.Order).ToList();
     }
 
-    /// <summary>同じ所を2つの種類で出した物（ほぼ重なる）は、確からしい方だけ残す</summary>
-    internal static List<LayoutRegion> Dedupe(List<LayoutRegion> rows)
+    /// <summary>同じ所を2つの種類で出した物（ほぼ重なる）は、確からしい方だけ残す。
+    /// dropInside なら、もっと大きい区画の中にほぼ入っている小さい区画（文の行の中の式だけの区画など）も捨てる
+    /// （残すと同じ所を2度読んで、区画が重なって出る。設定 layout_drop_inside）</summary>
+    internal static List<LayoutRegion> Dedupe(List<LayoutRegion> rows, bool dropInside = true)
     {
         var keep = new List<LayoutRegion>();
         foreach (var q in rows.OrderByDescending(q => q.Score))
             if (!keep.Any(k => IoU(k.R, q.R) > 0.9)) keep.Add(q);
-        return keep;
+        if (!dropInside) return keep;
+        return keep.Where(q => !keep.Any(k => !ReferenceEquals(k, q) && Area(k.R) > Area(q.R) && InsideRatio(q.R, k.R) >= InsideDrop)).ToList();
+    }
+
+    /// <summary>小さい区画の広さのこの割合以上が大きい区画の中なら、小さい方を捨てる</summary>
+    internal const double InsideDrop = 0.6;
+
+    private static double Area(Rectangle r) => (double)r.Width * r.Height;
+
+    /// <summary>a の広さのうち b の中にある割合</summary>
+    internal static double InsideRatio(Rectangle a, Rectangle b)
+    {
+        var i = Rectangle.Intersect(a, b);
+        if (i.IsEmpty || a.Width <= 0 || a.Height <= 0) return 0;
+        return (double)i.Width * i.Height / Area(a);
     }
 
     internal static double IoU(Rectangle a, Rectangle b)

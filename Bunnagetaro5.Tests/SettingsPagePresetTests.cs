@@ -784,6 +784,28 @@ public class SettingsPagePresetTests : IDisposable
     }
 
     [Fact]
+    public void J146_重なった区画をまとめるはレイアウト判定の上級者の所で全体に1つ_既定ONで既定に戻すでもON()
+    {
+        OnSta(() =>
+        {
+            var page = MakePage(out var cfg);
+            var chk = FindLogical<CheckBox>(page, "LayoutDropInsideChk")!;
+            DependencyObject? d = chk;
+            while (d is not null && !(d is FrameworkElement fe && fe.Name == "FlowLayoutBox")) d = LogicalTreeHelper.GetParent(d);
+            Assert.NotNull(d);
+            Assert.True(chk.IsChecked);
+            Assert.True(cfg.Settings.LayoutDropInside);
+            chk.IsChecked = false;
+            Assert.False(cfg.Settings.LayoutDropInside);
+            Assert.False(LayoutParams.DropInsideOf(cfg.Root));
+            Click(FindLogical<Button>(page, "LayoutReset")!);
+            Assert.True(chk.IsChecked);
+            Assert.True(cfg.Settings.LayoutDropInside);
+            return true;
+        });
+    }
+
+    [Fact]
     public void J123_レイアウト判定の箱にPP_DocLayoutV3内蔵が載り翻訳とOCRは既定でする()
     {
         OnSta(() =>

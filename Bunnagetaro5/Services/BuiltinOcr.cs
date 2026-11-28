@@ -167,10 +167,10 @@ public static class BuiltinOcr
     /// やめる時は OllamaCancelledException</summary>
     public static Task<List<OcrBlock>> ReadBlocksAsync(string imageB64, CancellationToken ct = default,
         Dictionary<string, object?>? diag = null, string? model = null, Action<IReadOnlyList<OcrBlock>>? onRegions = null,
-        float scoreThreshold = LayoutModel.ScoreThreshold) =>
+        float scoreThreshold = LayoutModel.ScoreThreshold, bool dropInside = true) =>
         RunCoreAsync(imageB64, ct, diag, model, (eng, bgr, w, h) =>
         {
-            var regions = DetectRegions(bgr, w, h, diag, scoreThreshold);
+            var regions = DetectRegions(bgr, w, h, diag, scoreThreshold, dropInside);
             if (regions is { Count: > 0 })
                 onRegions?.Invoke(regions.Select(q => OcrBlock.FromPixels("", q.R, w, h)).ToList());
             ct.ThrowIfCancellationRequested();
@@ -230,7 +230,7 @@ public static class BuiltinOcr
 
     /// <summary>区画を見つける（RunLock の中で呼ぶ）。モデルが使えなければ null</summary>
     internal static List<LayoutRegion>? DetectRegions(byte[] bgr, int w, int h, Dictionary<string, object?>? diag,
-        float scoreThreshold = LayoutModel.ScoreThreshold)
+        float scoreThreshold = LayoutModel.ScoreThreshold, bool dropInside = true)
     {
         lock (Gate)
         {
@@ -254,7 +254,7 @@ public static class BuiltinOcr
         try
         {
             var sw = Stopwatch.StartNew();
-            var regions = _layoutModel.Detect(bgr, w, h, scoreThreshold);
+            var regions = _layoutModel.Detect(bgr, w, h, scoreThreshold, dropInside);
             if (diag is not null)
             {
                 diag["layout_model_ms"] = Math.Round(sw.Elapsed.TotalMilliseconds, 1);
@@ -275,7 +275,7 @@ public static class BuiltinOcr
     /// 区画が無い・モデルが使えない時は空。内蔵 OCR は使わない（読み込まない）</summary>
     public static Task<(List<OcrBlock> Blocks, List<string> Crops)> DetectRegionCropsAsync(string imageB64,
         CancellationToken ct = default, Dictionary<string, object?>? diag = null,
-        float scoreThreshold = LayoutModel.ScoreThreshold)
+        float scoreThreshold = LayoutModel.ScoreThreshold, bool dropInside = true)
     {
         byte[] png = Convert.FromBase64String(imageB64);
         return Task.Run(async () =>
@@ -285,7 +285,7 @@ public static class BuiltinOcr
             try
             {
                 var (bgr, w, h) = DecodeBgr(png);
-                var regions = DetectRegions(bgr, w, h, diag, scoreThreshold);
+                var regions = DetectRegions(bgr, w, h, diag, scoreThreshold, dropInside);
                 var blocks = new List<OcrBlock>();
                 var crops = new List<string>();
                 if (regions is null) return (blocks, crops);

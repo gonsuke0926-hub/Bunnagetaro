@@ -40,4 +40,8 @@ public sealed record LayoutParams(
         }
         return new LayoutParams((int)V(1), (int)V(2), (int)V(3), V(0));
     }
+
+    /// <summary>大きい区画の中にほぼ入っている小さい区画を捨てるか（layout_drop_inside。全体で1つ・既定 ON）</summary>
+    public static bool DropInsideOf(JsonObject? cfg) =>
+        cfg?["layout_drop_inside"] is not JsonValue v || v.GetValueKind() != System.Text.Json.JsonValueKind.False;
 }
