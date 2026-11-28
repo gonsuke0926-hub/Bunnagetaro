@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -51,7 +51,7 @@ public static class CellMath
             if (end > i)
             {
                 string inner = s.Substring(i + open, end - i - open);
-                bool ok = inner.Trim().Length > 0 && (open == 2 || (!char.IsWhiteSpace(inner[0]) && !char.IsWhiteSpace(inner[^1])));
+                bool ok = open == 2 ? inner.Trim().Length > 0 : MathText.ValidInline(inner);
                 if (ok)
                 {
                     Flush(segs, text);

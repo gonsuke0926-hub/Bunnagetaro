@@ -196,6 +196,17 @@ public class CaptureWindow : Window
     /// 窓の中の解答欄は引いている間だけ隠れる（透過窓は位置と大きさが同時に変わるとうねるため）</summary>
     internal event Action<bool>? DummyDragChanged;
 
+    /// <summary>縁を引いて大きさを変えた時、窓の左上が画面の上で動いた量（物理px）。動かしただけの時は来ない。
+    /// 位置の反映の区画を、撮った時の画面の位置に残すために使う</summary>
+    internal event Action<int, int>? EdgeResized;
+
+    private void RaiseEdgeResized(Native.RECT from, Native.RECT to)
+    {
+        if (from.Right - from.Left == to.Right - to.Left && from.Bottom - from.Top == to.Bottom - to.Top) return;   // 大きさが同じ＝動かしただけ
+        try { EdgeResized?.Invoke(to.Left - from.Left, to.Top - from.Top); }
+        catch (Exception ex) { AppLog.Error("capture edge resized", ex); }
+    }
+
     // ダミーを使わないサイズ変更（右・下・右下）の間、解答欄を隠している
     private bool _sizeHidden;
     /// <summary>縁でサイズを変えている間（ダミー枠でも OS のサイズ変更でも）true。窓の中の解答欄が隠れている間</summary>
@@ -280,6 +291,8 @@ public class CaptureWindow : Window
         if (commit)
         {
             // 位置と大きさを1回で（Moving が最後の矩形でバー・解答欄を合わせる。保存もここから）
+            // 解答欄は隠れている間に、区画をずらす量を先に渡す（出し直した時に元の画面の位置に合っている）
+            RaiseEdgeResized(_dragStartRect, last);
             Native.SetWindowPos(hwnd, IntPtr.Zero, last.Left, last.Top, last.Right - last.Left, last.Bottom - last.Top,
                 Native.SWP_NOZORDER | Native.SWP_NOACTIVATE);
         }
@@ -321,6 +334,15 @@ public class CaptureWindow : Window
     /// <summary>自前で動かしている最中（中を掴んでいる間）</summary>
     internal bool OwnMoving => _ownMove;
 
+    /// <summary>中（解答欄の余白も）を押した時 true、離した時 false。押している間は窓の中の解答欄を隠して下を見せる</summary>
+    internal event Action<bool>? HoldChanged;
+
+    private void RaiseHoldChanged(bool down)
+    {
+        try { HoldChanged?.Invoke(down); }
+        catch (Exception ex) { AppLog.Error("capture hold changed", ex); }
+    }
+
     /// <summary>掴み始めの左上・カーソルから、いまのカーソルでの左上（物理px）</summary>
     internal static (int X, int Y) OwnMovePos(Native.RECT start, Native.POINT startCursor, Native.POINT cursor)
         => (start.Left + cursor.X - startCursor.X, start.Top + cursor.Y - startCursor.Y);
@@ -333,6 +355,7 @@ public class CaptureWindow : Window
         if (!CaptureMouse()) { _ownMove = false; return false; }
         System.Windows.Input.Mouse.OverrideCursor = System.Windows.Input.Cursors.SizeAll;
         BeginMoveDrag();   // 動かす間はダミー枠（作れなければ本物の窓をそのまま動かす）
+        RaiseHoldChanged(true);
         return true;
     }
 
@@ -352,6 +375,7 @@ public class CaptureWindow : Window
         System.Windows.Input.Mouse.OverrideCursor = null;
         if (IsMouseCaptured) ReleaseMouseCapture();
         EndMoveDrag();
+        RaiseHoldChanged(false);
     }
 
     // ---------------- 窓ごと動かす間はダミー枠（中を掴む・バーのハンドル） ----------------
@@ -477,6 +501,7 @@ public class CaptureWindow : Window
             {
                 // 右・下・右下（OS のサイズ変更）の終わり。窓の矩形が決まってから解答欄を出し直す
                 _sizeHidden = false;
+                if (Native.GetWindowRect(hwnd, out var endRect)) RaiseEdgeResized(_moveStartRect, endRect);
                 try { DummyDragChanged?.Invoke(false); }
                 catch (Exception ex) { AppLog.Error("capture size drag show", ex); }
             }

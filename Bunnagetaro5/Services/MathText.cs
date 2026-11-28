@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -141,9 +141,16 @@ public static class MathText
     }
 
     /// <summary>文中の $...$ として認める形か。両端が空白だと値段の $ などで
-    /// 化ける（"cost $5 or $10" を式にしない）</summary>
-    private static bool ValidInline(string inner)
-        => inner.Length > 0 && !char.IsWhiteSpace(inner[0]) && !char.IsWhiteSpace(inner[^1]);
+    /// 化ける（"cost $5 or $10" を式にしない）。ただし両端が空白でも、中に LaTeX の印
+    /// （\ _ ^ {）があれば式にする（OCR が "$ x_{1} $" と空白付きで出すため）</summary>
+    internal static bool ValidInline(string inner)
+    {
+        if (inner.Trim().Length == 0) return false;
+        if (!char.IsWhiteSpace(inner[0]) && !char.IsWhiteSpace(inner[^1])) return true;
+        return inner.IndexOfAny(TexMarks) >= 0;
+    }
+
+    private static readonly char[] TexMarks = { '\\', '_', '^', '{' };
 
     // ---------------- LaTeX のコピーの形 ----------------
 

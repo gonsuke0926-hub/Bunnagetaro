@@ -25,12 +25,46 @@ public partial class AnswerView
     /// <summary>字の大きさの上限・下限（DIP）</summary>
     internal const double LayoutMaxFont = 48, LayoutMinFont = 8;
 
+    /// <summary>区画の割合を掛ける広さ（DIP）。並べ始めた時の描き板の広さで決めて、窓の大きさを変えても変えない
+    /// （区画は撮った時の画面の位置に残す。広げると枠だけ広がり、縮めると外は切れる）。0 ならまだ決めていない</summary>
+    private double _layoutBaseW, _layoutBaseH;
+    /// <summary>左や上の縁で大きさを変えた分だけ、区画を逆向きにずらす量（DIP）</summary>
+    private double _layoutShiftX, _layoutShiftY;
+
     private void BuildLayoutCanvas(Grid grid)
     {
         Grid.SetRow(_layoutCanvas, 0);
         grid.Children.Add(_layoutCanvas);
+        // 広さを決めた後は、窓の大きさが変わっても区画の位置・大きさは変わらない（測り直しても同じ広さで測る）
         _layoutCanvas.SizeChanged += (_, _) => PlaceLayout();
     }
+
+    /// <summary>区画の割合を掛ける広さ。まだ決めていなければ今の描き板の広さで決める</summary>
+    private (double W, double H) LayoutBase()
+    {
+        if (_layoutBaseW <= 1 || _layoutBaseH <= 1)
+        {
+            double cw = _layoutCanvas.ActualWidth, ch = _layoutCanvas.ActualHeight;
+            if (cw <= 1 || ch <= 1) return (0, 0);
+            _layoutBaseW = cw;
+            _layoutBaseH = ch;
+        }
+        return (_layoutBaseW, _layoutBaseH);
+    }
+
+    /// <summary>キャプチャ窓の左上が画面の上で dx, dy（物理px）動いた（縁で大きさを変えた）。
+    /// 区画を逆向きにずらして、撮った時の画面の位置に残す</summary>
+    internal void ShiftLayoutOrigin(int dxPx, int dyPx)
+    {
+        if (_layout is null || _layoutBaseW <= 1) return;
+        var dpi = VisualTreeHelper.GetDpi(this);
+        _layoutShiftX -= dxPx / dpi.DpiScaleX;
+        _layoutShiftY -= dyPx / dpi.DpiScaleY;
+        PlaceLayout(remeasure: false);
+    }
+
+    /// <summary>区画を置く時のずらし量（テスト用）</summary>
+    internal Vector LayoutShift => new(_layoutShiftX, _layoutShiftY);
 
     /// <summary>位置どおりに並べて見せている（テスト用）</summary>
     internal bool LayoutShown => _layoutCanvas.Visibility == Visibility.Visible;
@@ -120,6 +154,8 @@ public partial class AnswerView
         if (_logMode || !LayoutAllowed) blocks = null;
         foreach (var old in _layoutViews) old.ClearBody();   // 描き途中の KaTeX タスク等を確実にキャンセル
         _layout = blocks is { Count: > 0 } ? blocks : null;
+        _layoutBaseW = _layoutBaseH = 0;   // 新しい区画は、並べ始めた時の広さで決め直す
+        _layoutShiftX = _layoutShiftY = 0;
         _layoutCanvas.Children.Clear();
         _layoutViews.Clear();
         _layoutRawTexts.Clear();
@@ -305,7 +341,7 @@ public partial class AnswerView
     private void PlaceLayout(bool remeasure, IReadOnlyList<int>? onlyIndices = null)
     {
         if (_layout is null || _layoutCanvas.Visibility != Visibility.Visible) return;
-        double cw = _layoutCanvas.ActualWidth, ch = _layoutCanvas.ActualHeight;
+        var (cw, ch) = LayoutBase();
         if (cw <= 1 || ch <= 1) return;
         double baseFont = Math.Clamp(_body.FontSize, LayoutMinFont, LayoutMaxFont);
         if (onlyIndices is not null)
@@ -321,12 +357,14 @@ public partial class AnswerView
         var b = _layout![i];
         var item = _layoutViews[i];
         string txt = _layoutRawTexts[i];
-        double x = b.X * cw, y = b.Y * ch;
+        double x = b.X * cw, y = b.Y * ch;   // 広さ・空きは撮った時の広さで測る（ずらし量は置く時だけ足す）
         double w = Math.Max(LayoutMinFont, b.W * cw);
         double right = RightLimit(i);
         double wide = Math.Max(w, right * cw - x - 2);
         double hOwn = Math.Max(Math.Max(LayoutMinFont, b.H * ch), BottomLimit(i, b.X + b.W) * ch - y - 2);
         double hWide = Math.Max(Math.Max(LayoutMinFont, b.H * ch), BottomLimit(i, right) * ch - y - 2);
+        x += _layoutShiftX;
+        y += _layoutShiftY;
         double start = baseFont;
         if (!remeasure && i < _layoutFonts.Count && _layoutFonts[i] > 0) start = Math.Min(start, _layoutFonts[i]);
 
@@ -356,7 +394,7 @@ public partial class AnswerView
     private void SyncMaskFromActual(int i)
     {
         if (_layout is null || i < 0 || i >= _layout.Count || i >= _layoutMasks.Count || i >= _layoutViews.Count) return;
-        double cw = _layoutCanvas.ActualWidth, ch = _layoutCanvas.ActualHeight;
+        double cw = _layoutBaseW, ch = _layoutBaseH;
         if (cw <= 1 || ch <= 1 || string.IsNullOrEmpty(_layoutRawTexts[i])) return;
         var b = _layout[i];
         var item = _layoutViews[i];

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Bunnagetaro5.Services;
 using Bunnagetaro5.Session;
 using Bunnagetaro5.Views;
@@ -97,7 +98,7 @@ public sealed class LayoutViewTests : IDisposable
     }
 
     [Fact]
-    public void J97_欄の大きさを変えると付いてくる()
+    public void J142_欄の大きさを変えても区画は撮った時の位置と大きさのまま()
     {
         OnSta(() =>
         {
@@ -105,10 +106,48 @@ public sealed class LayoutViewTests : IDisposable
             v.SetLayout(Two);
             v.ApplyBody("a\nb");
             Layout(v, 400, 300);
-            double x1 = Canvas.GetLeft(v.LayoutBlocks[1]);
-            Layout(v, 800, 300);
+            double cw = v.LayoutCanvas.ActualWidth, ch = v.LayoutCanvas.ActualHeight;
+            double x1 = Canvas.GetLeft(v.LayoutBlocks[1]), y1 = Canvas.GetTop(v.LayoutBlocks[1]);
+            double w1 = v.LayoutBlocks[1].Width;
+            Assert.Equal(0.50 * cw, x1, 3);
+
+            Layout(v, 800, 600);   // 広げても枠だけ広がる
+            Assert.Equal(x1, Canvas.GetLeft(v.LayoutBlocks[1]), 3);
+            Assert.Equal(y1, Canvas.GetTop(v.LayoutBlocks[1]), 3);
+            Assert.Equal(w1, v.LayoutBlocks[1].Width, 3);
+
+            Layout(v, 250, 200);   // 縮めても動かさない（外は描き板で切れる）
+            Assert.Equal(x1, Canvas.GetLeft(v.LayoutBlocks[1]), 3);
+            Assert.True(v.LayoutCanvas.ClipToBounds);
+
+            v.SetLayout(Two);      // 新しい区画は、その時の広さで決め直す
+            v.ApplyBody("a\nb");
+            Layout(v, 250, 201);
             Assert.Equal(0.50 * v.LayoutCanvas.ActualWidth, Canvas.GetLeft(v.LayoutBlocks[1]), 3);
-            Assert.True(Canvas.GetLeft(v.LayoutBlocks[1]) > x1 + 100);
+        });
+    }
+
+    [Fact]
+    public void J142_左上の縁で大きさを変えた分だけ区画を逆向きにずらして画面の同じ場所に残す()
+    {
+        OnSta(() =>
+        {
+            var v = NewView();
+            v.SetLayout(Two);
+            v.ApplyBody("a\nb");
+            Layout(v, 400, 300);
+            double x0 = Canvas.GetLeft(v.LayoutBlocks[0]), y0 = Canvas.GetTop(v.LayoutBlocks[0]);
+            var dpi = VisualTreeHelper.GetDpi(v);
+
+            // 左の縁を 40px・上の縁を 20px 外へ広げた（窓の左上が左上へ動いた）
+            v.ShiftLayoutOrigin(-40, -20);
+            Layout(v, 400 + 40 / dpi.DpiScaleX, 300 + 20 / dpi.DpiScaleY);
+            Assert.Equal(x0 + 40 / dpi.DpiScaleX, Canvas.GetLeft(v.LayoutBlocks[0]), 3);
+            Assert.Equal(y0 + 20 / dpi.DpiScaleY, Canvas.GetTop(v.LayoutBlocks[0]), 3);
+
+            // 左の縁を内へ 60px 縮めた
+            v.ShiftLayoutOrigin(60, 0);
+            Assert.Equal(x0 - 20 / dpi.DpiScaleX, Canvas.GetLeft(v.LayoutBlocks[0]), 3);
         });
     }
     /// <summary>上下に近く並んだ2つの段落（上の段落の下の空きは、下の段落の上端まで）</summary>

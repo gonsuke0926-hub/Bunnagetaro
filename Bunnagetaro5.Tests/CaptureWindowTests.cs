@@ -722,4 +722,72 @@ public class CaptureWindowTests : IDisposable
         var p = CaptureWindow.OwnMovePos(start, new Native.POINT { X = 100, Y = 100 }, new Native.POINT { X = 90, Y = 160 });
         Assert.Equal((0, 80), p);
     }
+
+    /// <summary>窓の中（解答欄の余白）を押している間は解答欄が透明になって下が見え、動かさずに離すと戻る。
+    /// 上の縁で大きさを変えて離すと、窓の左上が動いた量を知らせ、出し直した解答欄は1コマ待ってから見える</summary>
+    [Fact]
+    public void J143_中を押している間は解答欄が透明になり離すと戻る_上の縁で引くと左上の動きを知らせる()
+    {
+        OnSta(() =>
+        {
+            EnsureAppResources();
+            var cfg = new ConfigStore(_paths);
+            cfg.Load();
+            cfg.Settings.CaptureX = -10000;
+            cfg.Settings.CaptureY = 100;
+            cfg.Settings.CaptureWidth = 400;
+            cfg.Settings.CaptureHeight = 300;
+            var w = new CaptureWindow(cfg, _ => { });
+            int cy = 0;
+            w.CursorProvider = () => new Native.POINT { X = 0, Y = cy };
+            w.EscapeDown = () => false;
+            w.Show();
+            var host = new H9Host();
+            var panel = new AnswerPanel(cfg, host, w);
+            using var placer = new WindowPlacer(cfg);
+            using var vis = new WindowVisibility(cfg, placer, () => { }, () => false);
+            placer.SetVisibility(vis);
+            host.Placer = placer;
+            host.Vis = vis;
+            placer.Attach(w, null, panel, null);
+            vis.Attach(w, null, panel, null);
+            var shifts = new System.Collections.Generic.List<(int, int)>();
+            w.EdgeResized += (dx, dy) => shifts.Add((dx, dy));
+            try
+            {
+                panel.ApplyBody("答えです");
+                Assert.True(panel.IsVisible);
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(w).Handle;
+                var wndProc = typeof(CaptureWindow).GetMethod("WndProc", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+                // 押す → 透明（窓は出したまま）。動かさずに離す → 戻る
+                wndProc.Invoke(w, new object?[] { hwnd, Native.WM_NCLBUTTONDOWN, new IntPtr(Native.HTCAPTION), IntPtr.Zero, false });
+                Assert.True(w.OwnMoving);
+                Assert.Equal(0, panel.View.Opacity);
+                w.EndOwnMove();
+                Assert.Equal(1, panel.View.Opacity);
+                Assert.True(panel.IsVisible);
+                Assert.Empty(shifts);   // 動かしただけ・押しただけでは知らせない
+
+                // 上の縁を 40px 下へ引いて離す → 左上が (0, +40) 動いた
+                Native.GetWindowRect(hwnd, out var b);
+                wndProc.Invoke(w, new object?[] { hwnd, Native.WM_ENTERSIZEMOVE, IntPtr.Zero, IntPtr.Zero, false });
+                var (lp, free) = AllocRect(b);
+                try
+                {
+                    cy = 40;
+                    wndProc.Invoke(w, new object?[] { hwnd, Native.WM_SIZING, new IntPtr(Native.WMSZ_TOP), lp, false });
+                    var dummy = (Bunnagetaro5.Input.QuickMarker?)Fld(w, "_dummy");
+                    if (dummy is null || dummy.Failed) return;   // ダミー枠が作れない環境は確かめない
+                }
+                finally { free(); }
+                wndProc.Invoke(w, new object?[] { hwnd, Native.WM_EXITSIZEMOVE, IntPtr.Zero, IntPtr.Zero, false });
+                Assert.Equal(new[] { (0, 40) }, shifts);
+                Assert.True(panel.IsVisible);
+                TestUtil.WaitUntil(() => panel.View.Opacity == 1, 2000);
+                Assert.Equal(1, panel.View.Opacity);   // 並べ直した絵が出てから見える
+            }
+            finally { panel.Close(); w.Close(); }
+        });
+    }
 }

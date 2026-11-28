@@ -100,6 +100,23 @@ public class MathTextTests
     }
 
     [Fact]
+    public void 両端が空白でもLaTeXの印があれば文中の式にする_修正J141()
+    {
+        const string src = "Given an input sequence $ x=(x_{1},...,x_{n}) $ , the scaled";
+        var segs = MathText.Split(src);
+        var m = Assert.Single(segs, s => s.Kind == MathSegKind.Inline);
+        Assert.Equal(" x=(x_{1},...,x_{n}) ", m.Tex);
+        Assert.Equal(src, string.Concat(segs.Select(s => s.Raw)));
+        foreach (var t in new[] { @"a $ \alpha $ b", "a $ x^2 $ b", "a $ y_1 $ b" })
+            Assert.Single(MathText.Split(t), s => s.Kind == MathSegKind.Inline);
+        // 印の無い空白付きは今まで通り文字（値段など）
+        Assert.All(MathText.Split("pay $ 5 and 10 $ now"), s => Assert.Equal(MathSegKind.Text, s.Kind));
+        Assert.All(MathText.Split("a $   $ b"), s => Assert.Equal(MathSegKind.Text, s.Kind));
+        // 表のセルでも同じ
+        Assert.Contains(CellMath.Split("$ x_{1} $"), s => s.Kind != CellSegKind.Text);
+    }
+
+    [Fact]
     public void 空の式は文字のまま()
     {
         var segs = MathText.Split("a $$ b");

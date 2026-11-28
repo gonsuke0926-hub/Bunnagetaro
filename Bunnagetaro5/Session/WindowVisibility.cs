@@ -82,6 +82,8 @@ internal sealed class WindowVisibility : IDisposable
 
         cap.StateChanged += OnCapStateChanged;
         cap.DummyDragChanged += OnCapDummyDragChanged;
+        cap.EdgeResized += OnCapEdgeResized;
+        cap.HoldChanged += OnCapHoldChanged;
         _capMinimized = cap.WindowState == WindowState.Minimized;
         // 単体テストなどで先に cap.Show() 済みの状態からつないだ場合も通常状態として扱う
         if (cap.IsVisible)
@@ -99,6 +101,8 @@ internal sealed class WindowVisibility : IDisposable
         {
             cap.StateChanged -= OnCapStateChanged;
             cap.DummyDragChanged -= OnCapDummyDragChanged;
+            cap.EdgeResized -= OnCapEdgeResized;
+            cap.HoldChanged -= OnCapHoldChanged;
         }
         _cap = null;
         _bar = null;
@@ -395,6 +399,33 @@ internal sealed class WindowVisibility : IDisposable
             SyncStripVisibility();
     }
 
+    /// <summary>縁で大きさを変えて窓の左上が動いた。位置の反映の区画は撮った時の画面の位置に残す</summary>
+    private void OnCapEdgeResized(int dxPx, int dyPx)
+    {
+        try { _panel?.View.ShiftLayoutOrigin(dxPx, dyPx); }
+        catch (Exception ex) { AppLog.Error("panel layout shift", ex); }
+    }
+
+    /// <summary>中（解答欄の余白）を押している間は、窓の中の解答欄を透明にして下の画面を見せる。離したら戻す
+    /// （引いて動かした時は、動かす間の隠し・出し直しがそのまま働く）</summary>
+    private void OnCapHoldChanged(bool down)
+    {
+        var panel = _panel;
+        if (panel is null) return;
+        if (down)
+        {
+            if (!panel.IsVisible) return;
+            _panelHeldHidden = true;
+            panel.View.Opacity = 0;
+            return;
+        }
+        if (!_panelHeldHidden) return;
+        _panelHeldHidden = false;
+        panel.View.Opacity = 1;
+    }
+
+    private bool _panelHeldHidden;
+
     private void OnCapDummyDragChanged(bool active)
     {
         var cap = _cap;
@@ -438,9 +469,28 @@ internal sealed class WindowVisibility : IDisposable
         if (panel is null || !_placer.TryGetCapClientRect(out var capHwnd, out var r)) return;
         PositionWindowDip(panel, capHwnd, r);
         WindowMotion.Restore(panel, 1.0);
+        // 隠れている間に大きさが変わると、出した最初の1コマに前の大きさの絵（隠す直前の絵）が引き伸ばされて写り、
+        // 「ぷるん」と見える。WindowMotion.ShowFade と同じく DWM の cloak で見えなくしてから出し、
+        // 新しい大きさで描いた絵が画面に出てから cloak を外す
+        var view = panel.View;
+        IntPtr ph = IntPtr.Zero;
+        try
+        {
+            ph = new WindowInteropHelper(panel).EnsureHandle();
+            if (ph != IntPtr.Zero && !Native.Cloak(ph, true)) ph = IntPtr.Zero;
+        }
+        catch (Exception ex) { AppLog.Error("panel show cloak", ex); ph = IntPtr.Zero; }
+        view.Opacity = 1;
         panel.Show();
         _touchPanelGen();
         _placer.PlacePanel();
+        panel.UpdateLayout();
+        if (ph == IntPtr.Zero) return;
+        panel.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
+        {
+            try { Native.DwmFlush(); Native.DwmFlush(); } catch { }
+            if (Native.IsWindow(ph)) Native.Cloak(ph, false);
+        }));
     }
 
     // ---------------- 外の解答欄（250ms 巡回を待たない） ----------------
